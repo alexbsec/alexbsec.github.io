@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Cecil Daemon&apos;s Wish</title>
+    <description>Personal hacker&apos;s blog</description>
+    <link>http://localhost:4000</link>
+    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
+    <author>
+      <name>J. Alex Buschinelli</name>
+      <email>buschinellijoao@gmail.com</email>
+      <uri>https://ashishchaudhary.in/hacker-blog</uri>
+    </author>
+    
+      <item>
+        <title>fd - pwnable.kr</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://pwnable.kr&quot;&gt;Pwnable&lt;/a&gt; is a website for cybersecurity enthusiasts willing to challenge themselves by solving different kinds of CTFs. I’ve come across it in one of my lazy YT shorts watching moments, where I found out about someone solving these CTFs. As an enthusiast myself, I thought: well, let’s give it a shot.&lt;/p&gt;
+
+&lt;p&gt;To my surprise, not only did it look pretty fun, but the level tag images are the different Ragnarok Online monsters cards. Ok! You got me here already! As someone with the alias ‘Cecil Daemon’, I felt obligated to start cracking each level.&lt;/p&gt;
+
+&lt;p&gt;This post is about solving the very first level, named ‘fd’. Let’s drop our Poring card!&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;challenge description&lt;/h1&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;Mommy! what is a file descriptor in Linux?&lt;/p&gt;
+
+  &lt;p&gt;try to play the wargame your self but if you are ABSOLUTE beginner, follow this tutorial link:
+https://youtu.be/971eZhMHQQw&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;ssh fd@pwnable.kr -p2222 (pw:guest)&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#phase-1&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;Ok, I’ll be spilling some gold here by letting you all know how I approach CTF challenges with a mindset that rarely fails me. First off, I’m not a C/C++ pro developer, but I have my fair share of coding in these languages. However, technical jargon was not always my strength. “&lt;em&gt;What the f*** is a file descriptor&lt;/em&gt;” was my first thought. Little did I know that I knew what it was, but not from its name.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
+
+&lt;p&gt;Think of it like this: if we don’t know what a file descriptor is, we’d better step back for a moment and learn about it. This is the first step - understanding the problem. In fact, I didn’t learn this doing CTFs.  I learned it while I was pursuing my totally unrelated Master’s Degree in Physics. The word for this is &lt;strong&gt;research&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;Research is always your best friend here, and the more we are comfortable at learning stuff, reading documentation and practicing what we’ve learned, the more easily these challenges blossom.&lt;/p&gt;
+
+&lt;h3 id=&quot;what-is-a-file-descriptor&quot;&gt;&lt;a href=&quot;#fd-definition&quot;&gt;&lt;/a&gt;What is a File Descriptor?&lt;/h3&gt;
+
+&lt;p&gt;File Descriptors are, put in simple terms, non-negative integers - more specifically 0, 1 and 2 - that are shorthands for three important concepts: 0 for Standard Input (stdin), 1 for Standard Output (stdout), and 2 for Standard Error (stderr). The table below summarizes what each of these terms mean&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th style=&quot;text-align: center&quot;&gt;Descriptor name&lt;/th&gt;
+      &lt;th&gt;Short name&lt;/th&gt;
+      &lt;th style=&quot;text-align: left&quot;&gt;Description&lt;/th&gt;
+      &lt;th style=&quot;text-align: left&quot;&gt;Descriptor integer&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;Standard in&lt;/td&gt;
+      &lt;td&gt;stdin&lt;/td&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;Input from keyboard&lt;/td&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;0&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;Standard out&lt;/td&gt;
+      &lt;td&gt;stdout&lt;/td&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;Output from console&lt;/td&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;Standard err&lt;/td&gt;
+      &lt;td&gt;stderr&lt;/td&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;Error output to the console&lt;/td&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;2&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;A simple example in Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like ‘dsasd’ - in the terminal will raise command not found:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial ~ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dsasd
+bash: dsasd: &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;not found
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;However, if we redirect our stderr to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/dev/null&lt;/code&gt;, we should see no error popping up:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial ~ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dsasd 2&amp;gt;/dev/null
+kaizen@celestial ~ :&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The same thing is true for our stdout descriptor. Running &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -la&lt;/code&gt; prints all contents in the current directory to our stdout descriptor:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+total 0
+drwxr-xr-x  5 kaizen &lt;span class=&quot;nb&quot;&gt;users &lt;/span&gt;160 Dec  1 23:39 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxrwxrwt 17 root   root  860 Dec  1 23:39 ..
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file1
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file2
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file3
+drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test1
+drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test2
+drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test3
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We could redirect the stdout to a file, so that the output will be saved into it:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; 1&amp;gt;stdout
+kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;stdout
+total 0
+drwxr-xr-x  5 kaizen &lt;span class=&quot;nb&quot;&gt;users &lt;/span&gt;180 Dec  1 23:41 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxrwxrwt 17 root   root  860 Dec  1 23:39 ..
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file1
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file2
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file3
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:41 stdout
+drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test1
+drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test2
+drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test3
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Finally, the stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ls&quot;&lt;/span&gt; | bash
+file1  file2  file3  stdout  test1  test2  test3
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here, our stdin is the string &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&quot;ls&quot;&lt;/code&gt;, which is being passed to our bash interpreter.&lt;/p&gt;
+
+&lt;h2 id=&quot;-step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt; Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;Now that we know what a file descriptor is and how to use it, we can finally start the CTF.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;em&gt;Tip: It’s good practice to check the CTF challenge before doing the research. In this case, however, since the challenge description mentioned something ‘new’ right from the bat, I decided to take the step back before actually checking the CTF problem. Most of the time, we need to first understand the proposed CTF challenge and then conduct the necessary research.&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;To start the CTF, we need to ssh into the machine. This can be done with the command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh fd@pwnable.kr -p2222&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;You will be prompted the password, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;guest&lt;/code&gt;. After successfully connecting to the machine, we can simply run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -l&lt;/code&gt; to see what we have in our home directory:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-l&lt;/span&gt;
+total 16
+&lt;span class=&quot;nt&quot;&gt;-r-sr-x---&lt;/span&gt; 1 fd_pwn fd   7322 Jun 11  2014 fd
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 root   root  418 Jun 11  2014 fd.c
+&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt; 1 fd_pwn root   50 Jun 11  2014 flag
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Note that we have a C code &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd.c&lt;/code&gt;; a binary file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; and a text file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt;. Let’s see who we are in the machine:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;whoami
+&lt;/span&gt;fd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Ok, based on the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;whoami&lt;/code&gt; command, we are not able to simply read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt;, as we are not part of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;root&lt;/code&gt; group, nor are we &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd_pwn&lt;/code&gt; user. However, we can read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd.c&lt;/code&gt; and execute &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. We can &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat fd.c&lt;/code&gt; to see its contents:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;string.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[],&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;envp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[]){&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;pass argv[1] a number&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fd&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;atoi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x1234&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;strcmp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;LETMEWIN&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)){&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;good job :)&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/bin/cat flag&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;learn about Linux file IO&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This program seems to be taking a single number argument in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; and evaluating the expression &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;atoi(argv[1]) - 0x1234&lt;/code&gt;, storing the result into the variable called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read&lt;/code&gt; C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;buf&lt;/code&gt; buffer variable.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; function will compare the string stored in the buffer with “LETMEWIN\n”, and if they are equal, &lt;em&gt;i.e.&lt;/em&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; returns 0, the if statement becomes &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!0&lt;/code&gt; (C equivalent to true).&lt;/p&gt;
+
+&lt;p&gt;The key to solve this problem is to pass an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; that will evaluate &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; to a file descriptor we can control containing the string “LETMEWIN”.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---choosing-an-attack-vector&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Choosing an attack vector&lt;/h2&gt;
+
+&lt;p&gt;Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; that will evaluate the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; variable to 0. Note that&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd = atoi(argv[1]) - 0x1234&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;which is telling us that the number we pass will be subtracted by &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x1234&lt;/code&gt;, a hexadecimal value. We can use &lt;a href=&quot;https://www.rapidtables.com/convert/number/hex-to-decimal.html&quot;&gt;this&lt;/a&gt; website to convert hex to decimal. Note that the hexadecimal number 0x1234 is 4660 in decimal. So, if we need &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; to be 0, we need to pass 4660 as the argument. If we did everything correctly, this argument will prompt us the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read&lt;/code&gt; function to input a stdin value, rather than just telling us to learn about Linux file IO, as we get if we pass a random number:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./fd 123
+learn about Linux file IO
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;However, passing 4660, the code starts expecting another input!&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./fd 4660
+asdasd
+learn about Linux file IO
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Promising!&lt;/p&gt;
+
+&lt;h2 id=&quot;-step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt; Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;I think the solution becomes self explanatory at this point. If not, it may be a good idea to re-read this post!&lt;/p&gt;
+
+&lt;p&gt;When the code expects the second input, which is the stdin descriptor, we need to pass the string “LETMEWIN” so that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; evaluates to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!0&lt;/code&gt;, triggering the if statement that reads the flag:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./fd 4660
+LETMEWIN
+good job :&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+mommy! I think I know what a file descriptor is!!
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Amazing! Enjoy your Poring card drop. It was well deserved!&lt;/p&gt;
+
+&lt;h3 id=&quot;-another-solution&quot;&gt;&lt;a href=&quot;#solution2&quot;&gt;&lt;/a&gt; Another solution&lt;/h3&gt;
+
+&lt;p&gt;Another way to solve this is piping the “LETMEWIN” string directly to the program. This is similar to the example we gave about stdin descriptor &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;echo &quot;ls&quot; | bash&lt;/code&gt;, which executes the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command.&lt;/p&gt;
+
+&lt;p&gt;Here, we basically do the same thing, but passing “LETMEWIN” to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./fd 4660&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~$ echo &quot;LETMEWIN&quot; | ./fd 4660
+good job :)
+mommy! I think I know what a file descriptor is!!
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;-conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt; Conclusion&lt;/h1&gt;
+
+&lt;p&gt;Solving CTFs and anything in life, for that matter, comes down to doing a good research beforehand.&lt;/p&gt;
+
+&lt;p&gt;In this CTF, we’ve learned what file descriptors are, as well as understood some C code analysis on the way.&lt;/p&gt;
+
+&lt;p&gt;Thanks for sticking ‘til the end. I hope you enjoyed it! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 01 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//fd-pwnable</link>
+        <link href="http://localhost:4000/fd-pwnable"/>
+        <guid isPermaLink="true">http://localhost:4000/fd-pwnable</guid>
+      </item>
+    
+  </channel>
+</rss>

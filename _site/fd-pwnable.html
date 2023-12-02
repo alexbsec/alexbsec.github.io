@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+
+  <title>fd - pwnable.kr</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>fd - pwnable.kr | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="fd - pwnable.kr" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/fd-pwnable" />
+<meta property="og:url" content="http://localhost:4000/fd-pwnable" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-12-01T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="fd - pwnable.kr" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2023-12-01T00:00:00+00:00","datePublished":"2023-12-01T00:00:00+00:00","description":"Introduction","headline":"fd - pwnable.kr","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/fd-pwnable"},"url":"http://localhost:4000/fd-pwnable"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/fd-pwnable$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>fd - pwnable.kr</h2>
+  <time datetime="2023-12-01T00:00:00+00:00" class="by-line">01 Dec 2023</time>
+  <p>Estimated read time: 9 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p><a href="https://pwnable.kr">Pwnable</a> is a website for cybersecurity enthusiasts willing to challenge themselves by solving different kinds of CTFs. I’ve come across it in one of my lazy YT shorts watching moments, where I found out about someone solving these CTFs. As an enthusiast myself, I thought: well, let’s give it a shot.</p>
+
+<p>To my surprise, not only did it look pretty fun, but the level tag images are the different Ragnarok Online monsters cards. Ok! You got me here already! As someone with the alias ‘Cecil Daemon’, I felt obligated to start cracking each level.</p>
+
+<p>This post is about solving the very first level, named ‘fd’. Let’s drop our Poring card!</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>challenge description</h1>
+<blockquote>
+  <p>Mommy! what is a file descriptor in Linux?</p>
+
+  <p>try to play the wargame your self but if you are ABSOLUTE beginner, follow this tutorial link:
+https://youtu.be/971eZhMHQQw</p>
+</blockquote>
+
+<blockquote>
+  <p>ssh fd@pwnable.kr -p2222 (pw:guest)</p>
+</blockquote>
+
+<h1 id="approach-mindset"><a href="#phase-1"></a>Approach mindset</h1>
+
+<p>Ok, I’ll be spilling some gold here by letting you all know how I approach CTF challenges with a mindset that rarely fails me. First off, I’m not a C/C++ pro developer, but I have my fair share of coding in these languages. However, technical jargon was not always my strength. “<em>What the f*** is a file descriptor</em>” was my first thought. Little did I know that I knew what it was, but not from its name.</p>
+
+<h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
+
+<p>Think of it like this: if we don’t know what a file descriptor is, we’d better step back for a moment and learn about it. This is the first step - understanding the problem. In fact, I didn’t learn this doing CTFs.  I learned it while I was pursuing my totally unrelated Master’s Degree in Physics. The word for this is <strong>research</strong>.</p>
+
+<p>Research is always your best friend here, and the more we are comfortable at learning stuff, reading documentation and practicing what we’ve learned, the more easily these challenges blossom.</p>
+
+<h3 id="what-is-a-file-descriptor"><a href="#fd-definition"></a>What is a File Descriptor?</h3>
+
+<p>File Descriptors are, put in simple terms, non-negative integers - more specifically 0, 1 and 2 - that are shorthands for three important concepts: 0 for Standard Input (stdin), 1 for Standard Output (stdout), and 2 for Standard Error (stderr). The table below summarizes what each of these terms mean</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">Descriptor name</th>
+      <th>Short name</th>
+      <th style="text-align: left">Description</th>
+      <th style="text-align: left">Descriptor integer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">Standard in</td>
+      <td>stdin</td>
+      <td style="text-align: left">Input from keyboard</td>
+      <td style="text-align: left">0</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">Standard out</td>
+      <td>stdout</td>
+      <td style="text-align: left">Output from console</td>
+      <td style="text-align: left">1</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">Standard err</td>
+      <td>stderr</td>
+      <td style="text-align: left">Error output to the console</td>
+      <td style="text-align: left">2</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>A simple example in Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like ‘dsasd’ - in the terminal will raise command not found:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial ~ <span class="nv">$ </span>dsasd
+bash: dsasd: <span class="nb">command </span>not found
+</code></pre></div></div>
+
+<p>However, if we redirect our stderr to <code class="language-plaintext highlighter-rouge">/dev/null</code>, we should see no error popping up:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial ~ <span class="nv">$ </span>dsasd 2&gt;/dev/null
+kaizen@celestial ~ :<span class="o">(</span> <span class="nv">$ </span>
+</code></pre></div></div>
+
+<p>The same thing is true for our stdout descriptor. Running <code class="language-plaintext highlighter-rouge">ls -la</code> prints all contents in the current directory to our stdout descriptor:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/fd <span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-la</span>
+total 0
+drwxr-xr-x  5 kaizen <span class="nb">users </span>160 Dec  1 23:39 <span class="nb">.</span>
+drwxrwxrwt 17 root   root  860 Dec  1 23:39 ..
+<span class="nt">-rw-r--r--</span>  1 kaizen <span class="nb">users   </span>0 Dec  1 23:39 file1
+<span class="nt">-rw-r--r--</span>  1 kaizen <span class="nb">users   </span>0 Dec  1 23:39 file2
+<span class="nt">-rw-r--r--</span>  1 kaizen <span class="nb">users   </span>0 Dec  1 23:39 file3
+drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test1
+drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test2
+drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test3
+</code></pre></div></div>
+
+<p>We could redirect the stdout to a file, so that the output will be saved into it:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/fd <span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-la</span> 1&gt;stdout
+kaizen@celestial /tmp/fd <span class="nv">$ </span><span class="nb">cat </span>stdout
+total 0
+drwxr-xr-x  5 kaizen <span class="nb">users </span>180 Dec  1 23:41 <span class="nb">.</span>
+drwxrwxrwt 17 root   root  860 Dec  1 23:39 ..
+<span class="nt">-rw-r--r--</span>  1 kaizen <span class="nb">users   </span>0 Dec  1 23:39 file1
+<span class="nt">-rw-r--r--</span>  1 kaizen <span class="nb">users   </span>0 Dec  1 23:39 file2
+<span class="nt">-rw-r--r--</span>  1 kaizen <span class="nb">users   </span>0 Dec  1 23:39 file3
+<span class="nt">-rw-r--r--</span>  1 kaizen <span class="nb">users   </span>0 Dec  1 23:41 stdout
+drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test1
+drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test2
+drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test3
+</code></pre></div></div>
+
+<p>Finally, the stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/fd <span class="nv">$ </span><span class="nb">echo</span> <span class="s2">"ls"</span> | bash
+file1  file2  file3  stdout  test1  test2  test3
+</code></pre></div></div>
+
+<p>Here, our stdin is the string <code class="language-plaintext highlighter-rouge">"ls"</code>, which is being passed to our bash interpreter.</p>
+
+<h2 id="-step-2---understanding-the-problem"><a href="#mindset-step1"></a> Step 2 - Understanding the problem</h2>
+
+<p>Now that we know what a file descriptor is and how to use it, we can finally start the CTF.</p>
+
+<ul>
+  <li><em>Tip: It’s good practice to check the CTF challenge before doing the research. In this case, however, since the challenge description mentioned something ‘new’ right from the bat, I decided to take the step back before actually checking the CTF problem. Most of the time, we need to first understand the proposed CTF challenge and then conduct the necessary research.</em></li>
+</ul>
+
+<p>To start the CTF, we need to ssh into the machine. This can be done with the command:</p>
+
+<p><code class="language-plaintext highlighter-rouge">ssh fd@pwnable.kr -p2222</code></p>
+
+<p>You will be prompted the password, which is <code class="language-plaintext highlighter-rouge">guest</code>. After successfully connecting to the machine, we can simply run <code class="language-plaintext highlighter-rouge">ls -l</code> to see what we have in our home directory:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fd@pwnable:~<span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-l</span>
+total 16
+<span class="nt">-r-sr-x---</span> 1 fd_pwn fd   7322 Jun 11  2014 fd
+<span class="nt">-rw-r--r--</span> 1 root   root  418 Jun 11  2014 fd.c
+<span class="nt">-r--r-----</span> 1 fd_pwn root   50 Jun 11  2014 flag
+</code></pre></div></div>
+
+<p>Note that we have a C code <code class="language-plaintext highlighter-rouge">fd.c</code>; a binary file <code class="language-plaintext highlighter-rouge">fd</code> and a text file <code class="language-plaintext highlighter-rouge">flag</code>. Let’s see who we are in the machine:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fd@pwnable:~<span class="nv">$ </span><span class="nb">whoami
+</span>fd
+</code></pre></div></div>
+
+<p>Ok, based on the <code class="language-plaintext highlighter-rouge">whoami</code> command, we are not able to simply read <code class="language-plaintext highlighter-rouge">flag</code>, as we are not part of the <code class="language-plaintext highlighter-rouge">root</code> group, nor are we <code class="language-plaintext highlighter-rouge">fd_pwn</code> user. However, we can read <code class="language-plaintext highlighter-rouge">fd.c</code> and execute <code class="language-plaintext highlighter-rouge">fd</code>. We can <code class="language-plaintext highlighter-rouge">cat fd.c</code> to see its contents:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp">
+</span><span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[],</span> <span class="kt">char</span><span class="o">*</span> <span class="n">envp</span><span class="p">[]){</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">argc</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">){</span>
+                <span class="n">printf</span><span class="p">(</span><span class="s">"pass argv[1] a number</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+                <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="kt">int</span> <span class="n">fd</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span> <span class="o">-</span> <span class="mh">0x1234</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">len</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="mi">32</span><span class="p">);</span>
+        <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">strcmp</span><span class="p">(</span><span class="s">"LETMEWIN</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">buf</span><span class="p">)){</span>
+                <span class="n">printf</span><span class="p">(</span><span class="s">"good job :)</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+                <span class="n">system</span><span class="p">(</span><span class="s">"/bin/cat flag"</span><span class="p">);</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"learn about Linux file IO</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This program seems to be taking a single number argument in <code class="language-plaintext highlighter-rouge">argv[1]</code> and evaluating the expression <code class="language-plaintext highlighter-rouge">atoi(argv[1]) - 0x1234</code>, storing the result into the variable called <code class="language-plaintext highlighter-rouge">fd</code>. The <code class="language-plaintext highlighter-rouge">read</code> C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the <code class="language-plaintext highlighter-rouge">buf</code> buffer variable.</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">strcmp</code> function will compare the string stored in the buffer with “LETMEWIN\n”, and if they are equal, <em>i.e.</em>, <code class="language-plaintext highlighter-rouge">strcmp</code> returns 0, the if statement becomes <code class="language-plaintext highlighter-rouge">!0</code> (C equivalent to true).</p>
+
+<p>The key to solve this problem is to pass an <code class="language-plaintext highlighter-rouge">argv[1]</code> that will evaluate <code class="language-plaintext highlighter-rouge">fd</code> to a file descriptor we can control containing the string “LETMEWIN”.</p>
+
+<h2 id="step-3---choosing-an-attack-vector"><a href="#mindset-step3"></a>Step 3 - Choosing an attack vector</h2>
+
+<p>Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an <code class="language-plaintext highlighter-rouge">argv[1]</code> that will evaluate the <code class="language-plaintext highlighter-rouge">fd</code> variable to 0. Note that</p>
+
+<p><code class="language-plaintext highlighter-rouge">fd = atoi(argv[1]) - 0x1234</code></p>
+
+<p>which is telling us that the number we pass will be subtracted by <code class="language-plaintext highlighter-rouge">0x1234</code>, a hexadecimal value. We can use <a href="https://www.rapidtables.com/convert/number/hex-to-decimal.html">this</a> website to convert hex to decimal. Note that the hexadecimal number 0x1234 is 4660 in decimal. So, if we need <code class="language-plaintext highlighter-rouge">fd</code> to be 0, we need to pass 4660 as the argument. If we did everything correctly, this argument will prompt us the <code class="language-plaintext highlighter-rouge">read</code> function to input a stdin value, rather than just telling us to learn about Linux file IO, as we get if we pass a random number:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fd@pwnable:~<span class="nv">$ </span>./fd 123
+learn about Linux file IO
+</code></pre></div></div>
+
+<p>However, passing 4660, the code starts expecting another input!</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fd@pwnable:~<span class="nv">$ </span>./fd 4660
+asdasd
+learn about Linux file IO
+</code></pre></div></div>
+
+<p>Promising!</p>
+
+<h2 id="-step-4---solving"><a href="#mindset-step4"></a> Step 4 - Solving!</h2>
+
+<p>I think the solution becomes self explanatory at this point. If not, it may be a good idea to re-read this post!</p>
+
+<p>When the code expects the second input, which is the stdin descriptor, we need to pass the string “LETMEWIN” so that <code class="language-plaintext highlighter-rouge">strcmp</code> evaluates to <code class="language-plaintext highlighter-rouge">!0</code>, triggering the if statement that reads the flag:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fd@pwnable:~<span class="nv">$ </span>./fd 4660
+LETMEWIN
+good job :<span class="o">)</span>
+mommy! I think I know what a file descriptor is!!
+</code></pre></div></div>
+
+<p>Amazing! Enjoy your Poring card drop. It was well deserved!</p>
+
+<h3 id="-another-solution"><a href="#solution2"></a> Another solution</h3>
+
+<p>Another way to solve this is piping the “LETMEWIN” string directly to the program. This is similar to the example we gave about stdin descriptor <code class="language-plaintext highlighter-rouge">echo "ls" | bash</code>, which executes the <code class="language-plaintext highlighter-rouge">ls</code> command.</p>
+
+<p>Here, we basically do the same thing, but passing “LETMEWIN” to <code class="language-plaintext highlighter-rouge">./fd 4660</code></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fd@pwnable:~$ echo "LETMEWIN" | ./fd 4660
+good job :)
+mommy! I think I know what a file descriptor is!!
+</code></pre></div></div>
+
+<h1 id="-conclusion"><a href="#conclusions"></a> Conclusion</h1>
+
+<p>Solving CTFs and anything in life, for that matter, comes down to doing a good research beforehand.</p>
+
+<p>In this CTF, we’ve learned what file descriptors are, as well as understood some C code analysis on the way.</p>
+
+<p>Thanks for sticking ‘til the end. I hope you enjoyed it! And remember, always do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Cecil Daemon</b>
+    </span>
+    
+    <span>© 2023</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>

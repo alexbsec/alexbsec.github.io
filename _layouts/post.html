@@ -1,0 +1,10 @@
+---
+layout: default
+---
+
+<article>
+  <h2>{{ page.title }}</h2>
+  <time datetime="{{ page.date | date_to_xmlschema }}" class="by-line">{{ page.date | date_to_string }}</time>
+  <p>Estimated read time: {{ content | number_of_words | divided_by: 200 }} minutes</p>
+  {{ content }}
+</article>

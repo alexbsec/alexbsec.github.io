@@ -1,0 +1,22 @@
+<header>
+  <div>
+    <a href="{{ "/" | prepend: site.baseurl | replace: '//', '/' }}">
+    {% assign owner_first_name = site.owner | split: " " %}
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="{{ "/" | prepend: site.baseurl | replace: '//', '/' }}" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="{{ '/assets/cecil.gif' | prepend: site.baseurl | replace: '//', '/' }}" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          {% assign owner_first_name = site.owner | split: " " %}
+          {% if page.url == "/" %}
+          <h1>cecil@celestial:~$</h1>
+      {% else %}
+          <h1>cecil@celestial:{{ page.url }}$</h1>
+      {% endif %}
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      {% include links.html %}
+    </div>
+  </div>
+</header>
