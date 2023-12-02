@@ -40,7 +40,7 @@ File Descriptors are, put in simple terms, non-negative integers - more specific
 | Standard out          | stdout             | Output from console           | 1 
 | Standard err          | stderr             | Error output to the console   | 2
 
-A simple example in Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like 'dsasd' - in the terminal will raise command not found:
+A simple example in the Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like 'dsasd' - in the terminal will raise a "command not found" error:
 
 ```bash
 kaizen@celestial ~ $ dsasd
@@ -86,7 +86,7 @@ drwxr-xr-x  2 kaizen users  40 Dec  1 23:39 test2
 drwxr-xr-x  2 kaizen users  40 Dec  1 23:39 test3
 ```
 
-Finally, the stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as
+Finally, stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as:
 
 ```bash
 kaizen@celestial /tmp/fd $ echo "ls" | bash
@@ -106,7 +106,7 @@ To start the CTF, we need to ssh into the machine. This can be done with the com
 
 `ssh fd@pwnable.kr -p2222`
 
-You will be prompted the password, which is `guest`. After successfully connecting to the machine, we can simply run `ls -l` to see what we have in our home directory:
+You will be prompted for the password, which is `guest`. After successfully connecting to the machine, we can simply run ls -l to see what we have in our home directory:
 
 ```bash
 fd@pwnable:~$ ls -l
@@ -123,7 +123,7 @@ fd@pwnable:~$ whoami
 fd
 ```
 
-Ok, based on the `whoami` command, we are not able to simply read `flag`, as we are not part of the `root` group, nor are we `fd_pwn` user. However, we can read `fd.c` and execute `fd`. We can `cat fd.c` to see its contents:
+Okay, based on the `whoami` command, we are not able to simply read `flag`, as we are not part of the `root` group, nor are we `fd_pwn` user. However, we can read `fd.c` and execute `fd`. We can `cat fd.c` to see its contents:
 
 ```c
 #include <stdio.h>
@@ -149,7 +149,7 @@ int main(int argc, char* argv[], char* envp[]){
 }
 ```
 
-This program seems to be taking a single number argument in `argv[1]` and evaluating the expression `atoi(argv[1]) - 0x1234`, storing the result into the variable called `fd`. The `read` C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the `buf` buffer variable. 
+This program seems to be taking a single-number argument in `argv[1]` and evaluating the expression `atoi(argv[1]) - 0x1234`, storing the result into the variable called `fd`. The `read` C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the `buf` buffer variable. 
 
 The `strcmp` function will compare the string stored in the buffer with "LETMEWIN\n", and if they are equal, _i.e._, `strcmp` returns 0, the if statement becomes `!0` (C equivalent to true).
 
@@ -157,7 +157,7 @@ The key to solve this problem is to pass an `argv[1]` that will evaluate `fd` to
 
 ## [](#mindset-step3)Step 3 - Choosing an attack vector
 
-Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an `argv[1]` that will evaluate the `fd` variable to 0. Note that
+Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an `argv[1]` that will evaluate the `fd` variable to 0. Note that:
 
 `fd = atoi(argv[1]) - 0x1234`
 
