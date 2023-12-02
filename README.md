@@ -4,7 +4,7 @@ Welcome to the GitHub repository of "Cecil Daemon's Cyber Chronicles" - a Jekyll
 
 ## About the Blog
 
-"Cecil Daemon's Wish" is a platform where I, Alex Buschinelli (João Buschinelli in Brazil), share my journey as a Cybersecurity Analyst, CTF player, Bug Bounty Hunter, and a cosmology physicist. The blog features write-ups on various cybersecurity topics, CTF solutions, and my personal projects, with a unique twist inspired by the world of Ragnarok Online.
+"Cecil Daemon's Wish" is a platform where I, Alex Buschinelli (João Buschinelli in Brazil), share my journey as a Cybersecurity Analyst, CTF player, and Bug Bounty Hunter. The blog features write-ups on various cybersecurity topics, CTF solutions, and my personal projects, with a unique twist inspired by the world of Ragnarok Online.
 
 ## Getting Started
 
@@ -30,9 +30,12 @@ While this is a personal blog, contributions in the form of bug reports, fixes, 
 
 # License
 
+The theme is used under the license **CC0 1.0 Universal" (CC0 1.0) Public Domain Dedication**. Props to [https://github.com/tocttou/hacker-blog]tocttou for making this theme publicly available.
+
 # Contact
 
 For any inquiries or suggestions, feel free to reach out to me at buschinellijoao@gmail.com.
 
 ----------------
+
 Happy reading, and may your journey through the cyber realm be as exciting as a quest in Rune Midgard!
