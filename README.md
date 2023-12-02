@@ -30,7 +30,7 @@ While this is a personal blog, contributions in the form of bug reports, fixes, 
 
 # License
 
-The theme is used under the license **CC0 1.0 Universal" (CC0 1.0) Public Domain Dedication**. Props to <a href="https://github.com/tocttou/hacker-blog">tocttou</a> for making this theme publicly available.
+The theme is used under the license **CC0 1.0 Universal" (CC0 1.0) Public Domain Dedication**. Props to [tocttou](https://github.com/tocttou) making this theme publicly available.
 
 # Contact
 
