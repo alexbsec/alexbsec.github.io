@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
   <meta name="generator" content="Jekyll">
@@ -194,7 +202,7 @@ total 16
 
 <p>Note that we need to pass a <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> that is represented in its hexadecimal value as <code class="language-plaintext highlighter-rouge">hashcode</code>. This is where the collision happens! Note that the <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> must have 20 bytes in length. When <code class="language-plaintext highlighter-rouge">check_password</code> is called, it will break our <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> into 5 different integer values that must add up to <code class="language-plaintext highlighter-rouge">hashcode</code>. That means the <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> must add up to <code class="language-plaintext highlighter-rouge">0x21DD09EC</code> within 5 iterations. For that matter, we need to divide <code class="language-plaintext highlighter-rouge">0x21DD09EC</code> by 5, and the result must be our 4 bytes sub-messages of our 20 bytes <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code>.</p>
 
-<p>We can use <a href="https://www.calculator.   net/hex-calculator.html">this</a> hex calculator to properly find the division of <code class="language-plaintext highlighter-rouge">hashcode</code> by 5:</p>
+<p>We can use <a href="https://www.calculator.net/hex-calculator.html">this</a> hex calculator to properly find the division of <code class="language-plaintext highlighter-rouge">hashcode</code> by 5:</p>
 
 \[\frac{0\text{x21DD09EC}}{5} = 0\text{x6C5CEC8} \text{ remainder : 4}\]
 
@@ -288,7 +296,7 @@ passcode length should be 20 bytes
 
 <p>As we can see, that did not work either.</p>
 
-<h2 id="attempt-4">Attempt 4</h2>
+<h3 id="attempt-4">Attempt 4</h3>
 
 <p>I was getting tired of counting single, double quotes, and escaped single quotes. Maybe I should take a different approach. Maybe the problem wasn’t the quotation, but the way <code class="language-plaintext highlighter-rouge">print</code> function outputs raw bytes.</p>
 

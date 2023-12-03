@@ -128,7 +128,7 @@ total 16
 
 &lt;p&gt;Note that we need to pass a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; that is represented in its hexadecimal value as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt;. This is where the collision happens! Note that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; must have 20 bytes in length. When &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;check_password&lt;/code&gt; is called, it will break our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; into 5 different integer values that must add up to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt;. That means the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; must add up to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x21DD09EC&lt;/code&gt; within 5 iterations. For that matter, we need to divide &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x21DD09EC&lt;/code&gt; by 5, and the result must be our 4 bytes sub-messages of our 20 bytes &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt;.&lt;/p&gt;
 
-&lt;p&gt;We can use &lt;a href=&quot;https://www.calculator.   net/hex-calculator.html&quot;&gt;this&lt;/a&gt; hex calculator to properly find the division of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt; by 5:&lt;/p&gt;
+&lt;p&gt;We can use &lt;a href=&quot;https://www.calculator.net/hex-calculator.html&quot;&gt;this&lt;/a&gt; hex calculator to properly find the division of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt; by 5:&lt;/p&gt;
 
 \[\frac{0\text{x21DD09EC}}{5} = 0\text{x6C5CEC8} \text{ remainder : 4}\]
 
@@ -222,7 +222,7 @@ passcode length should be 20 bytes
 
 &lt;p&gt;As we can see, that did not work either.&lt;/p&gt;
 
-&lt;h2 id=&quot;attempt-4&quot;&gt;Attempt 4&lt;/h2&gt;
+&lt;h3 id=&quot;attempt-4&quot;&gt;Attempt 4&lt;/h3&gt;
 
 &lt;p&gt;I was getting tired of counting single, double quotes, and escaped single quotes. Maybe I should take a different approach. Maybe the problem wasn’t the quotation, but the way &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;print&lt;/code&gt; function outputs raw bytes.&lt;/p&gt;
 
