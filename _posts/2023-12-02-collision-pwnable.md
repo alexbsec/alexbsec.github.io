@@ -107,7 +107,7 @@ Let's understand now what the `check_password` function does:
 
 Note that we need to pass a `<passcode>` that is represented in its hexadecimal value as `hashcode`. This is where the collision happens! Note that the `<passcode>` must have 20 bytes in length. When `check_password` is called, it will break our `<passcode>` into 5 different integer values that must add up to `hashcode`. That means the `<passcode>` must add up to `0x21DD09EC` within 5 iterations. For that matter, we need to divide `0x21DD09EC` by 5, and the result must be our 4 bytes sub-messages of our 20 bytes `<passcode>`.
 
-We can use [this](https://www.calculator.   net/hex-calculator.html) hex calculator to properly find the division of `hashcode` by 5:
+We can use [this](https://www.calculator.net/hex-calculator.html) hex calculator to properly find the division of `hashcode` by 5:
 
 $$\frac{0\text{x21DD09EC}}{5} = 0\text{x6C5CEC8} \text{ remainder : 4}$$
 
