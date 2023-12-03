@@ -202,7 +202,7 @@ passcode length should be 20 bytes
 
 As we can see, that did not work either.
 
-## Attempt 4
+### Attempt 4
 
 I was getting tired of counting single, double quotes, and escaped single quotes. Maybe I should take a different approach. Maybe the problem wasn't the quotation, but the way `print` function outputs raw bytes. 
 
