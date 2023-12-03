@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>collision - pwnable.kr</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>collision - pwnable.kr | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="collision - pwnable.kr" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/collision-pwnable" />
+<meta property="og:url" content="http://localhost:4000/collision-pwnable" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-12-02T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="collision - pwnable.kr" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2023-12-02T00:00:00+00:00","datePublished":"2023-12-02T00:00:00+00:00","description":"Introduction","headline":"collision - pwnable.kr","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/collision-pwnable"},"url":"http://localhost:4000/collision-pwnable"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/collision-pwnable$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>collision - pwnable.kr</h2>
+  <time datetime="2023-12-02T00:00:00+00:00" class="by-line">02 Dec 2023</time>
+  <p>Estimated read time: 11 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>Let’s continue with our card dropping adventures on <a href="https://pwnable.kr">Pwnable</a>. This time, we will be dropping Fabre’s card. If you haven’t checked my first blog post solving ‘fd’ on Pwnable, go check it out <a href="fd-pwnable">here</a>.</p>
+
+<p>Let’s start!</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+<blockquote>
+  <p>Daddy told me about cool MD5 hash collision today.
+I wanna do something like that too!</p>
+
+  <p>ssh col@pwnable.kr -p2222 (pw:guest)</p>
+</blockquote>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>Simarly to the last CTF challenge, we shall tackle this one by first understanding what is a <em>MD5 hash collision</em> before we even ssh into the machine.</p>
+
+<h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
+
+<p>MD5 hash collision is a well defined attack, with many different articles and papers explaining the concept. For instance, <a href="https://scholarworks.sjsu.edu/cgi/viewcontent.cgi?referer=&amp;httpsredir=1&amp;article=1020&amp;context=etd_projects">D. Kashyap</a> has a complete dedicated Master’s thesis on this, which might be more than enough for us to understand this attack.</p>
+
+<p>In it, we can see that the definition of a collision attack is: <em>“Finding two different messages that gives the same hash value”</em>.</p>
+
+<p>The idea is the following: in a collision attack, the goal is to find two distinct messages $M$ and $M’$ that produce the same hash value $h$. This can be conceptualized by modifying subcomponents of $M$ - say $M_0$ and $M_1$ - to create the new message $M’$ - composed of $M_0’$ and $M_1’$ - such that the hash of $M’$ equals the hash of $M$.</p>
+
+<p>The relations between the two subcomponents of $M$ and $M’$ are</p>
+
+\[M_0' = M_0 + \Delta M_0\]
+
+<p>and</p>
+
+\[M_1' = M_1 + \Delta M_1\]
+
+<p>where $\Delta M_0 = M_0’ - M_0$ and $\Delta M_1 = M_1’ - M_1$ are the bitwise difference of the two sub-message pairs. These two, $\Delta M_0$ and $\Delta M_1$, are typically complex to calculate, but if succeeded, they do compromise the integrity of systems using MD5 by allowing different inputs to be treated as identical.</p>
+
+<p>While I doubt these calculations are going to be related to this CTF’s, it is good practice to understand the broader concept of collisions, as it might help us solve the challange. If you are interested in reading more about the specifics of MD5 collision, check it out <a href="https://scholarworks.sjsu.edu/cgi/viewcontent.cgi?referer=&amp;httpsredir=1&amp;article=1020&amp;context=etd_projects">D. Kashyap</a> thesis.</p>
+
+<h2 id="step-2---understanding-the-problem"><a href="#mindset-step2"></a>Step 2 - Understanding the problem</h2>
+
+<p>Alright, let’s ssh into the machine and take a look around! We can ssh with the command:</p>
+
+<p><code class="language-plaintext highlighter-rouge">ssh col@pwnable.kr -p2222</code></p>
+
+<p>Remember to pass the correct password, which is <code class="language-plaintext highlighter-rouge">guest</code>. As soon as we land into the machine, we can run the <code class="language-plaintext highlighter-rouge">ls -l</code> command. This gives us:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>col@pwnable:~<span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-l</span>
+total 16
+<span class="nt">-r-sr-x---</span> 1 col_pwn col     7341 Jun 11  2014 col
+<span class="nt">-rw-r--r--</span> 1 root    root     555 Jun 12  2014 col.c
+<span class="nt">-r--r-----</span> 1 col_pwn col_pwn   52 Jun 11  2014 flag
+</code></pre></div></div>
+
+<p>Let’s take a look at the <code class="language-plaintext highlighter-rouge">col.c</code> script:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp">
+</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">hashcode</span> <span class="o">=</span> <span class="mh">0x21DD09EC</span><span class="p">;</span>
+<span class="kt">unsigned</span> <span class="kt">long</span> <span class="nf">check_password</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">p</span><span class="p">){</span>
+        <span class="kt">int</span><span class="o">*</span> <span class="n">ip</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="o">*</span><span class="p">)</span><span class="n">p</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">res</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+        <span class="k">for</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">5</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+                <span class="n">res</span> <span class="o">+=</span> <span class="n">ip</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">argc</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">){</span>
+                <span class="n">printf</span><span class="p">(</span><span class="s">"usage : %s [passcode]</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+                <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">strlen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">20</span><span class="p">){</span>
+                <span class="n">printf</span><span class="p">(</span><span class="s">"passcode length should be 20 bytes</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+                <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">hashcode</span> <span class="o">==</span> <span class="n">check_password</span><span class="p">(</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">)){</span>
+                <span class="n">system</span><span class="p">(</span><span class="s">"/bin/cat flag"</span><span class="p">);</span>
+                <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+                <span class="n">printf</span><span class="p">(</span><span class="s">"wrong passcode.</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Hmmm. Interesting. This looks like a simple password verification code, which we can use by running <code class="language-plaintext highlighter-rouge">./col &lt;passcode&gt;</code>. Let’s break it down:</p>
+
+<ol>
+  <li>
+    <p>First, the code checks if our <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> input has length 20. If not, then it warns us that it must have length 20.</p>
+  </li>
+  <li>
+    <p>If our passcode has 20 bytes, then the code will pass it to the <code class="language-plaintext highlighter-rouge">check_password</code> function. If the output from the <code class="language-plaintext highlighter-rouge">check_password</code> equals <code class="language-plaintext highlighter-rouge">hashcode = 0x21DD09EC</code>, then we solve the challenge.</p>
+  </li>
+</ol>
+
+<p>Let’s understand now what the <code class="language-plaintext highlighter-rouge">check_password</code> function does:</p>
+
+<ol>
+  <li>
+    <p>First, it initializes an integer pointer <code class="language-plaintext highlighter-rouge">ip</code> that references each 4 bytes of <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> as an integer.</p>
+  </li>
+  <li>
+    <p>It then initializes <code class="language-plaintext highlighter-rouge">res</code> integer as 0, thus interpreting the input string as an array of integers. This means that each 4 bytes of the passcode are grouped together and interpreted as one integer.</p>
+  </li>
+  <li>
+    <p>Finally, it returns <code class="language-plaintext highlighter-rouge">res</code> with the hexadecimal representation of the <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> we provided.</p>
+  </li>
+</ol>
+
+<p>Note that we need to pass a <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> that is represented in its hexadecimal value as <code class="language-plaintext highlighter-rouge">hashcode</code>. This is where the collision happens! Note that the <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> must have 20 bytes in length. When <code class="language-plaintext highlighter-rouge">check_password</code> is called, it will break our <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> into 5 different integer values that must add up to <code class="language-plaintext highlighter-rouge">hashcode</code>. That means the <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> must add up to <code class="language-plaintext highlighter-rouge">0x21DD09EC</code> within 5 iterations. For that matter, we need to divide <code class="language-plaintext highlighter-rouge">0x21DD09EC</code> by 5, and the result must be our 4 bytes sub-messages of our 20 bytes <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code>.</p>
+
+<p>We can use <a href="https://www.calculator.   net/hex-calculator.html">this</a> hex calculator to properly find the division of <code class="language-plaintext highlighter-rouge">hashcode</code> by 5:</p>
+
+\[\frac{0\text{x21DD09EC}}{5} = 0\text{x6C5CEC8} \text{ remainder : 4}\]
+
+<p>The division is not exact, which means we have a leftover term to be added in order to retrieve the exact value of <code class="language-plaintext highlighter-rouge">hashcode</code>. This means that:</p>
+
+\[\text{remainder} = 0\text{x21DD09EC} - 4*0\text{x6C5CEC8}\]
+
+<p>Which is the same as</p>
+
+\[\text{remainder} = 0\text{x21DD09EC} - 0\text{x1B173B20} = 0\text{x6C5CECC}\]
+
+<p>So, if our calculations are correct, we have:</p>
+
+\[\text{hashcode} = 0\text{x21DD09EC} = 4*0\text{x6C5CEC8} + 0\text{x6C5CECC}\]
+
+<p>In other words, our <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> must have four 4 bytes strings with value <code class="language-plaintext highlighter-rouge">0x6C5CEC8</code> collided with one 4 bytes integer with value <code class="language-plaintext highlighter-rouge">0x6C5CECC</code>. This will sum up to a 20 bytes integer and <code class="language-plaintext highlighter-rouge">check_password</code> will evaluate it to the <code class="language-plaintext highlighter-rouge">hashcode</code>.</p>
+
+<p>The only thing left to be done here is to successfully find a way to represent the <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> as a 20 byte integer that will be converted the way we calculated.</p>
+
+<h3 id="-considerations"><a href="#considerations-step2"></a> Considerations</h3>
+
+<p>It is important to consider here the endianess - byte order - used by the system. The endianess refers to the order in which bytes are stored for multi-byte data types like integers in memory. There are two types of endianess:</p>
+
+<ol>
+  <li>
+    <p><strong>Little endian</strong>: in little endian systems, the least significant byte (LSB) of a word is stored at the smallest memory address, and the most significant byte (MSB) is stored at the highest address. For example, the hexadecimal value $0\text{x12345678}$ will be stored in memory as 78, 65, 43, and 21.</p>
+  </li>
+  <li>
+    <p><strong>Big endian</strong>: in big endien systems, the LSB of a word is stored at the highest memory address, and the MSB is stored at the smallest address. For example, the same hexadecimal value $0\text{x12345678}$ will be stored in memory as 12, 34, 56, and 78.</p>
+  </li>
+</ol>
+
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
+
+<p>The first think we have to do is figure out how to write our <code class="language-plaintext highlighter-rouge">&lt;passcode&gt;</code> such that it is translated to the <code class="language-plaintext highlighter-rouge">hashcode</code> value, represented in our aforementioned calculations. In our local machine, we could write a Python script that does this. Let’s assume little endian here, since most x86 architectures are little endian.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">bytes1</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="se">\xC8\xCE\xC5\x06</span><span class="sh">'</span>
+<span class="n">bytes2</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="se">\xCC\xCE\xC5\x06</span><span class="sh">'</span>
+
+<span class="n">passcode</span> <span class="o">=</span> <span class="mi">4</span><span class="o">*</span><span class="n">bytes1</span> <span class="o">+</span> <span class="n">bytes2</span>
+
+<span class="k">assert</span> <span class="nf">len</span><span class="p">(</span><span class="n">passcode</span><span class="p">)</span> <span class="o">==</span> <span class="mi">20</span><span class="p">,</span> <span class="sh">"</span><span class="s">Passcode does not meet criteria</span><span class="sh">"</span>
+
+<span class="nf">print</span><span class="p">(</span><span class="n">passcode</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Running the code, we assert that the lenght of the passcode is 20 and the result is:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/col <span class="nv">$ </span>python3 col.py 
+b<span class="s1">'\xc8\xce\xc5\x06\xc8\xce\xc5\x06\xc8\xce\xc5\x06\xc8\xce\xc5\x06\xcc\xce\xc5\x06'</span>
+</code></pre></div></div>
+
+<p>Alright! That seems to be working! But how can we run this directly in the command line instead? I assume we won’t have permissions to write a Python script inside the CTF machine… Let’s check:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>col@pwnable:~$ python3 -c "print('hi mom')"
+hi mom
+</code></pre></div></div>
+
+<p>Ok, we are able to run a command line Python snippet. Let’s solve this bad boy!</p>
+
+<h2 id="step-4---solving"><a href="#mindset-step4"></a>Step 4 - Solving!</h2>
+
+<p>I’ve tried a few different approaches before actually finding the write payload. Let’s check what I’ve tried and why it has failed.</p>
+
+<h3 id="attempt-1">Attempt 1</h3>
+<p>My first attempt was to pass a string that had the Python snippet embedded with it. Here is what I got:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>col@pwnable:~<span class="nv">$ </span>./col <span class="s2">"python3 -c 'print(4 * </span><span class="se">\x</span><span class="s2">c8</span><span class="se">\x</span><span class="s2">ce</span><span class="se">\x</span><span class="s2">c5</span><span class="se">\x</span><span class="s2">06+</span><span class="se">\x</span><span class="s2">cc</span><span class="se">\x</span><span class="s2">ce</span><span class="se">\x</span><span class="s2">c5</span><span class="se">\x</span><span class="s2">06)'"</span>
+passcode length should be 20 bytes
+</code></pre></div></div>
+
+<p>Yep. That did not work. I think the problem here is that the <code class="language-plaintext highlighter-rouge">col</code> binary is interpreting all of the payload as my passcode, and not actually running the <code class="language-plaintext highlighter-rouge">python3</code> command. Let’s move to my second attempt.</p>
+
+<h3 id="attempt-2">Attempt 2</h3>
+
+<p>Let’s try command substitution, which is basically telling the shell to store the result of the <code class="language-plaintext highlighter-rouge">python3</code> command into a variable and then pass it to <code class="language-plaintext highlighter-rouge">col</code>. However, that also did not work:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>col@pwnable:~<span class="nv">$ </span>./col <span class="s2">"</span><span class="si">$(</span>python3 <span class="nt">-c</span> <span class="s2">"print(4 * b'</span><span class="se">\x</span><span class="s2">c8</span><span class="se">\x</span><span class="s2">ce</span><span class="se">\x</span><span class="s2">c5</span><span class="se">\x</span><span class="s2">06' + b'</span><span class="se">\x</span><span class="s2">cc</span><span class="se">\x</span><span class="s2">ce</span><span class="se">\x</span><span class="s2">c5</span><span class="se">\x</span><span class="s2">06')"</span><span class="si">)</span><span class="s2">"</span>
+passcode length should be 20 bytes
+</code></pre></div></div>
+
+<p>Which made me think that the problem was the quotation order. In this payload, I’m using double quotes for two different sets of the payload, which might confuse the shell. Let’s see my third attempt.</p>
+
+<h3 id="attempt-3">Attempt 3</h3>
+
+<p>My third attempt was trying to use quote escaping as an alternative for one of the pairs of double quotes:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>col@pwnable:~<span class="nv">$ </span>./col <span class="s2">"</span><span class="si">$(</span>python3 <span class="nt">-c</span> <span class="s1">'print(4 * b'</span><span class="se">\'</span><span class="s1">'\xc8\xce\xc5\x06'</span><span class="se">\'</span><span class="s1">' + b'</span><span class="se">\'</span><span class="s1">'\xcc\xce\xc5\x06'</span><span class="se">\'</span><span class="s1">')'</span><span class="si">)</span><span class="s2">"</span>
+passcode length should be 20 bytes
+</code></pre></div></div>
+
+<p>As we can see, that did not work either.</p>
+
+<h2 id="attempt-4">Attempt 4</h2>
+
+<p>I was getting tired of counting single, double quotes, and escaped single quotes. Maybe I should take a different approach. Maybe the problem wasn’t the quotation, but the way <code class="language-plaintext highlighter-rouge">print</code> function outputs raw bytes.</p>
+
+<p>So I thought… What if I forced the print to correctly pass the raw bytes using <code class="language-plaintext highlighter-rouge">sys.stdout</code> buffer? Well, let’s see:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>col@pwnable:~<span class="nv">$ </span>./col <span class="s2">"</span><span class="si">$(</span>python3 <span class="nt">-c</span> <span class="s1">'import sys; sys.stdout.buffer.write(4 * b"\xc8\xce\xc5\x06"+ b"\xcc\xce\xc5\x06")'</span><span class="si">)</span><span class="s2">"</span>
+daddy! I just managed to create a <span class="nb">hash </span>collision :<span class="o">)</span>
+</code></pre></div></div>
+
+<p>It worked! But why? We have the following two answers:</p>
+
+<ol>
+  <li>
+    <p>Using <code class="language-plaintext highlighter-rouge">sys.stdout.buffer.write</code> enforces raw bytes to be written directly to stdout descriptor. This avoids any additional characters that <code class="language-plaintext highlighter-rouge">print</code> might add.</p>
+  </li>
+  <li>
+    <p>We ensured that the entire Python command is enclosed in single quotes, and the byte strings within the Python command are enclosed in double quotes.</p>
+  </li>
+</ol>
+
+<p>Enjoy your Fabre card! This one was harder than the Poring one.</p>
+
+<h1 id="-conclusion"><a href="#conclusions"></a> Conclusion</h1>
+
+<p>In this CTF we learned a lot! Not only we got a bit of taste of what MD5 hash collisions were theoretically, but also got a small environment to practice a way simplified version of this. Although the CTF was not actually related to MD5 hash collision, the concept used to solve it is very similar - but oversimplified - to this much more complex topic.</p>
+
+<p>We also used a little endian byte order to solve this, which is something to keep in mind. Big endian would not have worked in a x86 architecture, and our guess to use little endian was initially correct!</p>
+
+<p>Not only that, we also needed to think of different ways of crafting a good payload so that the hexadecimal integers were actually interpreted by the <code class="language-plaintext highlighter-rouge">col</code> binary. This shows why persistence and resilience is a mastermind skill to have as a hacker.</p>
+
+<p>This is exactly what a hacker does: finds its way through. We had the answer, we just needed to find an open window, and down the rabbit hole we go!</p>
+
+<p>Thanks for sticking until the end. It was a nice ride! And remember, always do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2023</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>

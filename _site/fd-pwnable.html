@@ -4,6 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
   <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
 
   <title>fd - pwnable.kr</title>
 
@@ -69,7 +87,7 @@
 
 <p>This post is about solving the very first level, named ‘fd’. Let’s drop our Poring card!</p>
 
-<h1 id="challenge-description"><a href="#level-description"></a>challenge description</h1>
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
 <blockquote>
   <p>Mommy! what is a file descriptor in Linux?</p>
 
@@ -81,7 +99,7 @@ https://youtu.be/971eZhMHQQw</p>
   <p>ssh fd@pwnable.kr -p2222 (pw:guest)</p>
 </blockquote>
 
-<h1 id="approach-mindset"><a href="#phase-1"></a>Approach mindset</h1>
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
 
 <p>Ok, I’ll be spilling some gold here by letting you all know how I approach CTF challenges with a mindset that rarely fails me. First off, I’m not a C/C++ pro developer, but I have my fair share of coding in these languages. However, technical jargon was not always my strength. “<em>What the f*** is a file descriptor</em>” was my first thought. Little did I know that I knew what it was, but not from its name.</p>
 
@@ -126,7 +144,7 @@ https://youtu.be/971eZhMHQQw</p>
   </tbody>
 </table>
 
-<p>A simple example in Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like ‘dsasd’ - in the terminal will raise command not found:</p>
+<p>A simple example in the Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like ‘dsasd’ - in the terminal will raise a “command not found” error:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial ~ <span class="nv">$ </span>dsasd
 bash: dsasd: <span class="nb">command </span>not found
@@ -168,7 +186,7 @@ drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test2
 drwxr-xr-x  2 kaizen <span class="nb">users  </span>40 Dec  1 23:39 test3
 </code></pre></div></div>
 
-<p>Finally, the stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as</p>
+<p>Finally, stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/fd <span class="nv">$ </span><span class="nb">echo</span> <span class="s2">"ls"</span> | bash
 file1  file2  file3  stdout  test1  test2  test3
@@ -188,7 +206,7 @@ file1  file2  file3  stdout  test1  test2  test3
 
 <p><code class="language-plaintext highlighter-rouge">ssh fd@pwnable.kr -p2222</code></p>
 
-<p>You will be prompted the password, which is <code class="language-plaintext highlighter-rouge">guest</code>. After successfully connecting to the machine, we can simply run <code class="language-plaintext highlighter-rouge">ls -l</code> to see what we have in our home directory:</p>
+<p>You will be prompted for the password, which is <code class="language-plaintext highlighter-rouge">guest</code>. After successfully connecting to the machine, we can simply run ls -l to see what we have in our home directory:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fd@pwnable:~<span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-l</span>
 total 16
@@ -203,7 +221,7 @@ total 16
 </span>fd
 </code></pre></div></div>
 
-<p>Ok, based on the <code class="language-plaintext highlighter-rouge">whoami</code> command, we are not able to simply read <code class="language-plaintext highlighter-rouge">flag</code>, as we are not part of the <code class="language-plaintext highlighter-rouge">root</code> group, nor are we <code class="language-plaintext highlighter-rouge">fd_pwn</code> user. However, we can read <code class="language-plaintext highlighter-rouge">fd.c</code> and execute <code class="language-plaintext highlighter-rouge">fd</code>. We can <code class="language-plaintext highlighter-rouge">cat fd.c</code> to see its contents:</p>
+<p>Okay, based on the <code class="language-plaintext highlighter-rouge">whoami</code> command, we are not able to simply read <code class="language-plaintext highlighter-rouge">flag</code>, as we are not part of the <code class="language-plaintext highlighter-rouge">root</code> group, nor are we <code class="language-plaintext highlighter-rouge">fd_pwn</code> user. However, we can read <code class="language-plaintext highlighter-rouge">fd.c</code> and execute <code class="language-plaintext highlighter-rouge">fd</code>. We can <code class="language-plaintext highlighter-rouge">cat fd.c</code> to see its contents:</p>
 
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
 #include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
@@ -228,15 +246,15 @@ total 16
 <span class="p">}</span>
 </code></pre></div></div>
 
-<p>This program seems to be taking a single number argument in <code class="language-plaintext highlighter-rouge">argv[1]</code> and evaluating the expression <code class="language-plaintext highlighter-rouge">atoi(argv[1]) - 0x1234</code>, storing the result into the variable called <code class="language-plaintext highlighter-rouge">fd</code>. The <code class="language-plaintext highlighter-rouge">read</code> C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the <code class="language-plaintext highlighter-rouge">buf</code> buffer variable.</p>
+<p>This program seems to be taking a single-number argument in <code class="language-plaintext highlighter-rouge">argv[1]</code> and evaluating the expression <code class="language-plaintext highlighter-rouge">atoi(argv[1]) - 0x1234</code>, storing the result into the variable called <code class="language-plaintext highlighter-rouge">fd</code>. The <code class="language-plaintext highlighter-rouge">read</code> C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the <code class="language-plaintext highlighter-rouge">buf</code> buffer variable.</p>
 
 <p>The <code class="language-plaintext highlighter-rouge">strcmp</code> function will compare the string stored in the buffer with “LETMEWIN\n”, and if they are equal, <em>i.e.</em>, <code class="language-plaintext highlighter-rouge">strcmp</code> returns 0, the if statement becomes <code class="language-plaintext highlighter-rouge">!0</code> (C equivalent to true).</p>
 
 <p>The key to solve this problem is to pass an <code class="language-plaintext highlighter-rouge">argv[1]</code> that will evaluate <code class="language-plaintext highlighter-rouge">fd</code> to a file descriptor we can control containing the string “LETMEWIN”.</p>
 
-<h2 id="step-3---choosing-an-attack-vector"><a href="#mindset-step3"></a>Step 3 - Choosing an attack vector</h2>
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
 
-<p>Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an <code class="language-plaintext highlighter-rouge">argv[1]</code> that will evaluate the <code class="language-plaintext highlighter-rouge">fd</code> variable to 0. Note that</p>
+<p>Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an <code class="language-plaintext highlighter-rouge">argv[1]</code> that will evaluate the <code class="language-plaintext highlighter-rouge">fd</code> variable to 0. Note that:</p>
 
 <p><code class="language-plaintext highlighter-rouge">fd = atoi(argv[1]) - 0x1234</code></p>
 
@@ -299,7 +317,7 @@ mommy! I think I know what a file descriptor is!!
    <footer>
   <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
     <span>
-        <b>Cecil Daemon</b>
+        <b>Alex Buschinelli</b>
     </span>
     
     <span>© 2023</span>

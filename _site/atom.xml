@@ -12,6 +12,261 @@
     </author>
     
       <item>
+        <title>collision - pwnable.kr</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;Let’s continue with our card dropping adventures on &lt;a href=&quot;https://pwnable.kr&quot;&gt;Pwnable&lt;/a&gt;. This time, we will be dropping Fabre’s card. If you haven’t checked my first blog post solving ‘fd’ on Pwnable, go check it out &lt;a href=&quot;fd-pwnable&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Let’s start!&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;Daddy told me about cool MD5 hash collision today.
+I wanna do something like that too!&lt;/p&gt;
+
+  &lt;p&gt;ssh col@pwnable.kr -p2222 (pw:guest)&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;Simarly to the last CTF challenge, we shall tackle this one by first understanding what is a &lt;em&gt;MD5 hash collision&lt;/em&gt; before we even ssh into the machine.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
+
+&lt;p&gt;MD5 hash collision is a well defined attack, with many different articles and papers explaining the concept. For instance, &lt;a href=&quot;https://scholarworks.sjsu.edu/cgi/viewcontent.cgi?referer=&amp;amp;httpsredir=1&amp;amp;article=1020&amp;amp;context=etd_projects&quot;&gt;D. Kashyap&lt;/a&gt; has a complete dedicated Master’s thesis on this, which might be more than enough for us to understand this attack.&lt;/p&gt;
+
+&lt;p&gt;In it, we can see that the definition of a collision attack is: &lt;em&gt;“Finding two different messages that gives the same hash value”&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;The idea is the following: in a collision attack, the goal is to find two distinct messages $M$ and $M’$ that produce the same hash value $h$. This can be conceptualized by modifying subcomponents of $M$ - say $M_0$ and $M_1$ - to create the new message $M’$ - composed of $M_0’$ and $M_1’$ - such that the hash of $M’$ equals the hash of $M$.&lt;/p&gt;
+
+&lt;p&gt;The relations between the two subcomponents of $M$ and $M’$ are&lt;/p&gt;
+
+\[M_0&apos; = M_0 + \Delta M_0\]
+
+&lt;p&gt;and&lt;/p&gt;
+
+\[M_1&apos; = M_1 + \Delta M_1\]
+
+&lt;p&gt;where $\Delta M_0 = M_0’ - M_0$ and $\Delta M_1 = M_1’ - M_1$ are the bitwise difference of the two sub-message pairs. These two, $\Delta M_0$ and $\Delta M_1$, are typically complex to calculate, but if succeeded, they do compromise the integrity of systems using MD5 by allowing different inputs to be treated as identical.&lt;/p&gt;
+
+&lt;p&gt;While I doubt these calculations are going to be related to this CTF’s, it is good practice to understand the broader concept of collisions, as it might help us solve the challange. If you are interested in reading more about the specifics of MD5 collision, check it out &lt;a href=&quot;https://scholarworks.sjsu.edu/cgi/viewcontent.cgi?referer=&amp;amp;httpsredir=1&amp;amp;article=1020&amp;amp;context=etd_projects&quot;&gt;D. Kashyap&lt;/a&gt; thesis.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;Alright, let’s ssh into the machine and take a look around! We can ssh with the command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh col@pwnable.kr -p2222&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Remember to pass the correct password, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;guest&lt;/code&gt;. As soon as we land into the machine, we can run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -l&lt;/code&gt; command. This gives us:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;col@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-l&lt;/span&gt;
+total 16
+&lt;span class=&quot;nt&quot;&gt;-r-sr-x---&lt;/span&gt; 1 col_pwn col     7341 Jun 11  2014 col
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 root    root     555 Jun 12  2014 col.c
+&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt; 1 col_pwn col_pwn   52 Jun 11  2014 flag
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Let’s take a look at the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;col.c&lt;/code&gt; script:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;string.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hashcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x21DD09EC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;check_password&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ip&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[]){&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;usage : %s [passcode]&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;strlen&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;passcode length should be 20 bytes&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hashcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;check_password&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;)){&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/bin/cat flag&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;wrong passcode.&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Hmmm. Interesting. This looks like a simple password verification code, which we can use by running &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./col &amp;lt;passcode&amp;gt;&lt;/code&gt;. Let’s break it down:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;First, the code checks if our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; input has length 20. If not, then it warns us that it must have length 20.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;If our passcode has 20 bytes, then the code will pass it to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;check_password&lt;/code&gt; function. If the output from the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;check_password&lt;/code&gt; equals &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode = 0x21DD09EC&lt;/code&gt;, then we solve the challenge.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Let’s understand now what the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;check_password&lt;/code&gt; function does:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;First, it initializes an integer pointer &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ip&lt;/code&gt; that references each 4 bytes of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; as an integer.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;It then initializes &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;res&lt;/code&gt; integer as 0, thus interpreting the input string as an array of integers. This means that each 4 bytes of the passcode are grouped together and interpreted as one integer.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Finally, it returns &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;res&lt;/code&gt; with the hexadecimal representation of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; we provided.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Note that we need to pass a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; that is represented in its hexadecimal value as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt;. This is where the collision happens! Note that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; must have 20 bytes in length. When &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;check_password&lt;/code&gt; is called, it will break our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; into 5 different integer values that must add up to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt;. That means the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; must add up to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x21DD09EC&lt;/code&gt; within 5 iterations. For that matter, we need to divide &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x21DD09EC&lt;/code&gt; by 5, and the result must be our 4 bytes sub-messages of our 20 bytes &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We can use &lt;a href=&quot;https://www.calculator.   net/hex-calculator.html&quot;&gt;this&lt;/a&gt; hex calculator to properly find the division of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt; by 5:&lt;/p&gt;
+
+\[\frac{0\text{x21DD09EC}}{5} = 0\text{x6C5CEC8} \text{ remainder : 4}\]
+
+&lt;p&gt;The division is not exact, which means we have a leftover term to be added in order to retrieve the exact value of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt;. This means that:&lt;/p&gt;
+
+\[\text{remainder} = 0\text{x21DD09EC} - 4*0\text{x6C5CEC8}\]
+
+&lt;p&gt;Which is the same as&lt;/p&gt;
+
+\[\text{remainder} = 0\text{x21DD09EC} - 0\text{x1B173B20} = 0\text{x6C5CECC}\]
+
+&lt;p&gt;So, if our calculations are correct, we have:&lt;/p&gt;
+
+\[\text{hashcode} = 0\text{x21DD09EC} = 4*0\text{x6C5CEC8} + 0\text{x6C5CECC}\]
+
+&lt;p&gt;In other words, our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; must have four 4 bytes strings with value &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x6C5CEC8&lt;/code&gt; collided with one 4 bytes integer with value &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x6C5CECC&lt;/code&gt;. This will sum up to a 20 bytes integer and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;check_password&lt;/code&gt; will evaluate it to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The only thing left to be done here is to successfully find a way to represent the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; as a 20 byte integer that will be converted the way we calculated.&lt;/p&gt;
+
+&lt;h3 id=&quot;-considerations&quot;&gt;&lt;a href=&quot;#considerations-step2&quot;&gt;&lt;/a&gt; Considerations&lt;/h3&gt;
+
+&lt;p&gt;It is important to consider here the endianess - byte order - used by the system. The endianess refers to the order in which bytes are stored for multi-byte data types like integers in memory. There are two types of endianess:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Little endian&lt;/strong&gt;: in little endian systems, the least significant byte (LSB) of a word is stored at the smallest memory address, and the most significant byte (MSB) is stored at the highest address. For example, the hexadecimal value $0\text{x12345678}$ will be stored in memory as 78, 65, 43, and 21.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Big endian&lt;/strong&gt;: in big endien systems, the LSB of a word is stored at the highest memory address, and the MSB is stored at the smallest address. For example, the same hexadecimal value $0\text{x12345678}$ will be stored in memory as 12, 34, 56, and 78.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;The first think we have to do is figure out how to write our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;passcode&amp;gt;&lt;/code&gt; such that it is translated to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hashcode&lt;/code&gt; value, represented in our aforementioned calculations. In our local machine, we could write a Python script that does this. Let’s assume little endian here, since most x86 architectures are little endian.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;bytes1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\xC8\xCE\xC5\x06&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;bytes2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\xCC\xCE\xC5\x06&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;passcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bytes1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bytes2&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;assert&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;passcode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Passcode does not meet criteria&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+
+&lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;passcode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Running the code, we assert that the lenght of the passcode is 20 and the result is:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/col &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3 col.py 
+b&lt;span class=&quot;s1&quot;&gt;&apos;\xc8\xce\xc5\x06\xc8\xce\xc5\x06\xc8\xce\xc5\x06\xc8\xce\xc5\x06\xcc\xce\xc5\x06&apos;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Alright! That seems to be working! But how can we run this directly in the command line instead? I assume we won’t have permissions to write a Python script inside the CTF machine… Let’s check:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;col@pwnable:~$ python3 -c &quot;print(&apos;hi mom&apos;)&quot;
+hi mom
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Ok, we are able to run a command line Python snippet. Let’s solve this bad boy!&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;I’ve tried a few different approaches before actually finding the write payload. Let’s check what I’ve tried and why it has failed.&lt;/p&gt;
+
+&lt;h3 id=&quot;attempt-1&quot;&gt;Attempt 1&lt;/h3&gt;
+&lt;p&gt;My first attempt was to pass a string that had the Python snippet embedded with it. Here is what I got:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;col@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./col &lt;span class=&quot;s2&quot;&gt;&quot;python3 -c &apos;print(4 * &lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c8&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ce&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c5&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;06+&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;cc&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ce&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c5&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;06)&apos;&quot;&lt;/span&gt;
+passcode length should be 20 bytes
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Yep. That did not work. I think the problem here is that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;col&lt;/code&gt; binary is interpreting all of the payload as my passcode, and not actually running the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;python3&lt;/code&gt; command. Let’s move to my second attempt.&lt;/p&gt;
+
+&lt;h3 id=&quot;attempt-2&quot;&gt;Attempt 2&lt;/h3&gt;
+
+&lt;p&gt;Let’s try command substitution, which is basically telling the shell to store the result of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;python3&lt;/code&gt; command into a variable and then pass it to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;col&lt;/code&gt;. However, that also did not work:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;col@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./col &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;$(&lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;print(4 * b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c8&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ce&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c5&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;06&apos; + b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;cc&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ce&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c5&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;06&apos;)&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+passcode length should be 20 bytes
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Which made me think that the problem was the quotation order. In this payload, I’m using double quotes for two different sets of the payload, which might confuse the shell. Let’s see my third attempt.&lt;/p&gt;
+
+&lt;h3 id=&quot;attempt-3&quot;&gt;Attempt 3&lt;/h3&gt;
+
+&lt;p&gt;My third attempt was trying to use quote escaping as an alternative for one of the pairs of double quotes:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;col@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./col &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;$(&lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;print(4 * b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&apos;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;\xc8\xce\xc5\x06&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&apos;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos; + b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&apos;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;\xcc\xce\xc5\x06&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&apos;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;)&apos;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+passcode length should be 20 bytes
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, that did not work either.&lt;/p&gt;
+
+&lt;h2 id=&quot;attempt-4&quot;&gt;Attempt 4&lt;/h2&gt;
+
+&lt;p&gt;I was getting tired of counting single, double quotes, and escaped single quotes. Maybe I should take a different approach. Maybe the problem wasn’t the quotation, but the way &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;print&lt;/code&gt; function outputs raw bytes.&lt;/p&gt;
+
+&lt;p&gt;So I thought… What if I forced the print to correctly pass the raw bytes using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sys.stdout&lt;/code&gt; buffer? Well, let’s see:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;col@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./col &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;$(&lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;import sys; sys.stdout.buffer.write(4 * b&quot;\xc8\xce\xc5\x06&quot;+ b&quot;\xcc\xce\xc5\x06&quot;)&apos;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+daddy! I just managed to create a &lt;span class=&quot;nb&quot;&gt;hash &lt;/span&gt;collision :&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;It worked! But why? We have the following two answers:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;Using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sys.stdout.buffer.write&lt;/code&gt; enforces raw bytes to be written directly to stdout descriptor. This avoids any additional characters that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;print&lt;/code&gt; might add.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;We ensured that the entire Python command is enclosed in single quotes, and the byte strings within the Python command are enclosed in double quotes.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Enjoy your Fabre card! This one was harder than the Poring one.&lt;/p&gt;
+
+&lt;h1 id=&quot;-conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt; Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF we learned a lot! Not only we got a bit of taste of what MD5 hash collisions were theoretically, but also got a small environment to practice a way simplified version of this. Although the CTF was not actually related to MD5 hash collision, the concept used to solve it is very similar - but oversimplified - to this much more complex topic.&lt;/p&gt;
+
+&lt;p&gt;We also used a little endian byte order to solve this, which is something to keep in mind. Big endian would not have worked in a x86 architecture, and our guess to use little endian was initially correct!&lt;/p&gt;
+
+&lt;p&gt;Not only that, we also needed to think of different ways of crafting a good payload so that the hexadecimal integers were actually interpreted by the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;col&lt;/code&gt; binary. This shows why persistence and resilience is a mastermind skill to have as a hacker.&lt;/p&gt;
+
+&lt;p&gt;This is exactly what a hacker does: finds its way through. We had the answer, we just needed to find an open window, and down the rabbit hole we go!&lt;/p&gt;
+
+&lt;p&gt;Thanks for sticking until the end. It was a nice ride! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Sat, 02 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//collision-pwnable</link>
+        <link href="http://localhost:4000/collision-pwnable"/>
+        <guid isPermaLink="true">http://localhost:4000/collision-pwnable</guid>
+      </item>
+    
+      <item>
         <title>fd - pwnable.kr</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
@@ -21,7 +276,7 @@
 
 &lt;p&gt;This post is about solving the very first level, named ‘fd’. Let’s drop our Poring card!&lt;/p&gt;
 
-&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;challenge description&lt;/h1&gt;
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
 &lt;blockquote&gt;
   &lt;p&gt;Mommy! what is a file descriptor in Linux?&lt;/p&gt;
 
@@ -33,7 +288,7 @@ https://youtu.be/971eZhMHQQw&lt;/p&gt;
   &lt;p&gt;ssh fd@pwnable.kr -p2222 (pw:guest)&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#phase-1&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
 
 &lt;p&gt;Ok, I’ll be spilling some gold here by letting you all know how I approach CTF challenges with a mindset that rarely fails me. First off, I’m not a C/C++ pro developer, but I have my fair share of coding in these languages. However, technical jargon was not always my strength. “&lt;em&gt;What the f*** is a file descriptor&lt;/em&gt;” was my first thought. Little did I know that I knew what it was, but not from its name.&lt;/p&gt;
 
@@ -78,7 +333,7 @@ https://youtu.be/971eZhMHQQw&lt;/p&gt;
   &lt;/tbody&gt;
 &lt;/table&gt;
 
-&lt;p&gt;A simple example in Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like ‘dsasd’ - in the terminal will raise command not found:&lt;/p&gt;
+&lt;p&gt;A simple example in the Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like ‘dsasd’ - in the terminal will raise a “command not found” error:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial ~ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dsasd
 bash: dsasd: &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;not found
@@ -120,7 +375,7 @@ drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec
 drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test3
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Finally, the stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as&lt;/p&gt;
+&lt;p&gt;Finally, stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ls&quot;&lt;/span&gt; | bash
 file1  file2  file3  stdout  test1  test2  test3
@@ -140,7 +395,7 @@ file1  file2  file3  stdout  test1  test2  test3
 
 &lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh fd@pwnable.kr -p2222&lt;/code&gt;&lt;/p&gt;
 
-&lt;p&gt;You will be prompted the password, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;guest&lt;/code&gt;. After successfully connecting to the machine, we can simply run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -l&lt;/code&gt; to see what we have in our home directory:&lt;/p&gt;
+&lt;p&gt;You will be prompted for the password, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;guest&lt;/code&gt;. After successfully connecting to the machine, we can simply run ls -l to see what we have in our home directory:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-l&lt;/span&gt;
 total 16
@@ -155,7 +410,7 @@ total 16
 &lt;/span&gt;fd
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Ok, based on the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;whoami&lt;/code&gt; command, we are not able to simply read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt;, as we are not part of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;root&lt;/code&gt; group, nor are we &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd_pwn&lt;/code&gt; user. However, we can read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd.c&lt;/code&gt; and execute &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. We can &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat fd.c&lt;/code&gt; to see its contents:&lt;/p&gt;
+&lt;p&gt;Okay, based on the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;whoami&lt;/code&gt; command, we are not able to simply read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt;, as we are not part of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;root&lt;/code&gt; group, nor are we &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd_pwn&lt;/code&gt; user. However, we can read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd.c&lt;/code&gt; and execute &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. We can &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat fd.c&lt;/code&gt; to see its contents:&lt;/p&gt;
 
 &lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
 #include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
@@ -180,15 +435,15 @@ total 16
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;This program seems to be taking a single number argument in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; and evaluating the expression &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;atoi(argv[1]) - 0x1234&lt;/code&gt;, storing the result into the variable called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read&lt;/code&gt; C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;buf&lt;/code&gt; buffer variable.&lt;/p&gt;
+&lt;p&gt;This program seems to be taking a single-number argument in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; and evaluating the expression &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;atoi(argv[1]) - 0x1234&lt;/code&gt;, storing the result into the variable called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read&lt;/code&gt; C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;buf&lt;/code&gt; buffer variable.&lt;/p&gt;
 
 &lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; function will compare the string stored in the buffer with “LETMEWIN\n”, and if they are equal, &lt;em&gt;i.e.&lt;/em&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; returns 0, the if statement becomes &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!0&lt;/code&gt; (C equivalent to true).&lt;/p&gt;
 
 &lt;p&gt;The key to solve this problem is to pass an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; that will evaluate &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; to a file descriptor we can control containing the string “LETMEWIN”.&lt;/p&gt;
 
-&lt;h2 id=&quot;step-3---choosing-an-attack-vector&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Choosing an attack vector&lt;/h2&gt;
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
 
-&lt;p&gt;Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; that will evaluate the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; variable to 0. Note that&lt;/p&gt;
+&lt;p&gt;Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; that will evaluate the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; variable to 0. Note that:&lt;/p&gt;
 
 &lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd = atoi(argv[1]) - 0x1234&lt;/code&gt;&lt;/p&gt;
 

@@ -11,7 +11,7 @@ To my surprise, not only did it look pretty fun, but the level tag images are th
 
 This post is about solving the very first level, named 'fd'. Let's drop our Poring card!
 
-# [](#level-description)challenge description
+# [](#level-description)Challenge description
 > Mommy! what is a file descriptor in Linux?
 >
 > try to play the wargame your self but if you are ABSOLUTE beginner, follow this tutorial link:
@@ -19,7 +19,7 @@ This post is about solving the very first level, named 'fd'. Let's drop our Pori
 
 > ssh fd@pwnable.kr -p2222 (pw:guest)
 
-# [](#phase-1)Approach mindset
+# [](#approach)Approach mindset
 
 Ok, I'll be spilling some gold here by letting you all know how I approach CTF challenges with a mindset that rarely fails me. First off, I'm not a C/C++ pro developer, but I have my fair share of coding in these languages. However, technical jargon was not always my strength. "_What the f*** is a file descriptor_" was my first thought. Little did I know that I knew what it was, but not from its name.
 
@@ -155,7 +155,7 @@ The `strcmp` function will compare the string stored in the buffer with "LETMEWI
 
 The key to solve this problem is to pass an `argv[1]` that will evaluate `fd` to a file descriptor we can control containing the string "LETMEWIN".
 
-## [](#mindset-step3)Step 3 - Choosing an attack vector
+## [](#mindset-step3)Step 3 - Crafting the attack
 
 Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an `argv[1]` that will evaluate the `fd` variable to 0. Note that:
 
