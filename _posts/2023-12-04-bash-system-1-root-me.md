@@ -68,7 +68,7 @@ Linking with the previous function: the code interprets the script/binary owner'
 
 ## [](#mindset-step2)Step 2 - Understanding the problem
 
-Now that we understand the basic concepts of this CTF script, we are ready to broaden up our view by relating it to the actual CTF. Let's ssh into the machine and take a look around using the `ls -la` command:
+Now that we understand the basic concepts of this CTF script, we are ready to broaden our view by relating it to the actual CTF. Let's ssh into the machine and take a look around using the `ls -la` command:
 
 ```bash
 app-script-ch11@challenge02:~$ ls -la
