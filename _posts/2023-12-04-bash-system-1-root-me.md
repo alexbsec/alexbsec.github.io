@@ -179,9 +179,9 @@ We did it! Enjoy the feeling of owning and tricking a system!
 
 In this CTF, we learned a bit more about system misconfigurations and misuse of C functions. We started by understanding the core concepts used by the challenge script, then we tackled the problem by understanding how we could exploit it.
 
-After understanding what the CTF was revolving about, we needed to create an attack vector. In our case, that was possible because we had write permissions in the `/tmp` directory and access to change the $PATH variable to our own gains. Combining the misconfigurations with a little out-of-the-box thinking, we were able to craft a malicious `ls` command that mimicked the `cat` command - the one we wanted to use.
+After grasping the nature of the CTF, we needed to create an attack vector. In our case, this was possible because we had write permissions in the `/tmp` directory and access to change the $PATH variable to our own gains. By combining these misconfigurations with a little out-of-the-box thinking, we crafted a malicious `ls` command that mimicked the `cat` command - the one we wanted to use.
 
-It is always good practice to understand what is happening before jumping into testing. This kind of approach makes things easier, as well as making the solution clearer most of the times.
+It's always good practice to understand what's happening before jumping into testing. This approach makes things easier and often clarifies the solution.
 
 Thanks for sticking 'til the end. I hope you learned something new today! And remember, always do your **research!**
 
