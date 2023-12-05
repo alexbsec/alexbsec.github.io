@@ -156,7 +156,7 @@
 
 <h2 id="step-2---understanding-the-problem"><a href="#mindset-step2"></a>Step 2 - Understanding the problem</h2>
 
-<p>Now that we understand the basic concepts of this CTF script, we are ready to broaden up our view by relating it to the actual CTF. Let’s ssh into the machine and take a look around using the <code class="language-plaintext highlighter-rouge">ls -la</code> command:</p>
+<p>Now that we understand the basic concepts of this CTF script, we are ready to broaden our view by relating it to the actual CTF. Let’s ssh into the machine and take a look around using the <code class="language-plaintext highlighter-rouge">ls -la</code> command:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app-script-ch11@challenge02:~<span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-la</span>
 total 36
@@ -255,11 +255,11 @@ app-script-ch11@challenge02:~<span class="nv">$ </span>./ch11
 
 <h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
 
-<p>In this CTF, we learned a bit more about system misconfigurations and misuse of C functions. We started by understanding the core concepts used by the challenge script, then we tackled the problem by understanding why these were a problem in the CTF context.</p>
+<p>In this CTF, we learned a bit more about system misconfigurations and misuse of C functions. We started by understanding the core concepts used by the challenge script, then we tackled the problem by understanding how we could exploit it.</p>
 
-<p>After understanding how the CTF was revolving about, we needed to create an attack vector. In our case, that was possible because we had write permissions in the <code class="language-plaintext highlighter-rouge">/tmp</code> directory and access to change the $PATH variable to our own gains. Combining the misconfigurations with a little out-of-the-box thinking, we were able to craft a malicious <code class="language-plaintext highlighter-rouge">ls</code> command that mimicked the <code class="language-plaintext highlighter-rouge">cat</code> command - the one we wanted to use.</p>
+<p>After grasping the nature of the CTF, we needed to create an attack vector. In our case, this was possible because we had write permissions in the <code class="language-plaintext highlighter-rouge">/tmp</code> directory and access to change the $PATH variable to our own gains. By combining these misconfigurations with a little out-of-the-box thinking, we crafted a malicious <code class="language-plaintext highlighter-rouge">ls</code> command that mimicked the <code class="language-plaintext highlighter-rouge">cat</code> command - the one we wanted to use.</p>
 
-<p>It is always good practice to understand what is happening before jumping into testing. This kind of approach makes things easier, as well as making the solution clearer most of the times.</p>
+<p>It’s always good practice to understand what’s happening before jumping into testing. This approach makes things easier and often clarifies the solution.</p>
 
 <p>Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your <strong>research!</strong></p>
 
