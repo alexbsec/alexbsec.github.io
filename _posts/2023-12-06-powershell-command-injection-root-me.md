@@ -23,6 +23,8 @@ To ssh into the machine, we run the command:
 
 with the password `app-script-ch18`.
 
+# [](#approach)Approach mindset
+
 ## [](#mindset-step1)Step 1 - Understanding basic concepts
 
 ### Powershell 101
