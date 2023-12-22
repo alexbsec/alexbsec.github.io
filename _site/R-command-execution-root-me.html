@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>R Code Execution - root-me.org</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>R Code Execution - root-me.org | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="R Code Execution - root-me.org" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/R-command-execution-root-me" />
+<meta property="og:url" content="http://localhost:4000/R-command-execution-root-me" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-12-22T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="R Code Execution - root-me.org" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2023-12-22T00:00:00+00:00","datePublished":"2023-12-22T00:00:00+00:00","description":"Introduction","headline":"R Code Execution - root-me.org","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/R-command-execution-root-me"},"url":"http://localhost:4000/R-command-execution-root-me"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/R-command-execution-root-me$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>R Code Execution - root-me.org</h2>
+  <time datetime="2023-12-22T00:00:00+00:00" class="by-line">22 Dec 2023</time>
+  <p>Estimated read time: 6 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>Long time no see! It’s been a while since I last posted. But now that we are back, let’s solve another <a href="https://www.root-me.org">Root-me</a> CTF! This time, we are going to attack the R: Command Execution, under the app. I never programmed in R before, so this might be a tricky one for me. We might need to do a good research on this.</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+<p>Let’s check the statement:</p>
+
+<blockquote>
+  <p>Statement</p>
+
+  <p>Your Statistical Analysis Reviews in R are approaching. Your teacher has made an R interpreter available on the ENT of the university so that you can practice. You don’t have time to revise, you decide to steal the exam papers.</p>
+</blockquote>
+
+<p>Alright! We are playing the cheater’s role this time. To start this challenge, we need to click on a button “Start the challenge”. No need to ssh this time. After clicking the button, we arrive at a R console:</p>
+
+<p><img src="../figs/R-exec.png" alt="R Console" /></p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>As always, let’s keep the following approach mindset:</p>
+
+<ol>
+  <li>Understanding basic concepts</li>
+  <li>Understanding the problem</li>
+  <li>Crafting an attack</li>
+  <li>Solving</li>
+</ol>
+
+<h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
+
+<p>Ok. First of all, we need to learn how to interact with this console. I’ll try be brief and show all of my attempts. Suppose we are ignorant in R (as I am). My first command in this console was <code class="language-plaintext highlighter-rouge">ls</code>, which gave me the following:</p>
+
+<p><img src="../figs/R-exec2.png" alt="Output of ls in console" /></p>
+
+<p>To me, this seemed as an error message. But after a bit of research, I found that it wasn’t. You see, in R, when we define a function, say one like this:</p>
+
+<div class="language-R highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">my_func</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="k">function</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="n">print</span><span class="p">(</span><span class="s2">"Hi mom"</span><span class="p">)</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>we call it by writing <code class="language-plaintext highlighter-rouge">my_func()</code>. However, if we instead write <code class="language-plaintext highlighter-rouge">my_func</code>, we will get the function gist instead. We can test this with the console:</p>
+
+<p><img src="../figs/R-exec3.png" alt="my_func() vs my_func" /></p>
+
+<p>As we can see, <code class="language-plaintext highlighter-rouge">my_func()</code> calls the function and executes it, while <code class="language-plaintext highlighter-rouge">my_func</code> returns the function definition. This means <code class="language-plaintext highlighter-rouge">ls()</code> is a function and we got its definition when we typed in <code class="language-plaintext highlighter-rouge">ls</code> without the ().
+Another interesting thing we can use here is the <code class="language-plaintext highlighter-rouge">?</code> operator. If we type in <code class="language-plaintext highlighter-rouge">?&lt;function&gt;</code>, we get the function’s documentation. You can learn more about this <a href="https://www.r-project.org/help.html">here</a>.</p>
+
+<p>This means we can run <code class="language-plaintext highlighter-rouge">?ls</code> to see what it does:</p>
+
+<p><img src="../figs/R-exec4.png" alt="?ls output" /></p>
+
+<p>Aha. So it basically prints out the user defined functions in the current environment. We can check out which functions we can use with the <code class="language-plaintext highlighter-rouge">ls()</code>:</p>
+
+<p><img src="../figs/R-exec5.png" alt="ls() output" /></p>
+
+<p>Nice, we have a list of functions we can try to use and see what happens. We have to keep in mind our objective, which is to retrieve the exam for us to pass without studying! To do so, we need to enumerate this system and find the exam file. From the <code class="language-plaintext highlighter-rouge">ls()</code> output, we might want to use <code class="language-plaintext highlighter-rouge">list.dirs</code> to check the directory contents. Let’s see the outputs of <code class="language-plaintext highlighter-rouge">list.dirs</code> and <code class="language-plaintext highlighter-rouge">list.dirs()</code> respectively:</p>
+
+<p><img src="../figs/R-exec6.png" alt="list.dirs output" /></p>
+
+<p>Interesting. This function is telling us that not only it is a fake function, as it is defined to only print this message, but also that we cannot use it to list the directories. However, if we look into <a href="https://www.geeksforgeeks.org/obtain-list-of-directories-in-r/">this</a> reference, the function <code class="language-plaintext highlighter-rouge">list.dirs()</code> is actually implemented in an R environment. This also tells us that the environment we are in overwrote the <code class="language-plaintext highlighter-rouge">list.dirs()</code> with this custom message function.</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">ls()</code> command output indicates that user-defined functions have replaced the standard ones, effectively restricting their use. Just for the sake of completeness, let’s check all of these functions:</p>
+
+<p><img src="../figs/R-exec7.png" alt="user defined functions" /></p>
+
+<p>As expected…</p>
+
+<h2 id="-step-2---understanding-the-problem"><a href="#mindset-step1"></a> Step 2 - Understanding the problem</h2>
+
+<p>With a better understanding of the R console environment, let’s identify our objectives and recognize the limitations we’re facing.</p>
+
+<ol>
+  <li>We need to find the exam file, but we cannot use the standard functions to do so. Which leads to 2.</li>
+  <li>We need to find other ways to list directories and read files.</li>
+</ol>
+
+<p>After a bit of research, I’ve stumble upon <a href="https://stat.ethz.ch/R-manual/R-devel/library/base/html/list.files.html">this</a> article. In it, we can see that there is a function called <code class="language-plaintext highlighter-rouge">dir()</code> which is an alias to <code class="language-plaintext highlighter-rouge">list.files</code>. According to the definition, <code class="language-plaintext highlighter-rouge">dir</code> should give:</p>
+
+<div class="language-R highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">dir</span><span class="p">(</span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"."</span><span class="p">,</span><span class="w"> </span><span class="n">pattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">all.files</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">FALSE</span><span class="p">,</span><span class="w">
+   </span><span class="n">full.names</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">FALSE</span><span class="p">,</span><span class="w"> </span><span class="n">recursive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">FALSE</span><span class="p">,</span><span class="w">
+   </span><span class="n">ignore.case</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">FALSE</span><span class="p">,</span><span class="w"> </span><span class="n">include.dirs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">FALSE</span><span class="p">,</span><span class="w"> </span><span class="n">no..</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">FALSE</span><span class="p">)</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Let’s see if this is enabled in our environment:</p>
+
+<p><img src="../figs/R-exec8.png" alt="dir output" /></p>
+
+<p>Aha! This function is properly defined and we might be able to use it to list files in the system! Let’s check it out:</p>
+
+<p><img src="../figs/R-exec9.png" alt="dir output" /></p>
+
+<p>Amazing! We found a vector to list files. It seems we are inside the <code class="language-plaintext highlighter-rouge">/var/www/html</code> directory of this website. Now we need a way to read files and print them into the output. To do so, we can use the <code class="language-plaintext highlighter-rouge">readLines</code> function instead of <code class="language-plaintext highlighter-rouge">read.delim</code>. Check <a href="https://stackoverflow.com/questions/12626637/read-a-text-file-in-r-line-by-line">this</a> resource for more info on that.</p>
+
+<p>Let’s try this snippet:</p>
+
+<div class="language-R highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">data</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">readLines</span><span class="p">(</span><span class="n">con</span><span class="o">=</span><span class="s2">"index.php"</span><span class="p">)</span><span class="w">
+</span><span class="n">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="w">
+</span></code></pre></div></div>
+
+<p>This is what we get:</p>
+
+<p><img src="../figs/R-exec10.png" alt="attempt to read index.php" /></p>
+
+<p>Alright. We our way to list files and read them. This should be enough. Let’s start our hunt for the exam file now!</p>
+
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
+
+<p>In order to craft our attack, we need to start listing the files in each directory that the exam should probably be. Let’s use <code class="language-plaintext highlighter-rouge">dir()</code> for that. This time, however, let’s use the arguments <code class="language-plaintext highlighter-rouge">path</code> and <code class="language-plaintext highlighter-rouge">all.files</code> of this method. The <code class="language-plaintext highlighter-rouge">path</code> argument’s default value is <code class="language-plaintext highlighter-rouge">.</code>, the current directory. We can manipulate this to navigate and list files in this system:</p>
+
+<p><img src="../figs/R-exec11.png" alt="attempt to read index.php" /></p>
+
+<p>This shows the <code class="language-plaintext highlighter-rouge">/</code> directory. In CTFs, flags are usually inside the home directory. Let’s navigate into it and list its contents:</p>
+
+<p><img src="../figs/R-exec12.png" alt="attempt to read index.php" /></p>
+
+<p>One step further:</p>
+
+<p><img src="../figs/R-exec13.png" alt="attempt to read index.php" /></p>
+
+<p>And one more:</p>
+
+<p><img src="../figs/R-exec14.png" alt="attempt to read index.php" /></p>
+
+<p>Since the problem states we are taking the exam in the future, it might be inside the latest year directory, which is <code class="language-plaintext highlighter-rouge">2021</code>. Let’s go one step further:</p>
+
+<p><img src="../figs/R-exec15.png" alt="attempt to read index.php" /></p>
+
+<p>There we have it! Our flag.txt file! Now, we just need to solve this by reading its contents.</p>
+
+<h2 id="-step-4---solving"><a href="#mindset-step4"></a> Step 4 - Solving!</h2>
+
+<p>To solve this, we just need to read the flag.txt contents. To do so, we run:</p>
+
+<p><img src="../figs/R-exec16.png" alt="attempt to read index.php" /></p>
+
+<p>And there we have it. Our flag!</p>
+
+<h1 id="-conclusion"><a href="#conclusions"></a> Conclusion</h1>
+
+<p>In this CTF we learned more about R programming language and how a cheater might do anything to circumvent system security to pass an exam! Jokes aside, this was an amazing CTF, where we put into test our abilities to adapt and find ways through new environments.</p>
+
+<p>I hope you liked this write-up and learned something now. As always, don’t forget to do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2023</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>

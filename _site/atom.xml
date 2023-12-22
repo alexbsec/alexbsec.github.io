@@ -12,6 +12,161 @@
     </author>
     
       <item>
+        <title>R Code Execution - root-me.org</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;Long time no see! It’s been a while since I last posted. But now that we are back, let’s solve another &lt;a href=&quot;https://www.root-me.org&quot;&gt;Root-me&lt;/a&gt; CTF! This time, we are going to attack the R: Command Execution, under the app. I never programmed in R before, so this might be a tricky one for me. We might need to do a good research on this.&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+&lt;p&gt;Let’s check the statement:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Statement&lt;/p&gt;
+
+  &lt;p&gt;Your Statistical Analysis Reviews in R are approaching. Your teacher has made an R interpreter available on the ENT of the university so that you can practice. You don’t have time to revise, you decide to steal the exam papers.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Alright! We are playing the cheater’s role this time. To start this challenge, we need to click on a button “Start the challenge”. No need to ssh this time. After clicking the button, we arrive at a R console:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec.png&quot; alt=&quot;R Console&quot; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;As always, let’s keep the following approach mindset:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Understanding basic concepts&lt;/li&gt;
+  &lt;li&gt;Understanding the problem&lt;/li&gt;
+  &lt;li&gt;Crafting an attack&lt;/li&gt;
+  &lt;li&gt;Solving&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
+
+&lt;p&gt;Ok. First of all, we need to learn how to interact with this console. I’ll try be brief and show all of my attempts. Suppose we are ignorant in R (as I am). My first command in this console was &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;, which gave me the following:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec2.png&quot; alt=&quot;Output of ls in console&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;To me, this seemed as an error message. But after a bit of research, I found that it wasn’t. You see, in R, when we define a function, say one like this:&lt;/p&gt;
+
+&lt;div class=&quot;language-R highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;my_func&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Hi mom&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;we call it by writing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func()&lt;/code&gt;. However, if we instead write &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func&lt;/code&gt;, we will get the function gist instead. We can test this with the console:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec3.png&quot; alt=&quot;my_func() vs my_func&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As we can see, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func()&lt;/code&gt; calls the function and executes it, while &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func&lt;/code&gt; returns the function definition. This means &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt; is a function and we got its definition when we typed in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; without the ().
+Another interesting thing we can use here is the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;?&lt;/code&gt; operator. If we type in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;?&amp;lt;function&amp;gt;&lt;/code&gt;, we get the function’s documentation. You can learn more about this &lt;a href=&quot;https://www.r-project.org/help.html&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This means we can run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;?ls&lt;/code&gt; to see what it does:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec4.png&quot; alt=&quot;?ls output&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Aha. So it basically prints out the user defined functions in the current environment. We can check out which functions we can use with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt;:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec5.png&quot; alt=&quot;ls() output&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Nice, we have a list of functions we can try to use and see what happens. We have to keep in mind our objective, which is to retrieve the exam for us to pass without studying! To do so, we need to enumerate this system and find the exam file. From the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt; output, we might want to use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs&lt;/code&gt; to check the directory contents. Let’s see the outputs of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs()&lt;/code&gt; respectively:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec6.png&quot; alt=&quot;list.dirs output&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Interesting. This function is telling us that not only it is a fake function, as it is defined to only print this message, but also that we cannot use it to list the directories. However, if we look into &lt;a href=&quot;https://www.geeksforgeeks.org/obtain-list-of-directories-in-r/&quot;&gt;this&lt;/a&gt; reference, the function &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs()&lt;/code&gt; is actually implemented in an R environment. This also tells us that the environment we are in overwrote the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs()&lt;/code&gt; with this custom message function.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt; command output indicates that user-defined functions have replaced the standard ones, effectively restricting their use. Just for the sake of completeness, let’s check all of these functions:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec7.png&quot; alt=&quot;user defined functions&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As expected…&lt;/p&gt;
+
+&lt;h2 id=&quot;-step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt; Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;With a better understanding of the R console environment, let’s identify our objectives and recognize the limitations we’re facing.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;We need to find the exam file, but we cannot use the standard functions to do so. Which leads to 2.&lt;/li&gt;
+  &lt;li&gt;We need to find other ways to list directories and read files.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;After a bit of research, I’ve stumble upon &lt;a href=&quot;https://stat.ethz.ch/R-manual/R-devel/library/base/html/list.files.html&quot;&gt;this&lt;/a&gt; article. In it, we can see that there is a function called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dir()&lt;/code&gt; which is an alias to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.files&lt;/code&gt;. According to the definition, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dir&lt;/code&gt; should give:&lt;/p&gt;
+
+&lt;div class=&quot;language-R highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;dir&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;.&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pattern&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all.files&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+   &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;full.names&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recursive&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+   &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ignore.case&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;include.dirs&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;no..&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Let’s see if this is enabled in our environment:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec8.png&quot; alt=&quot;dir output&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Aha! This function is properly defined and we might be able to use it to list files in the system! Let’s check it out:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec9.png&quot; alt=&quot;dir output&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Amazing! We found a vector to list files. It seems we are inside the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/var/www/html&lt;/code&gt; directory of this website. Now we need a way to read files and print them into the output. To do so, we can use the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;readLines&lt;/code&gt; function instead of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read.delim&lt;/code&gt;. Check &lt;a href=&quot;https://stackoverflow.com/questions/12626637/read-a-text-file-in-r-line-by-line&quot;&gt;this&lt;/a&gt; resource for more info on that.&lt;/p&gt;
+
+&lt;p&gt;Let’s try this snippet:&lt;/p&gt;
+
+&lt;div class=&quot;language-R highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;readLines&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;con&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;index.php&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This is what we get:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec10.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Alright. We our way to list files and read them. This should be enough. Let’s start our hunt for the exam file now!&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;In order to craft our attack, we need to start listing the files in each directory that the exam should probably be. Let’s use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dir()&lt;/code&gt; for that. This time, however, let’s use the arguments &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;path&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;all.files&lt;/code&gt; of this method. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;path&lt;/code&gt; argument’s default value is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.&lt;/code&gt;, the current directory. We can manipulate this to navigate and list files in this system:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec11.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This shows the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/&lt;/code&gt; directory. In CTFs, flags are usually inside the home directory. Let’s navigate into it and list its contents:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec12.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;One step further:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec13.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And one more:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec14.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Since the problem states we are taking the exam in the future, it might be inside the latest year directory, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;2021&lt;/code&gt;. Let’s go one step further:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec15.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;There we have it! Our flag.txt file! Now, we just need to solve this by reading its contents.&lt;/p&gt;
+
+&lt;h2 id=&quot;-step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt; Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;To solve this, we just need to read the flag.txt contents. To do so, we run:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/R-exec16.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And there we have it. Our flag!&lt;/p&gt;
+
+&lt;h1 id=&quot;-conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt; Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF we learned more about R programming language and how a cheater might do anything to circumvent system security to pass an exam! Jokes aside, this was an amazing CTF, where we put into test our abilities to adapt and find ways through new environments.&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something now. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 22 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//R-command-execution-root-me</link>
+        <link href="http://localhost:4000/R-command-execution-root-me"/>
+        <guid isPermaLink="true">http://localhost:4000/R-command-execution-root-me</guid>
+      </item>
+    
+      <item>
         <title>Powershell - SecureString - root-me.org</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
