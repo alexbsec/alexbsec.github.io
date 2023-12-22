@@ -155,7 +155,7 @@ Another interesting thing we can use here is the &lt;code class=&quot;language-p
 
 &lt;p&gt;In this CTF we learned more about R programming language and how a cheater might do anything to circumvent system security to pass an exam! Jokes aside, this was an amazing CTF, where we put into test our abilities to adapt and find ways through new environments.&lt;/p&gt;
 
-&lt;p&gt;I hope you liked this write-up and learned something now. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
@@ -373,7 +373,7 @@ SecureStringBypass
 
 &lt;p&gt;We were able to solve this challenge because we found a command injection (thanks to our level 1 solution), followed by the conversion from secure string to binary string.&lt;/p&gt;
 
-&lt;p&gt;I hope you liked this write-up and learned something now. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 

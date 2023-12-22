@@ -147,7 +147,7 @@ And there we have it. Our flag!
 
 In this CTF we learned more about R programming language and how a cheater might do anything to circumvent system security to pass an exam! Jokes aside, this was an amazing CTF, where we put into test our abilities to adapt and find ways through new environments.
 
-I hope you liked this write-up and learned something now. As always, don't forget to do your **research!**
+I hope you liked this write-up and learned something new. As always, don't forget to do your **research!**
 
 
 

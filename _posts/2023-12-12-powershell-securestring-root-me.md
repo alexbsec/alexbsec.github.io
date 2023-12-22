@@ -211,7 +211,7 @@ In this CTF, we understood how secure strings work in powershell. We learned how
 
 We were able to solve this challenge because we found a command injection (thanks to our level 1 solution), followed by the conversion from secure string to binary string. 
 
-I hope you liked this write-up and learned something now. As always, don't forget to do your **research!**
+I hope you liked this write-up and learned something new. As always, don't forget to do your **research!**
 
 
 
