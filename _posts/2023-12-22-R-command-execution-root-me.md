@@ -150,7 +150,6 @@ In this CTF we learned more about R programming language and how a cheater might
 I hope you liked this write-up and learned something new. As always, don't forget to do your **research!**
 
 
-
 <a href="/">Go back</a>
 
 
