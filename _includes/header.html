@@ -7,9 +7,9 @@
           <img src="{{ '/assets/cecil.gif' | prepend: site.baseurl | replace: '//', '/' }}" alt="Cecil Daemon" style="margin-right: 20px;"/>
           {% assign owner_first_name = site.owner | split: " " %}
           {% if page.url == "/" %}
-          <h1>cecil@celestial:~$</h1>
+          <h1>cecil@celestial:~ $</h1>
       {% else %}
-          <h1>cecil@celestial:{{ page.url }}$</h1>
+          <h1>cecil@celestial:{{ page.url }} $</h1>
       {% endif %}
       </a>
   </div>

