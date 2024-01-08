@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>flag - pwnable.kr</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>flag - pwnable.kr | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="flag - pwnable.kr" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/flag-pwnable" />
+<meta property="og:url" content="http://localhost:4000/flag-pwnable" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-01-08T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="flag - pwnable.kr" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://ashishchaudhary.in/hacker-blog"},"dateModified":"2024-01-08T00:00:00+00:00","datePublished":"2024-01-08T00:00:00+00:00","description":"Introduction","headline":"flag - pwnable.kr","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/flag-pwnable"},"url":"http://localhost:4000/flag-pwnable"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/flag-pwnable $</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>flag - pwnable.kr</h2>
+  <time datetime="2024-01-08T00:00:00+00:00" class="by-line">08 Jan 2024</time>
+  <p>Estimated read time: 3 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>Ahoy, brave CTF adventurers! Today we are going to be dropping Pupa’s card by solving the “flag” CTF at <a href="https://pwnable.kr">pwnable</a>.  Without further ado, let’s see what this challenge is about!</p>
+
+<h1 id="challenge-description"><a href="#level-description"></a>Challenge description</h1>
+
+<p>The challenge description is:</p>
+
+<blockquote>
+  <p>Papa brought me a packed present! let’s open it.</p>
+
+  <p>Download : <a href="http://pwnable.kr/bin/flag">http://pwnable.kr/bin/flag</a></p>
+
+  <p>This is reversing task. all you need is binary</p>
+
+</blockquote>
+
+<p>This challenge seems to be only a reverse engineering task, without any source code. What to expect from it?</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>Let’s sharpen up our mindset. Since we don’t have any other information about the challenge, we will need to do a little recon first, by analyzing the binary with GDB. Then, if the flag is inside the binary, we just need to find its address and use <code class="language-plaintext highlighter-rouge">x/1s &lt;address&gt;</code> to retrieve it in strings format.</p>
+
+<h2 id="examining-the-binary"><a href="#examining-binary"></a>Examining the binary</h2>
+<p>Once we download the binary, we need to run <code class="language-plaintext highlighter-rouge">chmod +x flag</code>, then we can use GDB to examine it:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>gdb ./flag
+...
+Reading symbols from ./flag...
+<span class="o">(</span>No debugging symbols found <span class="k">in</span> ./flag<span class="o">)</span>
+<span class="o">(</span>gdb<span class="o">)</span>
+</code></pre></div></div>
+
+<p>Ok, that is problematic… We have no symbols, so there is no way we can disassemble it with GDB. Let’s exit and use other tricks to understand why the symbols are missing. We can analyze it with <code class="language-plaintext highlighter-rouge">strings</code> command:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>strings flag
+<span class="o">[</span>...snip...]
+USQRH
+PROT_EXEC|PROT_WRITE failed.
+<span class="nv">$Info</span>: This file is packed with the UPX executable packer http://upx.sf.net <span class="err">$</span>
+<span class="nv">$Id</span>: UPX 3.08 Copyright <span class="o">(</span>C<span class="o">)</span> 1996-2011 the UPX Team. All Rights Reserved. <span class="err">$</span>
+<span class="o">[</span>...snip...]
+</code></pre></div></div>
+
+<p>Note that from the huge output we get, this line stands up, showing the file is packed with UPX packer. Alright, this might be the reason why the symbols are missing. Packed files have their symbols stripped, and the only way to read them is by unpacking it.</p>
+
+<p>After a quick research, we find <a href="https://linux.die.net/man/1/upx">this</a> article about the <code class="language-plaintext highlighter-rouge">upx</code> Linux command. This command can be used to unpack executable UPX files, which seems to be our case. We can try using the following command to unpack the file:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>upx <span class="nt">-d</span> flag
+</code></pre></div></div>
+
+<p>This should unpack the <code class="language-plaintext highlighter-rouge">flag</code> binary and restore the missing symbols. After unpacking, we can analyze the binary again using <code class="language-plaintext highlighter-rouge">file</code> command to see if the symbols are stripped:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>file flag
+flag: ELF 64-bit LSB executable, x86-64, version 1 <span class="o">(</span>GNU/Linux<span class="o">)</span>, statically linked, <span class="k">for </span>GNU/Linux 2.6.24, BuildID[sha1]<span class="o">=</span>96ec4cc272aeb383bd9ed26c0d4ac0eb5db41b16, not stripped
+</code></pre></div></div>
+
+<p>As we can see, the file is not stripped and we can read its symbols! With a little help of GDB, we can disassemble the main function:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>gdb<span class="o">)</span> disassemble main
+Dump of assembler code <span class="k">for function </span>main:
+   0x0000000000401164 &lt;+0&gt;:     push   %rbp
+   0x0000000000401165 &lt;+1&gt;:     mov    %rsp,%rbp
+   0x0000000000401168 &lt;+4&gt;:     sub    <span class="nv">$0x10</span>,%rsp
+   0x000000000040116c &lt;+8&gt;:     mov    <span class="nv">$0x496658</span>,%edi
+   0x0000000000401171 &lt;+13&gt;:    call   0x402080 &lt;puts&gt;
+   0x0000000000401176 &lt;+18&gt;:    mov    <span class="nv">$0x64</span>,%edi
+   0x000000000040117b &lt;+23&gt;:    call   0x4099d0 &lt;malloc&gt;
+   0x0000000000401180 &lt;+28&gt;:    mov    %rax,-0x8<span class="o">(</span>%rbp<span class="o">)</span>
+   0x0000000000401184 &lt;+32&gt;:    mov    0x2c0ee5<span class="o">(</span>%rip<span class="o">)</span>,%rdx        <span class="c"># 0x6c2070 &lt;flag&gt;                                                                       </span>
+   0x000000000040118b &lt;+39&gt;:    mov    <span class="nt">-0x8</span><span class="o">(</span>%rbp<span class="o">)</span>,%rax
+   0x000000000040118f &lt;+43&gt;:    mov    %rdx,%rsi
+   0x0000000000401192 &lt;+46&gt;:    mov    %rax,%rdi
+   0x0000000000401195 &lt;+49&gt;:    call   0x400320
+   0x000000000040119a &lt;+54&gt;:    mov    <span class="nv">$0x0</span>,%eax
+   0x000000000040119f &lt;+59&gt;:    leave
+   0x00000000004011a0 &lt;+60&gt;:    ret
+End of assembler dump.
+</code></pre></div></div>
+
+<p>Aha! As we can see, there is an address which the flag is stored: <code class="language-plaintext highlighter-rouge">0x6c2070</code>.</p>
+
+<h2 id="solving"><a href="#solving"></a>Solving!</h2>
+
+<p>Now we can just use <code class="language-plaintext highlighter-rouge">x/1s *0x6c2070</code> to see the contents allocated in this address:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>gdb<span class="o">)</span> x/1s <span class="k">*</span>0x6c2070
+0x496628:       <span class="s2">"UPX...? sounds like a delivery service :)"</span>
+</code></pre></div></div>
+
+<p>And there is our flag (:</p>
+
+<h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
+<p>This was a very simple CTF challenge. By unpacking the packed binary file using the <code class="language-plaintext highlighter-rouge">upx</code> command, we were able to restore the missing symbols and read them with GDB. After analyzing the binary, we discovered the address where the flag was stored and used <code class="language-plaintext highlighter-rouge">x/1s</code> command to retrieve the flag: <code class="language-plaintext highlighter-rouge">UPX...? sounds like a delivery service :)</code></p>
+
+<p>Enjoy your Pupa card! I heard it gives 400 base HP, so it’s very good for super novice class!</p>
+
+<p><img src="../figs/pupa.png" alg="pupa card" /></p>
+
+<p>I hope you liked this write-up and learned something new. As always, don’t forget to do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2024</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>
