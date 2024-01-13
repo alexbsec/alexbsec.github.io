@@ -314,7 +314,7 @@ ls -la test-file
 Success! As we can access files created by 'augustus', we have the potential to gain root access. This can be achieved by copying the /bin/bash binary to /home/augustus inside the host machine, setting its SUID bit and onwership to root in the container, and then executing it in the 'augustus' user. This method is likely to grant us root access on the host machine. 
 
 
-## [](#solving)Solving!
+## [](#solving) Getting root
 
 Let's try it out! First, we run:
 
