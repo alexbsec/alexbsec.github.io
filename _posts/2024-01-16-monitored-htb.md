@@ -79,7 +79,7 @@ we need to add the line `<machine-ip> nagios.monitored.htb` to `/etc/hosts`. Aft
 
 If we click on "Access Nagios", we will be brought to a login page, at `/nagiosxi/login.php`. I've tried to brute-force it and
 send send SQL injection payloads, but with no success. We know that this service is called Nagios XI, so my next step was to
-look for common vulnerabilities revolving around this service. Upon a quick search, we find [this](https://outpost24.com/blog/nagios-xi-vulnerabilities/) blog about Nagios XI CVEs. One that stands out to me is the first one, CVE-2023-40931. It reads:
+look for common vulnerabilities revolving around it. Upon a quick search, we find [this](https://outpost24.com/blog/nagios-xi-vulnerabilities/) blog about Nagios XI CVEs. One that stands out to me is the first one, CVE-2023-40931. It reads:
 
 > Nagios XI features “Announcement Banners”, which can optionally be acknowledged by users. The endpoint for this feature is vulnerable to a SQL Injection attack.
 >
