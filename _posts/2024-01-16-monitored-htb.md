@@ -279,13 +279,13 @@ bugs                    [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 24
 [...snip...]
 ```
 
-All of them giving a 200 status code indicates the server is just sending us some messages about the request. We need more info about the messages the server is sending back to us. For that, let's run `ffuf` in silent mode and redirect the output to `api-endpoints.txt`.
+All of them giving a 200 status code indicates the server is just sending us some messages about the request. We need more info about these messages. For that, let's run `ffuf` in silent mode and redirect the output to `api-endpoints.txt`.
 
 ```bash
 $ ffuf -u https://nagios.monitored.htb/nagiosxi/api/v1/FUZZ -w /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt -s > api-endpoints.txt
 ```
 
- Note that most of the messages are: `Message {"error":"No API Key provided"}`.That being noted, we will write a python script to see if there is any other messages within these:
+ Note that most of the messages are: `Message {"error":"No API Key provided"}`. That being noted, we will write a python script to see if there is any other messages:
 
 ```python
 import requests
