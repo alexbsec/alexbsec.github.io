@@ -539,7 +539,7 @@ drwxr-xr-x 8 root   root      4096 Nov  9 10:40 ..
 This means that we could erase the contents of `npcd` binary and replace it with a reverse shell. If this succeeds, we might get root.
 
 
-## [](#solving) Getting root
+## [](#solving) Step 4 - Privilege escalation
 
 Let's try it out! First, we need to stop the service in order to be able to alter the file's content:
 
