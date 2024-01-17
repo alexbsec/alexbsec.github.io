@@ -330,7 +330,7 @@ Message {"error":"You can only use POST with authenticate."}
 ```
 
 We note an authentication endpoint present that does not require an API key. After a bit of research, I've found [this](https://support.nagios.com/forum/viewtopic.php?f=16&t=58783) topic on this endpoint, where it states that we can authenticate via cURL using 
-`curl -XPOST -k -L 'http://YOURXISERVER/nagiosxi/api/v1/authenticate?pretty=1' -d 'username=nagiosadmin&password=YOURPASS&valid_min=5'`. We can try to authenticate and retrieve an API key with the credentials we found using snmpwalk:
+`curl -XPOST -k -L 'http://YOURXISERVER/nagiosxi/api/v1/authenticate?pretty=1' -d 'username=nagiosadmin&password=YOURPASS&valid_min=5'`. We can try to authenticate with the credentials we found using snmpwalk:
 
 ```bash
 $ curl -XPOST -k -L 'https://nagios.monitored.htb/nagiosxi/api/v1/authenticate?pretty=1' -d 'username=svc&password=XjH7VCehowpR1xZB&valid_min=1000'
