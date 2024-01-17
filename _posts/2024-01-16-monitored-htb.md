@@ -343,7 +343,7 @@ $ curl -XPOST -k -L 'https://nagios.monitored.htb/nagiosxi/api/v1/authenticate?p
 }
 ```
 
-And we have our API token! Now, we can attempt to abuse CVE-2023-40931 and try to retrieve the administrator's password or other sensitive information. Taking a look at the CVE, we see that the affected endpoint is `/nagiosxi/admin/banner_message-ajaxhelper.php` and we must send a POST request. With BurpSuite, this becomes easy:
+From this, we got an auth_token, which might be more than enough to test and abuse CVE-2023-40931. Taking a look at the CVE, we see that the affected endpoint is `/nagiosxi/admin/banner_message-ajaxhelper.php` and we must send a POST request. With BurpSuite, this becomes easy:
 
 <img src="../figs/monitored5.png" alt="SQLi endpoint request">
 
