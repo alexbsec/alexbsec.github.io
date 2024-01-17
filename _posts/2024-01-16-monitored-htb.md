@@ -194,7 +194,7 @@ HOST-RESOURCES-MIB::hrSWRunParameters.1382 = STRING: "-u svc /bin/bash -c /opt/s
 ```
 
 We can see that the STRING parameter seems to be setting a user `svc` to run the command `check_host.sh` passing the username `svc` and what it seems to be a password `XjH7VCehowpR1xZB`. We can try to login with these credentials at `/nagiosxi/login.php` 
-web service endpoint, but this will give
+web service endpoint, but that won't work:
 
 <img src="../figs/monitored3.png" alt="failed login attempt">
 
