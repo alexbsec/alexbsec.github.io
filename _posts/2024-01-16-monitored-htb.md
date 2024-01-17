@@ -318,7 +318,7 @@ if __name__ == '__main__':
     main(argv[1:])
 ```
 
-We are filtering it out any messages that contain `No API Key provided` string and printing the ones with a different message.
+We are filtering it out any messages that contain `No API Key provided` string and printing the ones with a different message. Running the script yields:
 
 ```bash
 $ python fetch-req-msg.py https://nagios.monitored.htb/nagiosxi/api/v1/ api-endpoints.txt 
