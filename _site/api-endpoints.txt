@@ -165,3 +165,11 @@ v3
 v6
 v5
 view
+v7
+v8
+validate
+vulnerabilities
+v9
+verify
+authenticate
+widget
